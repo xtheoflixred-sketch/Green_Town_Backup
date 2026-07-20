@@ -1,0 +1,198 @@
+.team-members {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.page-header-about {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 30px 0;
+    margin-bottom: 30px;
+    border-bottom: 2px solid rgba(200, 200, 200, 0.2);
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        width: 100%;
+    }
+
+    .server-logo-icon {
+        width: 87px;
+        height: 77px;
+        flex-shrink: 0;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    .header-text {
+        flex-grow: 1;
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .header-subtitle {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #666;
+            font-weight: 300;
+        }
+    }
+
+    @media (max-width: 576px) {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+        padding: 20px 0;
+
+        .header-content {
+            flex-direction: column;
+        }
+
+        .server-logo-icon {
+            width: 50px;
+            height: 50px;
+        }
+
+        .header-text h1 {
+            font-size: 1.6rem;
+        }
+
+        .header-text .header-subtitle {
+            font-size: 1rem;
+        }
+    }
+}
+
+.team-member {
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+
+    .team-avatar {
+        background: #222222;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0,0,0,.5);
+        position: relative;
+        width: 160px;
+        height: 160px;
+        margin-bottom: .75rem;
+    }
+
+    .avatar-pony {
+        position: absolute;
+        left: 10%;
+        transform: translateX(-33%);
+        bottom: 0;
+        height: 106px;
+        width: 127px;
+        overflow: hidden;
+        border-radius: 12px;
+
+        character-preview {
+            position: absolute;
+            bottom: 0;
+            left: 33%;
+            transform: translateX(-33%);
+
+            canvas {
+                border-radius: 6px;
+            }
+        }
+    }
+
+    @media (max-width: 360px) {
+        /* Показываем участников на очень маленьких экранах
+           без изменения размеров аватаров — они остаются 160x160. */
+        display: flex;
+    }
+
+    &.team {
+        .team-avatar {
+            border: solid 3px #c9c9c9b7;
+        }
+    }
+
+    .text-container {
+        margin-top: 2px;
+        width: 100%;
+    }
+
+    b {
+        display: block;
+        white-space: nowrap;
+        margin: 0 auto;
+    }
+
+    .text-muted {
+        font-size: 14px;
+        margin-top: 5px;
+        display: block;
+    }
+}
+
+/* ==== FIX LINKS ==== */
+
+.name-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.name-links b {
+    margin: 0;
+}
+
+site-links {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+site-links a {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 !important;
+    padding: 0;
+}
+
+/* ==== UPDATE BLOCK ==== */
+
+.update-about {
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.image-box {
+    height: 200px;
+    width: 100%;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+    background-size: cover;
+    background-position: center;
+}
+
+.about-text {
+    color: #9c9c9c;
+    font-size: .95rem;
+
+    p {
+        margin: 0;
+        margin-bottom: .5rem;
+    }
+}

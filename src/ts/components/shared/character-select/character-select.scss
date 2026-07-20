@@ -1,0 +1,45 @@
+@import '../../../../styles/partials/variables';
+
+.character-select {
+	max-width: 400px;
+	margin: auto;
+	z-index: 200;
+	position: relative; /* allow overlaying controls */
+}
+
+character-list {
+	@include media-breakpoint-down(sm) {
+		left: auto;
+		right: 0;
+	}
+}
+
+/* Normal append area for control buttons */
+.input-group-append {
+	display: flex;
+	align-items: stretch;
+	flex-shrink: 0;
+}
+
+.character-emoji-wrap {
+	position: relative;
+	display: flex;
+	flex-shrink: 0;
+}
+
+.character-emoji-button {
+	flex-shrink: 0;
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+.character-emoji-wrap .emoji-dropdown {
+	position: absolute;
+	top: calc(100% + 6px);
+	right: 0;
+	left: auto;
+	z-index: 300;
+	pointer-events: auto;
+	--emoji-picker-top: -3px;
+}
+

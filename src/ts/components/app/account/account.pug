@@ -1,0 +1,192 @@
+h1(focusTitle) Account settings
+
+.row.text-large
+	.col-md-6
+		form(name="form" (submit)="submit()" style="max-width: 400px; margin-bottom: 100px")
+			.form-group
+				h3 Account details
+			.form-group
+				label(for="account-name") Account Name
+				input#account-name.form-control(
+					type="text" name="name" [(ngModel)]="data.name" required [maxlength]="nameMaxLength")
+				small.form-text.text-warning This name will be visible to other players
+			.form-group
+				label(for="birthdate")
+					| Date of birth. You must be over 18 years old to play.
+					fa-icon.ml-1.text-danger(*ngIf="showAccountAlert" [icon]="alertIcon" title="Missing field value")
+				date-picker([(date)]="data.birthdate")
+			.form-group(*ngIf="accountError")
+				.alert.alert-danger
+					| {{accountError}}
+			.form-group(*ngIf="accountSaved")
+				.alert.alert-success
+					| Changes saved
+			.form-group.text-right
+				button.btn.btn-default(type="submit" [disabled]="!canSubmit" style="min-width: 100px;")
+					| {{saveButtonText}}
+
+
+		ng-template(#copyTooltip)
+			.text-left
+				p {{ idCopied ? 'Your ID Copied!' : 'Copy' }}
+		div(style="margin-bottom: 100px;")
+			.form-group
+				h3.mb-3(style="color: #fff;") Account info
+				div.account-info-block
+					.mb-2(style="color: #9c9c9c;")
+						strong Account ID:
+						code {{account?.id || '-'}}
+						a.icon-button.ml-2.cursor-pointer(*ngIf="account?.id" (click)="copyId(account!.id)" [tooltip]="copyTooltip" placement="top" containerClass="tooltip-desc" aria-label="Copy account id")
+							fa-icon([icon]="idCopied ? checkIcon : copyIcon" size="xs" [ngClass]="idCopied ? 'text-success' : ''")
+					.mb-2(style="color: #9c9c9c;")
+						strong Creation date: 
+						| {{account?.creationDate || '-'}}
+					.mb-2(style="color: #9c9c9c;")
+					strong(style="color: #9c9c9c;") Total playtime: #[span.ml-1 {{ displayPlaytime }}]
+			.form-group
+				p.text-muted.
+					If you remove social account, you won't be able to use it to sign-in to the game anymore.
+
+			.form-group
+				ul.list-unstyled
+					li.hover-item.p-2.d-flex.justify-content-between.align-items-center(*ngFor="let s of sites")
+						a.site-link.text-decoration-none((click)="toggleSocialExpanded(s.id)" style="cursor: pointer; flex-grow: 1;")
+							fa-icon.mr-2([icon]="getSocialIcon(s.icon)" [fixedWidth]="true")
+							a.social-link-text(*ngIf="!isSocialExpanded(s.id)" href="javascript:void(0)") Connected social account
+							a.social-link-text(*ngIf="isSocialExpanded(s.id)" (click)="copySocialName(s.name, s.id); $event.stopPropagation()" href="javascript:void(0)" [title]="'Copy ' + s.name")
+								span {{s.name}}
+								fa-icon.ml-1([icon]="isSocialNameCopied(s.id) ? checkIcon : copyIcon" [fixedWidth]="true" [ngClass]="isSocialNameCopied(s.id) ? 'text-success' : ''")
+						div
+							button.btn.btn-sm.btn-default.mr-2(title="Update name")
+								fa-icon([icon]="refreshIcon" [fixedWidth]="true")
+							button.btn.btn-sm.btn-danger(*ngIf="sites.length > 1" (click)="removeSite(s)" [disabled]="removingSite" title="Remove")
+								fa-icon([icon]="alertIcon" [fixedWidth]="true")
+
+			.form-group
+				p.text-danger.
+					Please do NOT connect any social sites that #[b do not belong to you!]
+					Connecting social sites belonging to other people may result in unexpected account merge
+					and loss of one or both accounts.
+				p.text-danger.
+					Please contact our support email if you accidentally merge your account with someone else.
+				.dropdown(dropdown)
+					button.btn.btn-default.dropdown-toggle(dropdownToggle)
+						| connect another social site to this account
+					.dropdown-menu(*dropdownMenu)
+						button.dropdown-item(*ngFor="let p of providers" (click)="connectSite(p)")
+							fa-icon.mr-1([icon]="icon(p.id)" [fixedWidth]="true")
+							| #[span.sr-only {{p.name}}] {{p.name}}
+
+			.form-group(*ngIf="mergeError")
+				.alert.alert-danger
+					| {{mergeError}}
+
+			.form-group(*ngIf="authError")
+				.alert.alert-danger
+					| {{authError}}
+
+			.form-group(*ngIf="mergedAccount")
+				.alert.alert-success
+					| Account connected successfully
+
+			.form-group(*ngIf="removedAccount")
+				.alert.alert-success
+					| Account removed successfully
+
+	.col-md-6
+		div(style="margin-bottom: 100px;")
+			.clearfix.account-supporter-section(*ngIf="showSupporter")
+				.form-group
+					h3.mb-3(style="color: #fff;")
+						fa-icon.mr-2([icon]="starIcon" [ngClass]="supporterClass")
+						| {{ isPastSupporter ? 'Past supporter' : 'Thank you for your support' }}
+
+					div.supporter-pony.float-right(*ngIf="supporterPonyInfo" (mouseenter)="supporterPony.select()" (mouseout)="supporterPony.reset()")
+						team-pony(#supporterPony [pony]="supporterPonyInfo" [name]="supporterPonyName" [tag]="supporterPonyTag" [showName]="false" [showTag]="showSupporterTag" [noShadow]="false" [topOffset]="10" [scale]="3")
+					div.account-info-block
+						ng-container(*ngIf="!isPastSupporter; else pastSupporterText")
+							p Your reward tier: #[b {{supporterTitle}}]
+							p Your rewards include:
+							ul
+								li(*ngFor="let r of supporterRewards") {{r}}
+
+							p.text-muted(*ngIf="supporter > 0")
+								| Use 
+								code([ngClass]="supporterClass") /ss hello
+								|  to send a message with your current supporter tier color.
+
+							p.text-muted(*ngIf="supporter > 1")
+								| Use 
+								code([ngClass]="commandClass(1)") /s1 hello
+								|  · 
+								code([ngClass]="commandClass(2)") /s2 hello
+								|  to use lower tier supporter chat colors when needed.
+
+							p.text-muted(*ngIf="supporter > 2")
+								| Use 
+								code([ngClass]="commandClass(3)") /s3 hello
+								|  to post with the tier 3 supporter chat color.
+
+							p.text-muted(*ngIf="supporter > 3")
+								| Use 
+								code([ngClass]="commandClass(4)") /s4 hello
+								|  to post with the tier 4 supporter chat color.
+
+						ng-template(#pastSupporterText)
+							p Thanks for supporting us!
+							p
+								| By now your supporter status has expired. If your Patreon subscription is still active but you no longer receive game benefits,
+								|  please contact support and we'll help you figure it out.
+
+			.clearfix.account-supporter-section(*ngIf="showSupporterInfo")
+				.form-group
+					h3.mb-3(style="color: #fff;") Supporter info
+
+					div.account-info-block
+						p.
+							You've successfully connected your Patreon account to Pony Town.
+							If you support Pony Town on Patreon your supporter info will show up here.
+						p.
+							It should take no longer than 10 minutes to register your Patreon pledges.
+
+		div(style="margin-bottom: 100px;")
+			.form-group
+				.float-right
+					span.text-muted Page: {{page + 1}}
+					button.btn.btn-sm.btn-outline-secondary.ml-2((click)="page = page - 1; pageChanged()" [disabled]="!hides || page === 0")
+						| Previous page
+					button.btn.btn-sm.btn-outline-secondary.ml-1((click)="page = page + 1; pageChanged()" [disabled]="!hides || hides.length < hidesPerPage")
+						| Next page
+				h3 Blocked  players
+
+			div(*ngIf="!hides")
+				.text-muted.text-center.p-4 loading...
+
+			ul.list-unstyled(*ngIf="hides")
+				.text-muted.text-center.p-4(*ngIf="!hides.length") no blocked  players
+				li.hover-item.p-2(*ngFor="let h of hides")
+					div.d-flex.align-items-center
+						b.flex-grow-1 {{h.name}}
+						small.text-muted.ms-1.me-2
+							b fully hidden
+							|  {{h.date}}
+						button.btn.btn-sm.btn-danger.tall-button((click)="unhidePlayer(h)")
+							| unblock this
+					div.mt-2.small.text-muted
+						| Hidden mode: permanent until you remove it. This is the current account option available for your profile.
+
+		div(style="margin-bottom: 100px;")
+			.form-group
+				h3.mb-3(style="color: #fff;") Devices & sessions
+			div.account-info-block
+				div.session-row(*ngFor="let entry of sessionEntries")
+					fa-icon.session-icon([icon]="getSessionIcon(entry)" [fixedWidth]="true")
+					div
+						b {{ entry.title }}
+						div.text-muted {{ entry.subtitle }}
+						div.mt-1 {{ entry.detail }}
+					div.mt-2
+						div.small.text-muted
+							| Location: {{ entry.location }}
+						div.small.text-muted
+							| Status: {{ entry.authoritative ? 'Verified session' : 'Pending verification' }}

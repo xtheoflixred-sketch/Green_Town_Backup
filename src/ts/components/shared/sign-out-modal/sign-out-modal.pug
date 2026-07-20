@@ -1,0 +1,36 @@
+.modal-header
+	h4.modal-title Are you sure you want to sign out?
+
+.modal-body.sign-out-modal-body
+
+	.sign-out-modal-info
+
+		.sign-out-modal-warning-box
+			fa-icon([icon]="warningIcon")
+			p.sign-out-modal-warning
+				| You will be returned to the sign-in screen.
+
+		.alert.alert-danger.mt-3.mb-0(*ngIf="signOutError")
+			| {{ signOutError }}
+
+	.preview-card
+
+		.sign-out-preview-center
+			portrait-box(*ngIf="pony" [pony]="pony" size="medium" [noBorder]="true")
+			.sign-out-preview-placeholder(*ngIf="!pony")
+				span Pony Preview
+
+		.sign-out-session-info
+			.session-row
+				span.label Last login:
+				span.value {{ lastLogin || 'not recorded yet' }}
+			.session-row
+				span.label Last logout:
+				span.value {{ lastLogout || 'not recorded yet' }}
+
+
+.modal-footer
+	button.btn.btn-outline-secondary(type="button" (click)="closeModal()" [disabled]="signOutLoading") Close
+	button.btn.btn-outline-danger(type="button" (click)="confirmSignOut()" [disabled]="signOutLoading")
+		fa-icon.icon-gap([icon]="signOutLoading ? spinnerIcon : signOutIcon" [spin]="signOutLoading")
+		| {{ signOutLoading ? 'Loading...' : 'Sign out' }}

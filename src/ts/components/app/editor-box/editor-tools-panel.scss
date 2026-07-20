@@ -1,0 +1,16 @@
+.editor-tools-panel {
+  width: 100%;
+}
+
+.editor-tools-panel .btn {
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.5rem;
+}
+
+.editor-tools-panel .badge {
+  margin-left: 0.25rem;
+}

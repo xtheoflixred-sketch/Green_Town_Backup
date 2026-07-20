@@ -1,0 +1,40 @@
+ng-template(#template)
+    .modal-header
+        h4.modal-title
+            fa-icon([icon]="megaphoneIcon" [fixedWidth]="true")
+            | Global announcement
+
+    .modal-body
+        .alert-body-scroll
+            tabset(type="pills" [(activeIndex)]="activeIndex")
+                tab(title="Create announcement")
+                div(*tabContent)
+                    .form-group.mb-2
+                        button.btn.btn-sm.btn-primary(type="button" (click)="addEntry()")
+                            | Add announcement
+                        div.text-muted.mt-1
+                            | Add one or more announcement entries below.
+                    .alert-board
+                        .alert-entry-card.alert-card-announcement(*ngFor="let entry of entries; let i = index")
+                            .alert-entry-header.d-flex.justify-content-between.align-items-center
+                                strong.mb-0 Announcement {{i + 1}}
+                                button.btn.btn-xs.btn-danger(type="button" (click)="removeEntry(i)" [disabled]="entries.length === 1") Remove
+                            .alert-entry-controls.row.mt-2
+                                .col-12
+                                    label.mb-1 Message
+                                    textarea.form-control(rows="3" [(ngModel)]="entry.message" placeholder="Write announcement text here")
+                tab(title="Preview announcement")
+                div(*tabContent)
+                    div.alert-preview-info.mb-3
+                        | Preview how the announcement will look once sent.
+                    .alert-preview-card(*ngFor="let entry of entries")
+                        .alert.alert-announcement.d-flex.align-items-center(role="alert")
+                            fa-icon.mr-2([icon]="megaphoneIcon" size="2x")
+                            span.flex-grow-1
+                                strong.text-uppercase Announcement:
+                                |  {{entry.message || 'No announcement text entered.'}}
+
+    .modal-footer.d-flex
+        .flex-grow-1
+        button.btn.btn-wide.btn-outline-secondary(type="button" (click)="cancel()") Cancel
+        button.btn.btn-wide.btn-primary.ml-2(type="button" (click)="confirm()" [disabled]="!canConfirm()") Send

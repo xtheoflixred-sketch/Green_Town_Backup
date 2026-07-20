@@ -1,0 +1,56 @@
+.mock-login-modal-backdrop([class.show]="show")
+  .mock-login-modal([class.show]="show")
+
+    .modal-header.d-sm-block
+      h4.modal-title.d-flex.justify-content-between.w-100
+        | Mock Login
+        button.px-2(type='button' aria-label='Close' (click)='onClose()')
+          span(aria-hidden='true') ×
+
+    .modal-body.text-large
+      .mock-login-controls.d-flex.align-items-center.mb-1
+        .input-group.flex-grow-0
+          input.form-control(type="search" placeholder="Search accounts" [(ngModel)]="search" (input)="updateAccounts()")
+        .btn-group
+          button.btn.btn-outline-secondary(type="button" [class.active]="sortMode==='activity'" (click)="setSortMode('activity')") Recent
+          button.btn.btn-outline-secondary(type="button" [class.active]="sortMode==='name'" (click)="setSortMode('name')") A.z
+
+      .accounts-list
+        .accounts-list-alert
+          .info-alert-green
+            fa-icon([icon]="userPlusIcon")
+            .info-alert-copy
+              p.info-alert-title Create a no-social mock account
+              p.info-alert-text This account will be created without social login. Use the button to open the create account form.
+            button.btn.btn-info(type="button" (click)="openCreateAccount()") Create account (no social)
+        hr
+
+        ul
+          li(
+            *ngFor="let acc of filteredAccounts",
+            [class.selected]="selectedId === acc.id",
+            (click)="select(acc.id)"
+          )
+            portrait-box([pony]="getPonyInfo(acc.ponyInfo)" size="small" [noBorder]="true")
+
+            .account-info
+              .account-name {{ acc.name }}
+              .account-id {{ acc.id }}
+              .account-last-visit(*ngIf="acc.lastVisit") Last active: {{ acc.lastVisit | date:'short' }}
+              .account-last-visit(*ngIf="!acc.lastVisit") No recent activity
+
+            .selection-indicator
+
+        .text-muted.text-center.p-3(*ngIf="!filteredAccounts.length")
+          | No accounts found. Create a new account.
+
+    mock-login-create-modal(
+      [show]="showCreateForm"
+      (close)="closeCreateAccount()"
+      (created)="onAccountCreated($event)"
+    )
+
+    .modal-footer.d-flex
+      .flex-grow-1
+      button.btn.btn-outline-secondary(type="button" (click)="onClose()") Cancel
+      button.btn.btn-success(type="button" (click)="submit()" [disabled]="!selectedId") Login

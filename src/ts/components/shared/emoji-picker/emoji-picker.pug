@@ -1,0 +1,43 @@
+.emoji-picker-box(
+	*ngIf="renderedDisplay"
+	#pickerBox
+	[class.emoji-picker-box-bottom-left]="resizeCorner === 'bottom-left'"
+	[class.emoji-picker-box-top-left]="resizeCorner === 'top-left'"
+	[class.emoji-picker-box-over-limit]="isOverLimit"
+	[style.--emoji-physics-offset-x.px]="physicsOffsetX"
+	[style.--emoji-physics-offset-y.px]="physicsOffsetY"
+	[style.--emoji-physics-stretch-x]="physicsStretchX"
+	[style.--emoji-physics-stretch-y]="physicsStretchY"
+	[style.min-width.px]="pickerMinWidth"
+	[style.min-height.px]="pickerMinHeight"
+	[style.width.px]="pickerWidth"
+	[style.height.px]="pickerHeight"
+	[style.top.px]="pickerTop")
+	.search
+		input.form-control(
+			type="search"
+			placeholder="Search..."
+			[(ngModel)]="searchQuery"
+			(input)="onSearchChange(searchQuery)"
+		)
+
+	.emoji-picker-scroll-container(#scrollContainer)
+		.emoji-picker-scrollbar.scroll.tThin.unselectable
+			.emoji-picker-content
+				div(*ngFor="let category of filteredCategories")
+					p {{ category.name }}
+					.emoji-picker-list
+							button.pixelart(
+								*ngFor="let emote of category.emotes"
+								(click)="selectEmoji(emote)"
+								(mouseenter)="onMouseEnterEmojiButton($event)"
+								[title]="':' + emote.names[0] + ':'"
+								[attr.aria-label]="emote.names[0]"
+							)
+								emote-box([emote]="emote.names[0]" [square]="true" class="pixelart")
+
+	.emoji-picker-resize-handle(
+		[class.emoji-picker-resize-bottom-left]="resizeCorner === 'bottom-left'"
+		[class.emoji-picker-resize-top-left]="resizeCorner === 'top-left'"
+		(agDrag)="dragResize($event)")
+

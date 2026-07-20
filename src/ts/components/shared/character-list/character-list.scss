@@ -1,0 +1,343 @@
+@import '../../../../styles/partials/variables';
+
+$character-list-width: 300px;
+$character-list-max-width: calc(100vw - 70px);
+$character-list-item-height: 48px;
+$character-list-item-padding: 6px 10px;
+$character-list-selected-border: $text-muted;
+$character-list-selected-bg: $nav-tabs-link-active-color;
+
+.character-list {
+	width: $character-list-width;
+	max-width: $character-list-max-width;
+}
+
+.character-list.in-game {
+	max-width: calc(100vw - 90px);
+}
+
+.character-select-search {
+	height: 30px;
+	padding: 0 5px;
+	display: flex;
+	position: relative;
+
+	&.has-supporter-icon {
+		> .form-control {
+			padding-left: 28px;
+		}
+	}
+
+	.search-supporter-icon {
+		position: absolute;
+		left: 14px;
+		top: 3px;
+		bottom: 0;
+		display: flex;
+		align-items: center;
+		z-index: 6;
+		pointer-events: none;
+		font-size: 12px;
+		line-height: 1;
+	}
+
+.character-checkbox {
+	margin-right: 6px;
+	display: flex;
+	align-items: center;
+	height: 100%;
+	align-self: center;
+}
+
+	> .form-control {
+		position: relative;
+		z-index: 1;
+		background: white;
+		color: #222;
+		border-color: #eee !important;
+		border-radius: 3px !important;
+		box-shadow: none !important;
+		// width: 100%;
+
+		&:active, &:focus {
+			border-color: #ddd !important;
+		}
+	}
+
+	// always display search block here
+}
+
+.hash-button {
+	position: absolute;
+	right: 7px;
+	top: 5px;
+	font-size: 16px;
+	padding: 0 10px;
+}
+
+.supporter-badge {
+	font-size: 0.8em;
+	color: #333;
+	background: #f8f8f8;
+	border-color: #ddd;
+	border-left: 0;
+	padding: 2px 6px;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	border-radius: 3px;
+	min-width: 32px;
+	justify-content: center;
+}
+
+.supporter-info-text {
+	font-size: 0.78em;
+	color: #555;
+	margin-top: 2px;
+	margin-bottom: 4px;
+	line-height: 1.1;
+}
+
+.dropdown-item {
+	white-space: pre-line;
+}
+
+.character-select-list {
+	background: #fff;
+	padding: 0;
+	margin: 0;
+  list-style: none;
+  font-size: $font-size-base;
+  text-align: left;
+	padding-top: 1px;
+	max-height: 400px;
+	overflow-x: hidden;
+	overflow-y: auto;
+
+	> li {
+		min-height: $character-list-item-height;
+		border-bottom: 1px solid #eee;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		position: relative;
+
+		&:last-child {
+			border-bottom: none;
+		}
+
+		&.active,
+		&.selected,
+		&.selected-line {
+			background: $character-list-selected-bg;
+		}
+
+		> a.item-list-divider {
+			display: flex;
+			align-items: center;
+			width: 100%;
+			height: 100%;
+			padding: $character-list-item-padding;
+			flex: 1;
+			position: relative;
+
+			&:before {
+				content: '';
+				position: absolute;
+				left: 3px;
+				top: 6px;
+				bottom: 6px;
+				width: 4px;
+				border-radius: 999px;
+				background: transparent;
+				transition: background-color .18s ease;
+			}
+
+			> portrait-box {
+				margin-right: 6px !important;
+			}
+			font-weight: normal;
+			color: $dropdown-link-color;
+			cursor: pointer;
+			text-decoration: none;
+			overflow: hidden;
+			transition: background-color .2s, color .2s;
+
+			&:hover,
+			&:focus {
+				color: $dropdown-link-hover-color;
+				background-color: $dropdown-link-hover-bg;
+			}
+		}
+
+		&.active > a.item-list-divider:before,
+		&.selected > a.item-list-divider:before,
+		&.selected-line > a.item-list-divider:before {
+			background: $character-list-selected-border;
+		}
+
+		&:hover > a.item-list-divider:before {
+			background: rgba($character-list-selected-border, 0.45);
+		}
+	}
+
+	.character-list-searchable > & {
+		border-top: solid 1px #eee;
+		margin-top: 9px;
+	}
+}
+
+.entry-with-text {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	min-width: 0;
+	margin-right: 14px;
+}
+
+.character-name {
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	flex: 0 1 auto;
+}
+
+.char-timestamp {
+	font-size: 0.75em;
+	color: #888;
+	white-space: nowrap;
+	margin-left: 2px;
+}
+
+.character-desc {
+	font-size: smaller;
+	color: $text-muted;
+	margin-top: 2px;
+	white-space: normal;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+	max-height: 2.4em;
+}
+
+.site-icon-wrapper {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 6px;
+}
+
+.character-list-badges {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	height: 100%;
+	margin-left: auto;
+	gap: 2px;
+	min-width: 80px;
+}
+
+.character-list-badges-main {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	justify-content: center;
+	gap: 2px;
+}
+
+.character-supporter-social {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+.supporter-hidden-wrapper {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+}
+
+.supporter-hidden-slash {
+	position: absolute;
+	font-size: 0.75em;
+}
+
+.character-list-badges .badge {
+	margin: 0;
+	margin-top: 2px;
+}
+
+.character-list-badges .character-tag-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 24px;
+	height: 18px;
+	padding: 0 6px;
+	border-radius: 6px;
+
+	.fa-icon {
+		font-size: 11px;
+		line-height: 1;
+	}
+}
+
+.character-list-badges .site-icon-wrapper {
+	margin-left: 0;
+}
+
+.site-icon-wrapper {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	margin-left: 10px;
+	flex-shrink: 0;
+	line-height: 1;
+	padding: 2px;
+	border-radius: 50%;
+	background: #f6f7f8;
+	color: inherit;
+	cursor: default;
+
+	&:hover {
+		background: #eef2f5;
+	}
+}
+
+.character-desc-tag {
+	display: inline-block;
+	background: #e8e8e8;
+	color: #333;
+	padding: 1px 4px;
+	border-radius: 3px;
+	font-size: 0.85em;
+	margin: 0 2px;
+	white-space: nowrap;
+}
+
+.character-hashtag-button {
+	flex-shrink: 0;
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+// Звезда supporter видна в поиске
+.d-flex .fa-star {
+	font-size: 1em;
+	line-height: 1.5;
+}
+
+.site-icon-wrapper:hover {
+	background: #eef2f5;
+}
+

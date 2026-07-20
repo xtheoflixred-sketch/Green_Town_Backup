@@ -1,0 +1,523 @@
+.modal-header.d-none.d-sm-block.d-none-for-low-height
+	h4.modal-title(labelledBy=".modal")
+		| Settings
+
+.modal-body.modal-checkboxes
+	tabset(type="pills")
+
+		// =========================
+		// GAME
+		// =========================
+
+		tab(title="Game" [icon]="gameIcon")
+			div(*tabContent)
+
+				.form-group.unselectable.ms-4
+					label.me-2 AFK timeout
+
+					.btn-group.dropdown(dropdown)
+						button.btn.btn-sm.btn-default.dropdown-toggle(
+							type="button"
+							dropdownToggle)
+							| {{afkKickText}}
+
+						.dropdown-menu.dropdown-narrow(*dropdownMenu)
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								*ngFor="let option of afkKickOptions"
+								(click)="setAfkKickMinutes(option.value)"
+								[class.checked]="account.afkKickMinutes === option.value"
+								[class.d-flex]="!!option.requiredTier"
+								[class.pe-auto]="!!option.requiredTier"
+								[class.text-muted]="isAfkOptionDisabled(option, 'kick')"
+								[disabled]="isAfkOptionDisabled(option, 'kick')"
+								[title]="optionTierTitle(option)")
+
+								fa-icon([icon]="checkIcon", [class]="account.afkKickMinutes === option.value ? '' : 'text-muted'")
+
+								div.flex-grow-1
+									| {{option.label}}
+
+								fa-icon.ms-2(
+									*ngIf="option.requiredTier"
+									[icon]="starIcon"
+									[ngClass]="optionTierClass(option)")
+
+							div.position-relative
+								button.dropdown-item.dropdown-item-radio(
+									type="button"
+									(click)="setCustomAfkKickMinutes()")
+									| Custom...
+
+					label.ms-2 minutes
+
+					small.form-text.text-muted.mt-0
+						| How long you'd stay in game while being inactive
+
+				.form-group.unselectable.ms-4
+					label.me-2 Show away status after
+
+					.btn-group.dropdown(dropdown)
+						button.btn.btn-sm.btn-default.dropdown-toggle(
+							type="button"
+							dropdownToggle)
+							| {{afkStatusText}}
+
+						.dropdown-menu.dropdown-narrow(*dropdownMenu)
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								*ngFor="let option of afkStatusOptions"
+								(click)="setAfkStatusMinutes(option.value)"
+								[class.checked]="account.afkStatusMinutes === option.value"
+								[class.d-flex]="!!option.requiredTier"
+								[class.pe-auto]="!!option.requiredTier"
+								[class.text-muted]="isAfkOptionDisabled(option, 'status')"
+								[disabled]="isAfkOptionDisabled(option, 'status')"
+								[title]="optionTierTitle(option)")
+
+								fa-icon([icon]="checkIcon", [class]="account.afkStatusMinutes === option.value ? '' : 'text-muted'")
+
+								div.flex-grow-1
+									| {{option.label}}
+
+								fa-icon.ms-2(
+									*ngIf="option.requiredTier"
+									[icon]="starIcon"
+									[ngClass]="optionTierClass(option)")
+
+							div.position-relative
+								button.dropdown-item.dropdown-item-radio(
+									type="button"
+									(click)="setCustomAfkStatusMinutes()")
+									| Custom...
+
+					label.ms-2 minutes of inactivity
+
+					small.form-text.text-muted.mt-0
+						| Automatically display away status when you're inactive
+
+				.form-group.unselectable.ms-4
+					label.me-2 Fall asleep after
+
+					.btn-group.dropdown(dropdown)
+						button.btn.btn-sm.btn-default.dropdown-toggle(
+							type="button"
+							dropdownToggle)
+							| {{afkSleepText}}
+
+						.dropdown-menu.dropdown-narrow(*dropdownMenu)
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								*ngFor="let option of afkSleepOptions"
+								(click)="setAfkSleepMinutes(option.value)"
+								[class.checked]="account.afkSleepMinutes === option.value"
+								[class.d-flex]="!!option.requiredTier"
+								[class.pe-auto]="!!option.requiredTier"
+								[class.text-muted]="isAfkOptionDisabled(option, 'sleep')"
+								[disabled]="isAfkOptionDisabled(option, 'sleep')"
+								[title]="optionTierTitle(option)")
+
+								fa-icon([icon]="checkIcon", [class]="account.afkSleepMinutes === option.value ? '' : 'text-muted'")
+
+								div.flex-grow-1
+									| {{option.label}}
+
+								fa-icon.ms-2(
+									*ngIf="option.requiredTier"
+									[icon]="starIcon"
+									[ngClass]="optionTierClass(option)")
+
+							div.position-relative
+								button.dropdown-item.dropdown-item-radio(
+									type="button"
+									(click)="setCustomAfkSleepMinutes()")
+									| Custom...
+
+					label.ms-2 minutes of inactivity
+
+					small.form-text.text-muted.mt-0
+						| Automatically fall asleep when you're inactive
+
+				.form-group.unselectable.ms-4
+					label.me-2 Allow party invites from
+
+					.btn-group.dropdown(dropdown)
+						button.btn.btn-sm.btn-default.dropdown-toggle(
+							type="button"
+							dropdownToggle)
+							| {{partyInvitesPolicyText}}
+
+						.dropdown-menu.dropdown-narrow(*dropdownMenu)
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="setPartyInvitesPolicy('everyone')"
+								[class.checked]="partyInvitesPolicy === 'everyone'")
+								fa-icon([icon]="checkIcon", [class]="partyInvitesPolicy === 'everyone' ? '' : 'text-muted'")
+								| Everyone
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="setPartyInvitesPolicy('friends')"
+								[class.checked]="partyInvitesPolicy === 'friends'")
+								fa-icon([icon]="checkIcon", [class]="partyInvitesPolicy === 'friends' ? '' : 'text-muted'")
+								| Friends only
+
+					small.form-text.text-muted.mt-0
+						| Useful when other players bother you with unwanted party invites
+
+				.form-group.unselectable.ms-4
+					label.me-2 Allow friend requests from
+
+					.btn-group.dropdown(dropdown)
+						button.btn.btn-sm.btn-default.dropdown-toggle(
+							type="button"
+							dropdownToggle)
+							| {{friendRequestsPolicyText}}
+
+						.dropdown-menu.dropdown-narrow(*dropdownMenu)
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="setFriendRequestsPolicy('everyone')"
+								[class.checked]="friendRequestsPolicy === 'everyone'")
+								fa-icon([icon]="checkIcon", [class]="friendRequestsPolicy === 'everyone' ? '' : 'text-muted'")
+								| Everyone
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="setFriendRequestsPolicy('nobody')"
+								[class.checked]="friendRequestsPolicy === 'nobody'")
+								fa-icon([icon]="checkIcon", [class]="friendRequestsPolicy === 'nobody' ? '' : 'text-muted'")
+								| Nobody
+
+					small.form-text.text-muted.mt-0
+						| Useful when other players bother you with unwanted friend requests
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.seeThroughObjects"
+						help="Makes all obstacles transparent")
+						| See through obstacles
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.disableUI"
+						help="Hide HUD and controls while in-game (F6)")
+						| Disable UI (F6)
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="browser.walkByDefault"
+						help="Uses walking speed by default and run when pressing shift key")
+						| Prefer walking to running
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.powerSaveModeInBackground"
+						(checkedChange)="onPowerSaveModeInBackgroundChanged()"
+						help="Uses old background to reduce performance cost while loading and in menus")
+						| Power save mode in background
+
+					.alert.alert-info.mt-2.mb-0
+						| New background may stutter and is not optimized for weaker devices.
+
+		// =========================
+		// SOCIAL
+		// =========================
+
+		tab(title="Social" [icon]="friendsIcon")
+			div(*tabContent)
+
+				.form-group.unselectable.ms-4
+				label.me-2 Item interactions
+					.btn-group.dropdown(dropdown)
+
+						button.btn.btn-sm.btn-default.dropdown-toggle(
+							type="button"
+							dropdownToggle)
+							| Configure
+
+						.dropdown-menu.dropdown-narrow(*dropdownMenu)
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignoreReceiveItems = false"
+								[class.checked]="!account.ignoreReceiveItems")
+								fa-icon([icon]="checkIcon", [class]="!account.ignoreReceiveItems ? '' : 'text-muted'")
+								| Allow item transfers
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignoreReceiveItems = true"
+								[class.checked]="account.ignoreReceiveItems")
+								fa-icon([icon]="checkIcon", [class]="account.ignoreReceiveItems ? '' : 'text-muted'")
+								| Ignore item transfers
+
+							.dropdown-divider
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignorePickupItems = false"
+								[class.checked]="!account.ignorePickupItems")
+								fa-icon([icon]="checkIcon", [class]="!account.ignorePickupItems ? '' : 'text-muted'")
+								| Allow item pickup requests
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignorePickupItems = true"
+								[class.checked]="account.ignorePickupItems")
+								fa-icon([icon]="checkIcon", [class]="account.ignorePickupItems ? '' : 'text-muted'")
+								| Ignore item pickup requests
+
+							.dropdown-divider
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignoreTradeItems = false"
+								[class.checked]="!account.ignoreTradeItems")
+								fa-icon([icon]="checkIcon", [class]="!account.ignoreTradeItems ? '' : 'text-muted'")
+								| Allow item trades
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignoreTradeItems = true"
+								[class.checked]="account.ignoreTradeItems")
+								fa-icon([icon]="checkIcon", [class]="account.ignoreTradeItems ? '' : 'text-muted'")
+								| Ignore item trades
+
+				.form-group.unselectable.ms-4
+				label.me-2 Toy interactions
+					.btn-group.dropdown(dropdown)
+
+						button.btn.btn-sm.btn-default.dropdown-toggle(
+							type="button"
+							dropdownToggle)
+							| Configure
+
+						.dropdown-menu.dropdown-narrow(*dropdownMenu)
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignoreReceiveToys = false"
+								[class.checked]="!account.ignoreReceiveToys")
+								fa-icon([icon]="checkIcon", [class]="!account.ignoreReceiveToys ? '' : 'text-muted'")
+								| Allow toy transfers
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignoreReceiveToys = true"
+								[class.checked]="account.ignoreReceiveToys")
+								fa-icon([icon]="checkIcon", [class]="account.ignoreReceiveToys ? '' : 'text-muted'")
+								| Ignore toy transfers
+
+							.dropdown-divider
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignorePickupToys = false"
+								[class.checked]="!account.ignorePickupToys")
+								fa-icon([icon]="checkIcon", [class]="!account.ignorePickupToys ? '' : 'text-muted'")
+								| Allow toy pickup requests
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignorePickupToys = true"
+								[class.checked]="account.ignorePickupToys")
+								fa-icon([icon]="checkIcon", [class]="account.ignorePickupToys ? '' : 'text-muted'")
+								| Ignore toy pickup requests
+
+							.dropdown-divider
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignoreTradeToys = false"
+								[class.checked]="!account.ignoreTradeToys")
+								fa-icon([icon]="checkIcon", [class]="!account.ignoreTradeToys ? '' : 'text-muted'")
+								| Allow toy trades
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								(click)="account.ignoreTradeToys = true"
+								[class.checked]="account.ignoreTradeToys")
+								fa-icon([icon]="checkIcon", [class]="account.ignoreTradeToys ? '' : 'text-muted'")
+								| Ignore toy trades
+
+				.form-group.unselectable.ms-4
+					label.me-2 Auto-collect items after
+
+					.btn-group.dropdown(dropdown)
+
+						button.btn.btn-sm.btn-default.dropdown-toggle(
+							type="button"
+							dropdownToggle)
+							| {{account.autoCollectItemMinutes}} minutes
+
+						.dropdown-menu.dropdown-narrow(*dropdownMenu)
+
+							button.dropdown-item.dropdown-item-radio(
+								type="button"
+								*ngFor="let option of autoCollectItemOptions"
+								(click)="account.autoCollectItemMinutes = option"
+								[class.checked]="account.autoCollectItemMinutes === option")
+
+								fa-icon([icon]="checkIcon", [class]="account.autoCollectItemMinutes === option ? '' : 'text-muted'")
+								| {{option}} minutes
+
+					small.form-text.text-muted.mt-0
+						| Automatically collect items without pickup requests after selected time
+
+		// =========================
+		// GRAPHICS
+		// =========================
+
+		tab(title="Graphics" [icon]="graphicsIcon")
+			div(*tabContent)
+
+				.form-group
+					label#graphics-quality-label
+						| Graphics quality
+
+					div
+						slider-bar.mr-2.mb-2(
+							[(value)]="browser.graphicsQuality"
+							[min]="0"
+							[max]="maxGraphicsQuality"
+							[step]="1"
+							style="max-width: 300px"
+							labelledBy="graphics-quality-label")
+
+						| {{graphicsQualityText}}
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="browser.brightNight"
+						help="Increases brightness of the game at night and in dark areas")
+						| Brighter darkness
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="browser.powerSaving"
+						help="Reduces frame rate to extend battery life and reduce CPU overheating")
+						| Power saving mode
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="browser.showStats"
+						help="Show rendering and network stats")
+						| Show statistics
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="browser.showFps"
+						help="Show FPS counter")
+						| Show FPS
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.alwaysShowTags"
+						help="Keep nameplates and tags visible in the world even when you are not hovering them")
+						| Always show tags
+		// =========================
+		// CHAT
+		// =========================
+
+		tab(title="Chat" [icon]="chatIcon")
+			div(*tabContent)
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.ignorePublicChat"
+						help="Don't show any public chat messages, only party chat and whispers will be visible")
+						| Hide all public chat messages
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.visibleTestingMessages"
+						help="Show development testing messages from debugData in chat log")
+						| Visible testing messages
+
+		// =========================
+		// FILTERS
+		// =========================
+
+		tab(title="Filters" [icon]="filtersIcon")
+			div(*tabContent)
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.filterCyrillic"
+						help="Hide all messages containing Russian alphabet")
+						| Filter Russian chat
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.filterSwearWords"
+						help="Censors swear words and other harmful phrases in the chat")
+						| Filter bad words
+
+				.form-group
+					label.mb-1
+						| Custom chat filter
+
+					small.form-text.text-muted.mt-0.mb-2
+						| Space separated list of words to filter.
+
+					textarea.form-control(
+						rows="5"
+						[(ngModel)]="account.filterWords")
+
+		// =========================
+		// CONTROLS
+		// =========================
+
+		tab(title="Controls" [icon]="controlsIcon")
+			div(*tabContent)
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="browser.disableGamepad"
+						help="Useful if gamepad controls are causing issues with the game")
+						| Disable gamepad controls
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="browser.disableFKeys"
+						help="Useful if you're using function keys in a way that conflicts with game controls")
+						| Disable function keys (F1-F12)
+
+.modal-footer.d-flex
+
+	button.btn.btn-wide.btn-outline-secondary.d-none.d-sm-block(
+		(click)="reset()")
+		| Reset
+
+	button.btn.btn-outline-secondary.d-none.d-sm-block(
+		(click)="export()"
+		title="Export settings")
+
+		fa-icon([icon]="exportIcon" [fixedWidth]="true")
+
+	button.btn.btn-outline-secondary.d-none.d-sm-block(
+		(click)="importFile.click()"
+		title="Import settings")
+
+		fa-icon([icon]="importIcon" [fixedWidth]="true")
+
+		input.d-none(
+			#importFile
+			type="file"
+			(change)="import(importFile.files[0])")
+
+	.flex-grow-1
+
+	button.btn.btn-wide.btn-outline-secondary(
+		(click)="cancel()")
+		| Cancel
+
+	button.btn.btn-wide.btn-outline-secondary.ml-2(
+		(click)="ok()")
+		| OK

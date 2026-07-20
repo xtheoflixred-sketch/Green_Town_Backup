@@ -1,0 +1,170 @@
+@import '../../../../styles/partials/variables';
+@import '../../../../styles/partials/mixins';
+
+.settings-afk-badge {
+	display: inline-block;
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	line-height: 1;
+	padding: 2px 6px;
+	border-radius: 10px;
+	background: #ffd54f;
+	color: #5b4300;
+	user-select: none;
+	position: absolute;
+	left: 3px;
+	top: 22px;
+	z-index: 2;
+	opacity: 0;
+	transform: translateY(-8px) scale(0.95);
+	transition: opacity 0.22s cubic-bezier(0.22,1,0.36,1), transform 0.22s cubic-bezier(0.22,1,0.36,1);
+}
+.settings-afk-badge.afk-visible {
+	opacity: 1;
+	transform: translateY(0) scale(1);
+}
+
+.music-wrapper {
+	margin: 6px 0;
+	border: 1px solid #c4c4c4;
+	border-radius: 5px;
+	overflow: hidden;
+}
+
+.music-block {
+	padding: 8px 10px;
+	background: #f1f1f1;
+	cursor: pointer;
+
+	&:hover {
+		background: #E5E5E5;
+	}
+}
+
+.music-compact {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+
+	.track-visualizer {
+		display: flex;
+		gap: 2px;
+		width: 46px;
+		height: 14px;
+		align-items: flex-end;
+
+		.visualizer-bar {
+			width: 2px;
+			background: linear-gradient(180deg, #3f3f3f, #6d6d6d);
+			border-radius: 2px;
+			transition: height 0.18s cubic-bezier(0.22, 1, 0.36, 1), background 0.18s ease;
+		}
+	}
+
+	.track-name {
+		flex: 1;
+		color: #666666;
+		font-weight: 600;
+	}
+
+	.expand-icon {
+		color: #737373;
+
+		&:hover {
+			color: #141414;
+		}
+	}
+}
+
+.music-player {
+	max-height: 0;
+	opacity: 0;
+	overflow: hidden;
+	pointer-events: none;
+	transition: all 0.2s ease;
+}
+
+.music-player.expanded {
+	max-height: 140px;
+	opacity: 1;
+	pointer-events: auto;
+	padding-top: 6px;
+}
+
+.progress-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+}
+
+.progress-time {
+	font-size: 0.7rem;
+	font-family: monospace;
+	color: #7A7A7A;
+	min-width: 42px;
+}
+
+.progress-bar-wrapper {
+	flex: 1;
+	height: 4px;
+	border-radius: 999px;
+	background: #D6D6D6;
+	cursor: pointer;
+		transition: background 0.1s ease;
+
+		.progress-bar-fill {
+			height: 100%;
+			background: #3A3A3A;
+			transition: background 0.1s ease, width 0.1s ease;
+		}
+
+		&:hover {
+			background: #c8c8c8;
+		}
+
+		&:hover .progress-bar-fill {
+			background: #4a4a4a;
+		}
+	}
+
+.player-controls {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+
+	button {
+		width: 26px;
+		height: 26px;
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		border: 1px solid #C7C7C7;
+		border-radius: 4px;
+
+		background: #F7F7F7;
+
+		color: #5C5C5C;
+
+		transition: all 0.15s ease;
+
+		&:hover {
+			background: #FFFFFF;
+			border-color: #9A9A9A;
+			color: #111111;
+		}
+
+		&:active {
+			transform: scale(0.92);
+		}
+	}
+}
+
+/* backward icon fix */
+.backward-icon {
+	display: inline-flex;
+	transform: scaleX(-1);
+}

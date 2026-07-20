@@ -1,0 +1,2005 @@
+import { range, compact, escapeRegExp } from 'lodash';
+// Speed and time command fixes
+import {
+	MessageType, ChatType, Expression, Eye, Muzzle, Action, Weather, toAnnouncementMessageType, EntityState, TileType,
+} from '../common/interfaces';
+import { hasRole } from '../common/accountUtils';
+import { butterfly, bat, firefly, cloud, getEntityType, getEntityTypeName, woodenWalls, BunnyAnimation } from '../common/entities';
+import { emojis } from '../client/emoji';
+import { IClient, ServerEntity, ServerMap } from './serverInterfaces';
+import { World } from './world';
+import { NotificationService } from './services/notification';
+import { UserError } from './userError';
+import { parseExpression, expression } from '../common/expressionUtils';
+import { filterBadWords } from '../common/swears';
+import { randomString } from '../common/stringUtils';
+import {
+	getCounter, holdToy, getCollectedToysCount, getCollectedToysList, holdItem, rareHoldTypeNames, playerSleep, playerBlush, playerLove, playerCry,
+	setEntityExpression, execAction, teleportTo, openGift
+} from './playerUtils';
+import { updateEntityOptions, setEntityAnimation } from './entityUtils';
+import { ServerLiveSettings, GameServerSettings } from '../common/adminInterfaces';
+import { isCommand, processCommand, clamp, flatten, includes, randomPoint, parseSeason, parseHoliday, toInt, formatPlaytime, formatISODate, hasFlag } from '../common/utils';
+import { formatHourMinutes } from '../common/timeUtils';
+import { createNotifyUpdate, createShutdownServer } from './api/internal';
+import { logger } from './logger';
+import { pathTo } from './paths';
+import { sayTo, sayToEveryone, sayToOthers, sayToAll, saySystem } from './chat';
+import { resetTiles } from './serverRegion';
+import { updateAccountState } from './accountUtils';
+import {
+	findEntities, updateMapState, loadMapFromFile, saveMapToFile, saveEntitiesToFile, getSizeOfMap,
+	saveMapToFileBinaryAlt, saveRegionCollider, saveMap, loadMap
+} from './serverMap';
+import { PARTY_LIMIT, tileWidth, tileHeight, MAP_LOAD_SAVE_TIMEOUT } from '../common/constants';
+import { PartyService } from './services/party';
+import { getRegionGlobal } from '../common/worldMap';
+import { swapCharacter } from './characterUtils';
+import { writeFileAsync } from 'fs';
+import { Account } from './db';
+import { defaultHouseSave, removeToolbox, restoreToolbox } from './maps/houseMap';
+import { createFollowerBunny } from './mapUtils';
+
+const HOUSE_WALL_TOP = 3;
+const HOUSE_WALL_Y_OFFSET = 3 / tileHeight;
+const HOUSE_H_WALL_TYPES = [
+	woodenWalls.wallH(0, 0).type,
+	woodenWalls.wallHShort(0, 0).type,
+	woodenWalls.wallCutL(0, 0).type,
+	woodenWalls.wallCutR(0, 0).type,
+];
+const HOUSE_V_WALL_TYPES = [
+	woodenWalls.wallV(0, 0).type,
+	woodenWalls.wallVShort(0, 0).type,
+];
+
+const defaultBunnyRadius = 1.0;
+const defaultBunnyCount = 5;
+const maxBunnyCount = 1000;
+const minBunnyRadius = 0.1;
+const maxBunnyRadius = 15.0;
+const summonedBunnies = new WeakMap<IClient, ServerEntity[]>();
+const freeBunnies = new WeakMap<IClient, ServerEntity[]>();
+const bunnyOptions = new WeakMap<IClient, { count: number; radius: number; mode: 'circle' | 'stay' | 'free'; shape: 'none' | 'circle' | 'triangle' | 'square' | 'diamond' | 'heart' }>();
+
+function getBunnyOptions(client: IClient) {
+	let options = bunnyOptions.get(client);
+
+	if (!options) {
+		options = { count: defaultBunnyCount, radius: defaultBunnyRadius, mode: 'circle', shape: 'none' };
+		bunnyOptions.set(client, options);
+	}
+
+	return options;
+}
+
+function clearSummonedBunnies(client: IClient, world: World) {
+	const bunnies = summonedBunnies.get(client);
+
+	if (!bunnies || !bunnies.length) {
+		return;
+	}
+
+	for (const bunny of bunnies) {
+		world.removeEntityFromSomeMap(bunny);
+	}
+
+	summonedBunnies.delete(client);
+}
+
+function clearFreeBunnies(client: IClient, world: World) {
+	const bunnies = freeBunnies.get(client);
+
+	if (!bunnies || !bunnies.length) {
+		return;
+	}
+
+	for (const bunny of bunnies) {
+		world.removeEntityFromSomeMap(bunny);
+	}
+
+	freeBunnies.delete(client);
+}
+
+function getFormationOffsets(count: number, radius: number, shape: 'none' | 'circle' | 'triangle' | 'square' | 'diamond' | 'heart') {
+	const offsets: { x: number; y: number }[] = [];
+
+	if (shape === 'none') {
+		for (let i = 0; i < count; i++) {
+			const angle = Math.random() * Math.PI * 2;
+			const dist = Math.random() * radius;
+			offsets.push({ x: Math.cos(angle) * dist, y: Math.sin(angle) * dist });
+		}
+		return offsets;
+	}
+
+	if (shape === 'circle') {
+		for (let i = 0; i < count; i++) {
+			const angle = i * (Math.PI * 2) / count;
+			offsets.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
+		}
+		return offsets;
+	}
+
+	if (shape === 'heart') {
+		for (let i = 0; i < count; i++) {
+			const t = i / count;
+			const angle = t * Math.PI * 2;
+			const x = 16 * Math.pow(Math.sin(angle), 3) * radius / 16;
+			const y = (13 * Math.cos(angle) - 5 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle)) * radius / 13;
+			offsets.push({ x, y });
+		}
+		return offsets;
+	}
+
+	const sides = shape === 'triangle' ? 3 : 4;
+	const rotation = shape === 'diamond' ? Math.PI / 4 : 0;
+	const vertices = Array.from({ length: sides }, (_, i) => {
+		const angle = rotation + i * (Math.PI * 2) / sides;
+		return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+	});
+
+	const edgeLengths = vertices.map((vertex, index) => {
+		const next = vertices[(index + 1) % sides];
+		return Math.sqrt((next.x - vertex.x) ** 2 + (next.y - vertex.y) ** 2);
+	});
+
+	const perimeter = edgeLengths.reduce((sum, len) => sum + len, 0);
+	const step = perimeter / count;
+
+	for (let i = 0; i < count; i++) {
+		let distance = step * (i + 0.5);
+		let edgeIndex = 0;
+		while (distance > edgeLengths[edgeIndex] && edgeIndex < sides - 1) {
+			distance -= edgeLengths[edgeIndex];
+			edgeIndex++;
+		}
+
+		const start = vertices[edgeIndex];
+		const end = vertices[(edgeIndex + 1) % sides];
+		const t = edgeLengths[edgeIndex] === 0 ? 0 : distance / edgeLengths[edgeIndex];
+		offsets.push({
+			x: start.x + (end.x - start.x) * t,
+			y: start.y + (end.y - start.y) * t,
+		});
+	}
+
+	return offsets;
+}
+
+function getSummonedBunnies(client: IClient): ServerEntity[] {
+	return summonedBunnies.get(client) || [];
+}
+
+function setSummonedBunnyAnimation(client: IClient, animation: BunnyAnimation) {
+	const bunnies = getSummonedBunnies(client);
+	const now = Date.now() / 1000;
+
+	for (const bunny of bunnies) {
+		(bunny as any).bunnyActionAnimation = animation;
+		(bunny as any).bunnyActionUntil = now + 1.5;
+		setEntityAnimation(bunny, animation);
+	}
+
+	return bunnies.length;
+}
+
+export function transferSummonedBunnies(client: IClient, world: World, newMap: ServerMap, newX: number, newY: number) {
+	const oldBunnies = summonedBunnies.get(client);
+
+	if (!oldBunnies || !oldBunnies.length) {
+		return;
+	}
+
+	const options = getBunnyOptions(client);
+	const offsets = getFormationOffsets(options.count, options.radius, options.shape);
+	const created: ServerEntity[] = [];
+
+	// Remove old bunnies from old map
+	for (const bunny of oldBunnies) {
+		world.removeEntityFromSomeMap(bunny);
+	}
+
+	// Create new bunnies on new map
+	for (let i = 0; i < offsets.length; i++) {
+		const offset = offsets[i];
+		const initialPhase = (i / offsets.length) * Math.PI * 2;
+		const bunnyEntities = createFollowerBunny(client.pony, offset.x, offset.y, options.mode, options.radius, options.shape, initialPhase, true, client.map);
+
+		for (const bunny of bunnyEntities) {
+			bunny.x = newX + offset.x;
+			bunny.y = newY + offset.y;
+			world.addEntity(bunny, newMap);
+			created.push(bunny);
+		}
+	}
+
+	summonedBunnies.set(client, created);
+}
+
+export function transferFreeBunnies(client: IClient, world: World, newMap: ServerMap) {
+	const oldBunnies = freeBunnies.get(client);
+
+	if (!oldBunnies || !oldBunnies.length) {
+		return;
+	}
+
+	// Remove old free bunnies from old map
+	for (const bunny of oldBunnies) {
+		world.removeEntityFromSomeMap(bunny);
+	}
+
+	// Add free bunnies to new map (they keep their positions)
+	for (const bunny of oldBunnies) {
+		world.addEntity(bunny, newMap);
+	}
+}
+
+export interface CommandContext {
+	world: World;
+	notifications: NotificationService;
+	liveSettings: ServerLiveSettings;
+	party: PartyService;
+	random: (min: number, max: number, floating?: boolean) => number;
+}
+
+export type CommandHandler = (
+	context: CommandContext, client: IClient, message: string, type: ChatType, target: IClient | undefined,
+	settings: GameServerSettings
+) => any;
+
+export interface Command {
+	names: string[];
+	help: string;
+	role: string;
+	category?: string;
+	spam?: boolean;
+	handler: CommandHandler;
+}
+
+function hasRoleNull(client: IClient, role: string) {
+	if (!role) return true; // No role requirement
+	if (hasRole(client.account, role)) return true; // Has exact role
+
+	// Role hierarchy: supporter levels
+	if (role.startsWith('sup')) {
+		const level = parseInt(role.charAt(3), 10);
+		return (client.supporterLevel >= level || client.isMod);
+	}
+
+	// Role hierarchy: mod < admin < owner
+	if (client.isMod) return role === 'mod';
+	if (hasRole(client.account, 'admin')) return role === 'admin' || role === 'mod';
+	if (hasRole(client.account, 'owner')) return role === 'owner' || role === 'admin' || role === 'mod';
+
+	return false;
+}
+
+function command(names: string[], help: string, role: string, handler: CommandHandler, spam = false, category?: string): Command {
+	return { names, help, role, handler, spam, category };
+}
+
+function emote(names: string[], expr: Expression, timeout?: number, cancellable?: boolean, category?: string) {
+	return command(names, '', '', ({ }, { pony }) => setEntityExpression(pony, expr, timeout, cancellable), false, category);
+}
+
+function action(names: string[], actionName: Action, category?: string) {
+	return command(names, '', '', ({ }, client, _, __, ___, settings) => execAction(client, actionName, settings), false, category);
+}
+
+function adminModChat(names: string[], help: string, role: string, type: MessageType, category?: string) {
+	return command(names, help, role, ({ }, client, message, _, __, settings) => {
+		sayToEveryone(client, message, filterBadWords(message), type, settings);
+	}, false, category);
+}
+
+function parseWeather(value: string): Weather | undefined {
+	switch (value.toLowerCase()) {
+		case 'none': return Weather.None;
+		case 'rain': return Weather.Rain;
+		default: return undefined;
+	}
+}
+
+function getSpawnTarget(map: ServerMap, message: string) {
+	if (message === 'spawn') {
+		return randomPoint(map.spawnArea);
+	}
+
+	const spawn = map.spawns.get(message);
+
+	if (spawn) {
+		return randomPoint(spawn);
+	}
+
+	// allow coordinates with decimal separator dot or comma
+	const match = /^(\d+(?:[\.,]\d+)?)\s+(\d+(?:[\.,]\d+)?)$/.exec(message.trim());
+
+	if (!match) {
+		throw new UserError('invalid parameters');
+	}
+
+	let tx = match[1].replace(',', '.');
+	let ty = match[2].replace(',', '.');
+	const x = clamp(+tx, 0, map.width - 0.5 / tileWidth);
+	const y = clamp(+ty, 0, map.height - 0.5 / tileHeight);
+	return { x, y };
+}
+
+function execWithFileName(client: IClient, message: string, action: (fileName: string) => Promise<any>) {
+	const fileName = message.replace(/[^a-zA-Z0-9_-]/g, '');
+
+	if (!fileName) {
+		throw new UserError('invalid file name');
+	}
+
+	action(fileName)
+		.catch(e => (logger.error(e), e.message))
+		.then(error => saySystem(client, error || 'saved'));
+}
+
+function shouldNotBeCalled() {
+	throw new Error('Should not be called');
+}
+
+function isValidMapForEditing(map: ServerMap, client: IClient, checkTimeout: boolean, onlyLeader: boolean) {
+	if (map.id !== 'house') {
+		saySystem(client, 'Can only be done inside the house');
+		return false;
+	}
+
+	if (checkTimeout && ((Date.now() - client.lastMapLoadOrSave) < MAP_LOAD_SAVE_TIMEOUT)) {
+		saySystem(client, `You need to wait ${Math.floor(MAP_LOAD_SAVE_TIMEOUT / 1000)} seconds before loading or saving again`);
+		return false;
+	}
+
+	if (onlyLeader && client.party && client.party.leader !== client) {
+		saySystem(client, 'Only party leader can do this');
+		return false;
+	}
+
+	return true;
+}
+
+function clearHouseEditableEntities(world: World, map: ServerMap) {
+	for (const region of map.regions) {
+		for (const entity of [...region.entities]) {
+			if (hasFlag(entity.state, EntityState.Editable)) {
+				world.removeEntity(entity, map);
+			}
+		}
+	}
+}
+
+function clearHouseInnerWalls(world: World, map: ServerMap) {
+	for (const region of map.regions) {
+		for (const entity of [...region.entities]) {
+			if (includes(HOUSE_H_WALL_TYPES, entity.type)) {
+				const x = Math.round(entity.x - 0.5);
+				const y = Math.round(entity.y - HOUSE_WALL_Y_OFFSET);
+
+				if (y > HOUSE_WALL_TOP && y < map.height) {
+					world.toggleWall(map, x, y, TileType.WallH);
+				}
+			} else if (includes(HOUSE_V_WALL_TYPES, entity.type)) {
+				const x = Math.round(entity.x);
+				const y = Math.round(entity.y - 0.5);
+
+				if (x > 0 && x < map.width && y >= HOUSE_WALL_TOP && y < map.height) {
+					world.toggleWall(map, x, y, TileType.WallV);
+				}
+			}
+		}
+	}
+}
+
+function clearHouseTiles(map: ServerMap) {
+	for (const region of map.regions) {
+		resetTiles(map, region);
+	}
+}
+
+let interval: any;
+
+// backups for admin adjustments, allow reset to pre-change value
+const playtimeBackup = new WeakMap<IClient, number>();
+const createdBackup = new WeakMap<IClient, Date | undefined>();
+
+export function createCommands(world: World): Command[] {
+	const commands = compact([
+		// chat
+		command(['help', 'h', '?'], '/help - show help', '', ({ }, client) => {
+			const filtered = commands
+				.filter((c: Command) => c.help && hasRoleNull(client, c.role));
+
+			// Group commands by category
+			const grouped: { [key: string]: Command[] } = {};
+			filtered.forEach((cmd: Command) => {
+				const cat = cmd.category || 'Other';
+				if (!grouped[cat]) grouped[cat] = [];
+				grouped[cat].push(cmd);
+			});
+
+			// Build help text with categories
+			const helpLines: string[] = [];
+			const categoryOrder = ['Chat', 'Actions', 'Pony states', 'Emotes', 'Expressions', 'House', 'Supporters', 'Debug', 'Other', 'Mod', 'Admin', 'Owner'];
+// moved Other above Mod so generic commands show earlier
+
+
+			for (const cat of categoryOrder) {
+				if (grouped[cat]) {
+					helpLines.push('\n' + cat);
+					helpLines.push(grouped[cat].map((c: Command) => c.help).join('\n'));
+				}
+			}
+
+			saySystem(client, helpLines.join('\n'));
+		}, false, 'Chat'),
+		command(['roll', 'rand', 'random'], '/roll [[min-]max] - randomize a number', '',
+			({ random }, client, args, type, target, settings) => {
+				const ROLL_MAX = 1000000;
+				const [, min, max] = /^(?:(\d+)-)?(\d+)$/.exec(args) || ['', '', ''];
+				const minValue = clamp((min ? parseInt(min, 10) : 1) | 0, 0, ROLL_MAX);
+				const maxValue = clamp((max ? parseInt(max, 10) : 100) | 0, minValue, ROLL_MAX);
+				const result = args === '🍎' ? args : random(minValue, maxValue);
+				const message = `🎲 rolled ${result} of ${minValue !== 1 ? `${minValue}-` : ''}${maxValue}`;
+				sayToOthers(client, message, toAnnouncementMessageType(type), target, settings);
+			}, true, 'Chat'),
+
+		command(['s', 'say'], '/s - say', '', shouldNotBeCalled, false, 'Chat'),
+		command(['p', 'party'], '/p - party chat', '', shouldNotBeCalled, false, 'Chat'),
+		command(['t', 'think'], '/t - thinking balloon', '', shouldNotBeCalled, false, 'Chat'),
+		command(['w', 'whisper'], '/w <name> - whisper to player', '', shouldNotBeCalled, false, 'Chat'),
+		command(['r', 'reply'], '/r - reply to whisper', '', shouldNotBeCalled, false, 'Chat'),
+		command(['shrug'], '/shrug - ¯\\_(ツ)_/¯', '', shouldNotBeCalled, false, 'Chat'),
+		command(['e'], '/e - set permanent expression', '', ({ }, { pony }, message) => {
+			pony.exprPermanent = parseExpression(message, true);
+			setEntityExpression(pony, undefined, 0);
+		}, false, 'Chat'),
+
+		// actions
+		command(['turn'], '/turn - turn head', '', ({ }, client, _, __, ___, settings) => {
+			execAction(client, Action.TurnHead, settings);
+		}, false, 'Actions'),
+		command(['boop', ')'], '/boop or /) - a boop', '', ({ }, client, message, _, __, settings) => {
+			const expression = parseExpression(message, true);
+
+			if (expression) {
+				setEntityExpression(client.pony, expression, 800);
+			}
+
+			execAction(client, Action.Boop, settings);
+		}, false, 'Actions'),
+		command(['drop'], '/drop - drop held item', '', ({ }, client, _, __, ___, settings) => {
+			execAction(client, Action.Drop, settings);
+		}, false, 'Actions'),
+		command(['droptoy'], '/droptoy - drop held toy', '', ({ }, client, _, __, ___, settings) => {
+			execAction(client, Action.DropToy, settings);
+		}, false, 'Actions'),
+		command(['open'], '/open - open gift', '', ({ }, client) => {
+			openGift(client);
+		}, false, 'Actions'),
+
+		// counters
+		command(['gifts', 'giftscore'], '/gifts - show gift score', '', ({ }, client, _, type, target, settings) => {
+			sayToOthers(client, `collected ${getCounter(client, 'gifts')} 🎁`, toAnnouncementMessageType(type), target, settings);
+		}, true, 'Chat'),
+		command(['candies', 'candy', 'sweets'], '/candies - show candy score', '', ({ }, client, _, type, target, settings) => {
+			sayToOthers(client, `collected ${getCounter(client, 'candies')} 🍬`, toAnnouncementMessageType(type), target, settings);
+		}, true, 'Chat'),
+		command(['eggs', 'eggcount'], '/eggs - show egg score', '', ({ }, client, _, type, target, settings) => {
+			sayToOthers(client, `collected ${getCounter(client, 'eggs')} 🥚`, toAnnouncementMessageType(type), target, settings);
+		}, true, 'Chat'),
+		command(['clovers', 'clover', 'clovercount'], '/clovers - show clover score', '', ({ }, client, _, type, target, settings) => {
+			sayToOthers(client, `collected ${getCounter(client, 'clovers')} 🍀`, toAnnouncementMessageType(type), target, settings);
+		}, true, 'Chat'),
+		command(['toys', 'toylist'], '/toys [list] - show number of collected toys (use "/toys list" to list your toys)', '', ({ }, client, message, type, target, settings) => {
+			const now = Date.now();
+			const { collected, total } = getCollectedToysCount(client);
+			const cmd = (message || '').trim().toLowerCase();
+
+			if (cmd === 'list') {
+				const list = getCollectedToysList(client);
+				if (!list.length) {
+					sayToOthers(client, `У вас пока нет игрушек соберите подарки что бы открыть одну из игрушек`, toAnnouncementMessageType(type), target, settings);
+				} else {
+					sayToOthers(client, `Your toys: ${list.map(n => `#${n}`).join(' ')}`, toAnnouncementMessageType(type), target, settings);
+				}
+			} else {
+				if (collected === 0) {
+					sayToOthers(client, `У вас пока нет игрушек соберите подарки что бы открыть одну из игрушек`, toAnnouncementMessageType(type), target, settings);
+				} else if (client.lastToysCommandTime && (now - client.lastToysCommandTime) < 10000) {
+					const list = getCollectedToysList(client);
+					sayToOthers(client, `Your toys: ${list.map(n => `#${n}`).join(' ')}`, toAnnouncementMessageType(type), target, settings);
+				} else {
+					sayToOthers(client, `collected ${collected}/${total} toys`, toAnnouncementMessageType(type), target, settings);
+				}
+
+				client.lastToysCommandTime = now;
+			}
+		}, false, 'Chat'),
+
+		// collections summary command (same channel behavior as /toys)
+		command(['collections', 'col'], '/collections - show counts of toys, gifts, eggs, clovers, candies', '', ({ }, client, _message, type, target, settings) => {
+			const { collected, total } = getCollectedToysCount(client);
+			const gifts = getCounter(client, 'gifts');
+			const eggs = getCounter(client, 'eggs');
+			const clovers = getCounter(client, 'clovers');
+			const candies = getCounter(client, 'candies');
+
+			const lines: string[] = [
+				`collected ${collected}/${total} toys`,
+				`collected ${gifts} gifts 🎁`,
+				`collected ${eggs} eggs 🥚`,
+				`collected ${clovers} clovers 🍀`,
+				`collected ${candies} candies 🍬`,
+			];
+
+			sayToOthers(client, lines.join('\n'), toAnnouncementMessageType(type), target, settings);
+		}, true, 'Chat'),
+
+		// achievements command
+		command(['achievements', 'achs'], '/achievements - list collection milestones you have achieved', '', ({ }, client, _message, type, target, settings) => {
+			const check = '✓ ';
+
+			// helpers for formatting
+			function ordinal(n: number) {
+				const s = ['th', 'st', 'nd', 'rd'];
+				const v = n % 100;
+				return n + (s[(v - 20) % 10] || s[v] || s[0]);
+			}
+
+			function formatDate(d: Date) {
+				const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+				return `${ordinal(d.getDate())} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+			}
+
+			function formatPlayVerbose(seconds: number) {
+				let s = Math.floor(seconds);
+				const days = Math.floor(s / 86400); s %= 86400;
+				const hours = Math.floor(s / 3600); s %= 3600;
+				const mins = Math.floor(s / 60);
+				const secs = s % 60;
+				const parts: string[] = [];
+				if (days) parts.push(`${days}day${days > 1 ? 's' : ''}`);
+				if (hours) parts.push(`${hours}hour${hours > 1 ? 's' : ''}`);
+				if (mins) parts.push(`${mins}min${mins > 1 ? 's' : ''}`);
+				if (secs || parts.length === 0) parts.push(`${secs}sec${secs > 1 ? 's' : ''}`);
+				return parts.join(' ');
+			}
+
+			// Section 1: account age + playtime titles
+			const accountLines: string[] = [];
+			if (client.account.createdAt) {
+				const created = new Date(client.account.createdAt);
+				accountLines.push(`${check}Joined on ${formatDate(created)}`);
+				const ageMs = Date.now() - created.getTime();
+				const days = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+				if (days >= 1) accountLines.push(`${check}Still fresh after just a day`);
+				if (days >= 30) accountLines.push(`${check}A month has passed since signup`);
+				if (days >= 182) accountLines.push(`${check}Half a year veteran`);
+				if (days >= 365) accountLines.push(`${check}One year wanderer`);
+				if (days >= 730) accountLines.push(`${check}Two years strong`);
+			}
+
+			// playtime titles
+			const stored = (client.account.counters && (client.account.counters as any).playtime) ? (client.account.counters as any).playtime : 0;
+			const session = Math.round((Date.now() - client.connectedTime) / 1000);
+			const totalSeconds = stored + session;
+			accountLines.push(`${check}Total playtime: ${formatPlayVerbose(totalSeconds)}`);
+			if (totalSeconds >= 3600) accountLines.push(`${check}Played at least an hour`);
+			if (totalSeconds >= 36000) accountLines.push(`${check}Over 10 hours in-game`);
+			if (totalSeconds >= 360000) accountLines.push(`${check}Centuries? Nah, 100 hours`);
+			if (totalSeconds >= 1800000) accountLines.push(`${check}Half a million seconds logged`);
+
+			// Section 2: counter milestones
+			const counterLines: string[] = [];
+			const gifts = getCounter(client, 'gifts');
+			for (let m = 100; m <= gifts; m += 100) {
+				counterLines.push(`${check}Collected ${m} gifts`);
+			}
+			const eggs = getCounter(client, 'eggs');
+			for (let m = 50; m <= eggs; m += 50) {
+				counterLines.push(`${check}Collected ${m} eggs`);
+			}
+			const clovers = getCounter(client, 'clovers');
+			for (let m = 50; m <= clovers; m += 50) {
+				counterLines.push(`${check}Collected ${m} clovers`);
+			}
+			const candies = getCounter(client, 'candies');
+			for (let m = 100; m <= candies; m += 100) {
+				counterLines.push(`${check}Collected ${m} candies`);
+			}
+
+			// Section 3: toy achievements
+			const toyLines: string[] = [];
+			const { collected, total } = getCollectedToysCount(client);
+			if (collected >= 1) {
+				toyLines.push(`${check}First toy collected (${collected}/${total})`);
+			}
+			if (collected === total && total > 0) {
+				toyLines.push(`${check}All possible toys collected (${total}/${total})`);
+			}
+
+			// assemble final output respecting empty sections
+			const sections: string[][] = [];
+			if (accountLines.length) sections.push(accountLines);
+			if (counterLines.length) sections.push(counterLines);
+			if (toyLines.length) sections.push(toyLines);
+
+			if (sections.length === 0) {
+				sayToOthers(client, 'No achievements yet', toAnnouncementMessageType(type), target, settings);
+			} else {
+				const output = sections.map(sec => sec.join('\n')).join('\n---------\n');
+				sayToOthers(client, output, toAnnouncementMessageType(type), target, settings);
+			}
+		}, false, 'Chat'),
+
+// account-related info commands moved out of the generic /account
+	command(['accountdate', 'accdate', 'creation', 'created'], '/accountdate - show date when your account was created', '', ({ }, client, _message, type, target, settings) => {
+		const created = client.account.createdAt ? formatISODate(client.account.createdAt).replace(/-/g, '.') : 'unknown';
+		sayToOthers(client, `Creation Date: ${created}`, toAnnouncementMessageType(type), target, settings);
+	}, false, 'Other'),
+	command(['accountid', 'accid', 'id', 'whoami'], '/accountid - show your account ID', '', ({ }, client, _message, type, target, settings) => {
+		sayToOthers(client, `Your ID: ${client.accountId}`, toAnnouncementMessageType(type), target, settings);
+	}, false, 'Other'),
+	command(['playtime', 'ptime', 'timeplayed'], '/playtime - show total playtime', '', ({ }, client, _message, type, target, settings) => {
+		const stored = (client.account.counters && (client.account.counters as any).playtime) ? (client.account.counters as any).playtime : 0;
+		const session = Math.round((Date.now() - client.connectedTime) / 1000);
+		const totalSeconds = stored + session;
+		const text = `Total Playtime: ${formatPlaytime(totalSeconds)}`;
+		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
+	}, false, 'Other'),
+
+	command(['age', 'birthage'], '/age - show your age based on birthdate in settings', '', ({ }, client, _message, type, target, settings) => {
+		if (!client.account.birthdate) {
+			throw new UserError('birthdate not set');
+		}
+		const bd = new Date(client.account.birthdate);
+		const now = new Date();
+		let age = now.getFullYear() - bd.getFullYear();
+		const m = now.getMonth() - bd.getMonth();
+		if (m < 0 || (m === 0 && now.getDate() < bd.getDate())) {
+			age--;
+		}
+		sayToOthers(client, `Age: ${age} year${age !== 1 ? 's' : ''}`, toAnnouncementMessageType(type), target, settings);
+	}, false, 'Other'),
+		command(['lie', 'lay'], '/lie - lie down or sit up', '', shouldNotBeCalled, false, 'Pony states'),
+		command(['fly'], '/fly - fly up or fly down', '', shouldNotBeCalled, false, 'Pony states'),
+		command(['stand'], '/stand - stand up', '', shouldNotBeCalled, false, 'Pony states'),
+
+		// emotes
+		command(['blush'], '', '', ({ }, { pony }, message) => playerBlush(pony, message), false, 'Emotes'),
+		command(['love', '<3'], '', '', ({ }, { pony }, message) => playerLove(pony, message), false, 'Emotes'),
+		command(['sleep', 'zzz'], '', '', ({ }, { pony }, message) => playerSleep(pony, message), false, 'Emotes'),
+		command(['cry'], '', '', ({ }, { pony }, message) => playerCry(pony, message), false, 'Emotes'),
+
+		// expressions
+		emote(['smile', 'happy'], expression(Eye.Neutral, Eye.Neutral, Muzzle.Smile), undefined, undefined, 'Expressions'),
+		emote(['frown'], expression(Eye.Neutral, Eye.Neutral, Muzzle.Frown), undefined, undefined, 'Expressions'),
+		emote(['angry'], expression(Eye.Angry, Eye.Angry, Muzzle.Frown), undefined, undefined, 'Expressions'),
+		emote(['sad'], expression(Eye.Sad, Eye.Sad, Muzzle.Frown), undefined, undefined, 'Expressions'),
+		emote(['thinking'], expression(Eye.Neutral, Eye.Frown2, Muzzle.Concerned), undefined, undefined, 'Expressions'),
+
+		// actions
+		action(['yawn'], Action.Yawn, 'Actions'),
+		action(['laugh', 'lol', 'haha', 'хаха', 'jaja'], Action.Laugh, 'Actions'),
+		action(['sneeze', 'achoo'], Action.Sneeze, 'Actions'),
+		action(['excite', 'tada'], Action.Excite, 'Actions'),
+		action(['magic'], Action.Magic, 'Actions'),
+		action(['kiss'], Action.Kiss, 'Actions'),
+		action(['dance1', 'dance-1', 'dance'], Action.Dance1, 'Actions'),
+
+		// house
+		command(['savehouse'], '/savehouse - saves house setup (use ? for help)', '', async ({ }, client, message) => {
+			if (!isValidMapForEditing(client.map, client, true, false))
+				return;
+
+			const subcommand = (message || '').trim().toLowerCase();
+
+			if (subcommand === '?' || subcommand === 'help') {
+				saySystem(client,
+					'/savehouse - save entities, tiles, and walls\n' +
+					'/savehouse entities - save only placed objects\n' +
+					'/savehouse tiles - save only floor tiles\n' +
+					'/savehouse walls - save only walls\n' +
+					'/savehouse ? - show this help'
+				);
+				return;
+			}
+
+			client.lastMapLoadOrSave = Date.now();
+
+			let saveEntities = true;
+			let saveTiles = true;
+			let saveWalls = true;
+			let what = 'entities, tiles, and walls';
+
+			switch (subcommand) {
+				case '':
+					break;
+				case 'entities':
+				case 'objects':
+					saveTiles = false;
+					saveWalls = false;
+					what = 'entities';
+					break;
+				case 'tiles':
+					saveEntities = false;
+					saveWalls = false;
+					what = 'tiles';
+					break;
+				case 'walls':
+					saveEntities = false;
+					saveTiles = false;
+					what = 'walls';
+					break;
+				default:
+					saySystem(client, 'Unknown subcommand. Use /savehouse ? for help');
+					return;
+			}
+
+			const savedMap = JSON.stringify(saveMap(client.map, {
+				saveTiles,
+				saveEntities,
+				saveWalls,
+				saveOnlyEditableEntities: true,
+			}));
+
+			DEVELOPMENT && console.log(savedMap);
+
+			client.account.savedMap = savedMap;
+			await Account.updateOne({ _id: client.accountId }, { savedMap }).exec();
+
+			saySystem(client, `Saved ${what}`);
+			client.reporter.systemLog(`Saved house ${what}`);
+		}, false, 'House'),
+		command(['loadhouse'], '/loadhouse - loads saved house setup (use ? for help)', '', ({ world }, client, message) => {
+			if (!isValidMapForEditing(client.map, client, true, true))
+				return;
+
+			if (!client.account.savedMap)
+				return saySystem(client, 'No saved map state');
+
+			const subcommand = (message || '').trim().toLowerCase();
+
+			if (subcommand === '?' || subcommand === 'help') {
+				saySystem(client,
+					'/loadhouse - load all (entities, tiles, walls)\n' +
+					'/loadhouse entities - load only placed objects\n' +
+					'/loadhouse tiles - load only floor tiles\n' +
+					'/loadhouse walls - load only walls\n' +
+					'/loadhouse ? - show this help'
+				);
+				return;
+			}
+
+			client.lastMapLoadOrSave = Date.now();
+
+			const savedData = JSON.parse(client.account.savedMap);
+
+			if (subcommand === 'entities' || subcommand === 'objects') {
+				loadMap(world, client.map, savedData,
+					{ loadEntities: true, loadWalls: false, loadEntitiesAsEditable: true });
+			} else if (subcommand === 'tiles') {
+				loadMap(world, client.map, savedData,
+					{ loadOnlyTiles: true });
+			} else if (subcommand === 'walls') {
+				loadMap(world, client.map, savedData,
+					{ loadWalls: true, loadEntities: false });
+			} else if (!subcommand) {
+				// Load everything (default)
+				loadMap(world, client.map, savedData,
+					{ loadEntities: true, loadWalls: true, loadEntitiesAsEditable: true });
+			} else {
+				saySystem(client, 'Unknown subcommand. Use /loadhouse ? for help');
+				return;
+			}
+
+			const what = !subcommand ? 'all (entities, tiles, walls)' : (subcommand === 'objects' ? 'entities' : subcommand);
+			saySystem(client, `Loaded ${what}`);
+			client.reporter.systemLog(`Loaded house ${what}`);
+		}, false, 'House'),
+		command(['resethouse'], '/resethouse - resets house setup (use ? for help)', '', ({ world }, client, message) => {
+			if (!isValidMapForEditing(client.map, client, true, true))
+				return;
+
+			const subcommand = (message || '').trim().toLowerCase();
+
+			if (subcommand === '?' || subcommand === 'help') {
+				saySystem(client,
+					'/resethouse - reset all (entities, tiles, walls) to default\n' +
+					'/resethouse entities - reset only placed objects to default\n' +
+					'/resethouse tiles - reset only floor tiles to default\n' +
+					'/resethouse walls - reset only walls to default\n' +
+					'/resethouse ? - show this help'
+				);
+				return;
+			}
+
+			if (!defaultHouseSave) {
+				return saySystem(client, 'Default house save not available');
+			}
+
+			client.lastMapLoadOrSave = Date.now();
+
+			if (subcommand === 'entities' || subcommand === 'objects') {
+				clearHouseEditableEntities(world, client.map);
+				loadMap(world, client.map, defaultHouseSave,
+					{ loadEntities: true, loadWalls: false, loadEntitiesAsEditable: true });
+			} else if (subcommand === 'tiles') {
+				clearHouseTiles(client.map);
+				loadMap(world, client.map, defaultHouseSave,
+					{ loadOnlyTiles: true });
+			} else if (subcommand === 'walls') {
+				clearHouseInnerWalls(world, client.map);
+				loadMap(world, client.map, defaultHouseSave,
+					{ loadWalls: true, loadEntities: false });
+			} else if (!subcommand) {
+				// Reset everything to default
+				loadMap(world, client.map, defaultHouseSave,
+					{ loadEntities: true, loadWalls: true, loadEntitiesAsEditable: true });
+			} else {
+				saySystem(client, 'Unknown subcommand. Use /resethouse ? for help');
+				return;
+			}
+
+			const what = !subcommand ? 'all (entities, tiles, walls)' : (subcommand === 'objects' ? 'entities' : subcommand);
+			saySystem(client, `Reset ${what}`);
+			client.reporter.systemLog(`Reset house ${what}`);
+		}, false, 'House'),
+		command(['clearhouse'], '/clearhouse - clears house setup (use ? for help)', '', ({ world }, client, message) => {
+			if (!isValidMapForEditing(client.map, client, true, true))
+				return;
+
+			const subcommand = (message || '').trim().toLowerCase();
+
+			if (subcommand === '?' || subcommand === 'help') {
+				saySystem(client,
+					'/clearhouse entities - clear all editable objects\n' +
+					'/clearhouse objects - clear all editable objects\n' +
+					'/clearhouse tiles - reset all tiles to default\n' +
+					'/clearhouse walls - remove all inner walls\n' +
+					'/clearhouse ? - show this help'
+				);
+				return;
+			}
+
+			client.lastMapLoadOrSave = Date.now();
+
+			if (!subcommand) {
+				clearHouseEditableEntities(world, client.map);
+				clearHouseTiles(client.map);
+				clearHouseInnerWalls(world, client.map);
+				saySystem(client, 'Cleared all (entities, tiles, walls)');
+				client.reporter.systemLog('Cleared house all (entities, tiles, walls)');
+				return;
+			}
+
+			switch (subcommand) {
+				case 'entities':
+				case 'objects':
+					clearHouseEditableEntities(world, client.map);
+					saySystem(client, 'Cleared entities');
+					client.reporter.systemLog(`Cleared house entities`);
+					break;
+				case 'tiles':
+					clearHouseTiles(client.map);
+					saySystem(client, 'Cleared tiles');
+					client.reporter.systemLog(`Cleared house tiles`);
+					break;
+				case 'walls':
+					clearHouseInnerWalls(world, client.map);
+					saySystem(client, 'Cleared walls');
+					client.reporter.systemLog(`Cleared house walls`);
+					break;
+				default:
+					saySystem(client, 'Unknown subcommand. Use /clearhouse ? for help');
+					break;
+			}
+		}, false, 'House'),
+		command(['lockhouse'], '/lockhouse - prevents other people from changing the house', '', ({ }, client) => {
+			if (!isValidMapForEditing(client.map, client, false, true))
+				return;
+
+			client.map.editingLocked = true;
+
+			saySystem(client, 'House locked');
+			client.reporter.systemLog(`House locked`);
+		}, false, 'House'),
+		command(['unlockhouse'], '/unlockhouse - enables editing by other people', '', ({ }, client) => {
+			if (!isValidMapForEditing(client.map, client, false, true))
+				return;
+
+			client.map.editingLocked = false;
+
+			saySystem(client, 'House unlocked');
+			client.reporter.systemLog(`House unlocked`);
+		}, false, 'House'),
+		command(['removetoolbox'], '/removetoolbox - removes toolbox from the house', '', ({ world }, client) => {
+			if (!isValidMapForEditing(client.map, client, true, true))
+				return;
+
+			client.lastMapLoadOrSave = Date.now();
+
+			removeToolbox(world, client.map);
+
+			saySystem(client, 'Toolbox removed');
+			client.reporter.systemLog(`Toolbox removed`);
+		}, false, 'House'),
+		command(['restoretoolbox'], '/restoretoolbox - restores toolbox to the house', '', ({ }, client) => {
+			if (!isValidMapForEditing(client.map, client, true, true))
+				return;
+
+			client.lastMapLoadOrSave = Date.now();
+
+			restoreToolbox(world, client.map);
+
+			saySystem(client, 'Toolbox restored');
+			client.reporter.systemLog(`Toolbox restored`);
+		}, false, 'House'),
+
+		// supporters
+		command(['swap'], '/swap <name> - swap character', '', async ({ world }, client, message) => {
+			if (!message) {
+				return saySystem(client, `You need to provide name of the character`);
+			}
+
+			const regex = new RegExp(`^${escapeRegExp(message)}$`, 'i');
+			const query = { account: client.account._id, name: { $regex: regex } };
+			await swapCharacter(client, world, query);
+		}, false, 'Supporters'),
+
+		// mod
+		adminModChat(['m'], '/m - mod text', 'mod', MessageType.Mod, 'Mod'),
+		command(['emotetest'], '/emotetest - print all emotes', 'mod', (_context, client) => {
+			let text = '';
+
+			for (let i = 0; i < emojis.length;) {
+				if (text) {
+					text += '\n';
+				}
+
+				for (let j = 0; i < emojis.length && j < 20; j++ , i++) {
+					text += emojis[i].symbol;
+				}
+			}
+
+			sayTo(client, client.pony, text, MessageType.Chat);
+		}, false, 'Mod'),
+		command(['rareitems', 'rare'], '/rareitems - show rare hold items', 'mod', ({ }, client) => {
+			saySystem(client, `Rare items: ${rareHoldTypeNames.join(', ')}`);
+		}, false, 'Mod'),
+		command(['goto'], '/goto <map_id> [instance] - teleport to map spawn', 'mod', ({ world }, client, message) => {
+			const parts = message.trim().split(/\s+/);
+
+			if (parts.length === 0 || !parts[0]) {
+				const mapsList = new Map<string, Set<string>>();
+				for (const map of world.maps) {
+					if (!mapsList.has(map.id)) {
+						mapsList.set(map.id, new Set());
+					}
+					if (map.instance) {
+						mapsList.get(map.id)!.add(map.instance);
+					}
+				}
+
+				const lines = ['Available Maps:'];
+				mapsList.forEach((instances, id) => {
+					if (instances.size === 0) {
+						lines.push(`  ${id}`);
+					} else {
+						lines.push(`  ${id} (instances: ${Array.from(instances).join(', ')})`);
+					}
+				});
+				lines.push('', 'Usage: /goto <map_id> [instance]');
+				saySystem(client, lines.join('\n'));
+				return;
+			}
+
+			const [id, instance] = parts;
+			const map = world.maps.find(map => map.id === id && (!instance || map.instance === instance));
+
+			if (map) {
+				const { x, y } = randomPoint(map.spawnArea);
+				world.switchToMap(client, map, x, y);
+				saySystem(client, `Teleported to ${id}${instance ? ` (${instance})` : ''}`);
+			} else {
+				throw new UserError(`Map "${id}" not found or instance mismatch`);
+			}
+		}, false, 'Mod'),
+		command(['speed'], '/speed - manage player movement speed', 'mod', ({}, client, message) => {
+			const parts = (message || '').trim().split(/\s+/);
+			const arg = parts[0];
+
+			if (!arg || arg.toLowerCase() === 'reset') {
+				client.pony.speedMultiplier = 1;
+				client.speedMultiplier = 1;
+				updateEntityOptions(client.pony, { speedMultiplier: 1 });
+				saySystem(client, 'Speed reset to 1x');
+				return;
+			}
+
+			const value = parseFloat(arg);
+
+			if (isNaN(value) || value <= 0 || value > 4) {
+				saySystem(client, 'Invalid speed. Provide number > 0 and <= 4, or "reset"');
+				return;
+			}
+
+			client.pony.speedMultiplier = value;
+			client.speedMultiplier = value;
+			updateEntityOptions(client.pony, { speedMultiplier: value });
+			saySystem(client, `Speed set to ${value}x`);
+		}, false, 'Mod'),
+		command(['scale'], '/scale <value|reset> - manage player pony size (0.1-10)', 'mod', ({}, client, message) => {
+			const parts = (message || '').trim().split(/\s+/);
+			const arg = parts[0];
+
+			if (!arg || arg.toLowerCase() === 'reset') {
+				client.pony.scale = 1;
+				updateEntityOptions(client.pony, { scale: 1 });
+				saySystem(client, 'Scale reset to 1x');
+				return;
+			}
+
+			const value = parseFloat(arg);
+
+			if (isNaN(value) || value < 0.1 || value > 10) {
+				saySystem(client, 'Invalid scale. Provide number >= 0.1 and <= 10, or "reset"');
+				return;
+			}
+
+			client.pony.scale = value;
+			updateEntityOptions(client.pony, { scale: value });
+			saySystem(client, `Scale set to ${value}x`);
+		}, false, 'Mod'),
+		command(['tp'], '/tp <location|x y|to <player>|here <player>|? - teleport around', 'mod', (_context, client, message) => {
+		const input = message.trim();
+		if (!input || input === '?') {
+			const lines = [
+				'Teleport command',
+				'',
+				'Usage:',
+				'  /tp <location>                 - go to a named spawn (see /locations)',
+				'  /tp <x> <y>                    - teleport to coords (decimals ok)',
+				'  /tp to <player>                - teleport to another player',
+				'  /tp here <player>              - bring a player to you',
+				'  /tp ?                          - show this help message',
+				'',
+				'Examples:',
+				'  /tp spawn',
+				'  /tp 22.1 42,5',
+				'  /tp to player2',
+				'  /tp here player2',
+				'',
+				'Tip: enable "Show stats" to see Your Coords and use /players to list names',
+			];
+			saySystem(client, lines.join('\n'));
+			return;
+		}
+
+		// handle to/here subcommands
+		const parts = input.split(/\s+/);
+		if (parts[0].toLowerCase() === 'to' && parts[1]) {
+			const targetName = parts.slice(1).join(' ');
+			const others = _context.world.clients.filter(c => (c.pony.name || '').toLowerCase() === targetName.toLowerCase());
+			if (others.length === 0) {
+				const byAccount = _context.world.clients.filter(c => c.accountName.toLowerCase() === targetName.toLowerCase());
+				if (byAccount.length > 0) {
+					const target = byAccount[0];
+					if (client.map !== target.map) {
+						_context.world.switchToMap(client, target.map, target.pony.x, target.pony.y);
+					} else {
+						teleportTo(client, target.pony.x, target.pony.y);
+					}
+					saySystem(client, `Teleported to ${target.accountName} (${target.pony.name || 'unnamed'})`);
+					return;
+				}
+				saySystem(client, 'player not found, try /players to see online names');
+				return;
+			}
+			const target = others[0];
+			if (client.map !== target.map) {
+				_context.world.switchToMap(client, target.map, target.pony.x, target.pony.y);
+			} else {
+				teleportTo(client, target.pony.x, target.pony.y);
+			}
+			saySystem(client, `Teleported to ${target.pony.name || 'unnamed'} (${target.accountName})`);
+			return;
+		}
+		if (parts[0].toLowerCase() === 'here' && parts[1]) {
+			const targetName = parts.slice(1).join(' ');
+			const others = _context.world.clients.filter(c => (c.pony.name || '').toLowerCase() === targetName.toLowerCase());
+			if (others.length === 0) {
+				const byAccount = _context.world.clients.filter(c => c.accountName.toLowerCase() === targetName.toLowerCase());
+				if (byAccount.length > 0) {
+					const target = byAccount[0];
+					if (target.map !== client.map) {
+						_context.world.switchToMap(target, client.map, client.pony.x, client.pony.y);
+					} else {
+						teleportTo(target, client.pony.x, client.pony.y);
+					}
+					saySystem(client, `${target.accountName} (${target.pony.name || 'unnamed'}) has been teleported to you`);
+					return;
+				}
+				saySystem(client, 'player not found, try /players to see online names');
+				return;
+			}
+			const target = others[0];
+			if (target.map !== client.map) {
+				_context.world.switchToMap(target, client.map, client.pony.x, client.pony.y);
+			} else {
+				teleportTo(target, client.pony.x, client.pony.y);
+			}
+			saySystem(client, `${target.pony.name || 'unnamed'} (${target.accountName}) has been teleported to you`);
+			return;
+		}
+
+		const { x, y } = getSpawnTarget(client.map, input);
+		teleportTo(client, x, y);
+		saySystem(client, `Teleported to (${x.toFixed(1)}, ${y.toFixed(1)})`);
+	}, false, 'Mod'),
+
+		command(['locations'], '/locations - show list all spawn locations on current map', 'mod', ({ }, client) => {
+			const map = client.map;
+			const locations = Array.from(map.spawns.keys());
+
+			if (locations.length === 0) {
+				saySystem(client, 'No named locations on this map');
+			} else {
+				const locNames = locations.concat(map.spawnArea ? ['spawn'] : []).join(', ');
+				saySystem(client, `Locations on: ${locNames}`);
+			}
+		}, false, 'Mod'),
+
+		command(['players'], '/players - list all players on this map and total', 'mod', ({ world }, client) => {
+			const mapClients = world.clients.filter(c => c.map === client.map);
+			const totalClients = world.clients.length;
+			if (totalClients <= 1) {
+				saySystem(client, "You're the only one on the server right now");
+				return;
+			}
+			const lines: string[] = [
+				`PLAYERS (${mapClients.length} here / ${totalClients} total)`,
+				'',
+			];
+			if (mapClients.length === 0) {
+				lines.push('No players on this map');
+			} else {
+				mapClients.forEach(c => {
+					const afkStatus = c.lastPacket && (Date.now() - c.lastPacket) > 300000 ? ' (afk)' : '';
+					lines.push(`  ${c.characterName} - ${c.accountName}${afkStatus}`);
+				});
+			}
+			saySystem(client, lines.join('\n'));
+		}, false, 'Mod'),
+
+		command(['maps'], '/maps - list all maps on the server', 'mod', ({ world }, client) => {
+			// Count unique maps and their players
+			const mapData = new Map<string, { instances: number; players: number }>();
+
+			for (const map of world.maps) {
+				const key = map.id;
+				const mapPlayers = world.clients.filter(c => c.map === map).length;
+				if (!mapData.has(key)) {
+					mapData.set(key, { instances: 0, players: 0 });
+				}
+				const data = mapData.get(key)!;
+				data.instances++;
+				data.players += mapPlayers;
+			}
+
+			const lines = [
+				`Server Maps (${mapData.size} total)`,
+				'---------------------',
+			];
+
+			let index = 1;
+			mapData.forEach((data, id) => {
+				const playerText = data.players === 1 ? 'pony' : 'ponies';
+				if (data.players === 0) {
+					lines.push(`${index}. ${id}`);
+				} else {
+					lines.push(`${index}. ${id}: ${data.players} ${playerText}`);
+				}
+				index++;
+			});
+
+			saySystem(client, lines.join('\n'));
+		}, false, 'Mod'),
+		command(['map'], '/map - show current map info', 'mod', ({ world }, client) => {
+			const map = client.map;
+			const { memory, entities } = getSizeOfMap(map);
+			const players = world.clients.filter(c => c.map === map).length;
+			const mapName = map.id || 'unknown';
+
+			const lines = [
+				'Map info',
+				'-----------------',
+				`Name:        ${mapName}${map.instance ? ` (${map.instance})` : ''}`,
+				`Position:    ${client.pony.x.toFixed(1)}x, ${client.pony.y.toFixed(1)}y`,
+				`Dimensions:  ${map.width}x | ${map.height}y tiles`,
+				`Players:     ${players}`,
+				`Regions:     ${map.regions.length}`,
+				`Entities:    ${entities}`,
+				`Memory:      ${(memory / 1024).toFixed(2)} KB`,
+			];
+
+			saySystem(client, lines.join('\n'));
+		}, false, 'Mod'),
+
+		// admin
+		adminModChat(['a'], '/a - admin text', 'admin', MessageType.Admin, 'Admin'),
+		command(['announce'], '/announce - global announcement', 'admin', ({ }, client, message, _, __, settings) => {
+			findEntities(client.map, e => e.type === butterfly.type || e.type === bat.type || e.type === firefly.type)
+				.forEach(e => sayToAll(e, message, filterBadWords(message), MessageType.Admin, settings));
+		}, false, 'Admin'),
+
+		// builder
+		adminModChat(['build'], '/build - builder text', 'builder', MessageType.Builder, 'Builder'),
+
+		// npc
+		adminModChat(['npc'], '/npc - npc text', 'npc', MessageType.NPC, 'NPC'),
+
+		command(['time'], '/time <HH:MM|day|night|?|<HH:MM> stop> - set server time, ? for help', DEVELOPMENT ? '' : 'admin', ({ world }, client, message) => {
+			const input = message.trim();
+
+			if (!input) {
+				const currentTime = world.time;
+				saySystem(client, `Current time: ${formatHourMinutes(currentTime)}`);
+				return;
+			}
+
+			const args = input.split(/\s+/).filter(p => p);
+			const subcommand = args[0].toLowerCase();
+
+			// Check if it's a time setting (HH:MM or HH MM)
+			const colonRegex = /^(\d{1,2}):(\d{2})$/;
+
+			let isTimeInput = false;
+			let targetHour = 0;
+			let targetMinute = 0;
+
+			if (colonRegex.test(args[0])) {
+				const match = colonRegex.exec(args[0])!;
+				targetHour = parseInt(match[1], 10);
+				targetMinute = parseInt(match[2], 10);
+				isTimeInput = true;
+			} else if (/^\d{1,2}$/.test(args[0]) && args.length === 2 && /^\d{2}$/.test(args[1])) {
+				targetHour = parseInt(args[0], 10);
+				targetMinute = parseInt(args[1], 10);
+				isTimeInput = true;
+			}
+
+			if (isTimeInput) {
+				// if user added "stop" as second argument, freeze at that time
+				if (args.length > 1 && args[1].toLowerCase() === 'stop') {
+					if ((world as any).timeIntervalId) {
+						clearInterval((world as any).timeIntervalId);
+					}
+					const targetTimeValue = targetHour + (targetMinute / 60);
+					world.setTime(targetTimeValue);
+					(world as any).timeIntervalId = setInterval(() => {
+						world.setTime(targetTimeValue);
+					}, 1000);
+					saySystem(client, `Time frozen at ${formatHourMinutes(world.time)}`);
+					return;
+				}
+				// Stop any running interval
+				if ((world as any).timeIntervalId) {
+					clearInterval((world as any).timeIntervalId);
+					(world as any).timeIntervalId = null;
+				}
+				// Set time to HH:MM
+				if (targetHour < 0 || targetHour > 23 || targetMinute < 0 || targetMinute > 59) {
+					throw new UserError('Invalid time. Hours must be 0-23, minutes must be 0-59');
+				}
+				const targetTimeValue = targetHour + (targetMinute / 60);
+				world.setTime(targetTimeValue);
+				const newTime = world.time;
+				saySystem(client, `Time set to ${formatHourMinutes(newTime)}`);
+				return;
+			}
+
+			// Special commands: day and night - set time periodically every 2.5 seconds
+			if (subcommand === 'day') {
+				// Stop any running interval first
+				if ((world as any).timeIntervalId) {
+					clearInterval((world as any).timeIntervalId);
+				}
+
+				// Immediately set time to day
+				world.setTime(12);
+
+// Periodically re-set time every 1 seconds to maintain eternal day
+			(world as any).timeIntervalId = setInterval(() => {
+				world.setTime(12);
+			}, 1000);
+
+				saySystem(client, 'Time set to eternal day (12:00) - continuously enforced');
+				return;
+			}
+
+			if (subcommand === 'night') {
+				// Stop any running interval first
+				if ((world as any).timeIntervalId) {
+					clearInterval((world as any).timeIntervalId);
+				}
+
+				// Immediately set time to night
+				world.setTime(0);
+
+// Periodically re-set time every 1 seconds to maintain eternal night
+			(world as any).timeIntervalId = setInterval(() => {
+				world.setTime(0);
+			}, 1000);
+
+				saySystem(client, 'Time set to eternal night (00:00) - continuously enforced');
+				return;
+			}
+
+			throw new UserError('Usage: /time HH:MM or /time day or /time night');
+		}, false, 'Admin'),
+
+	// admin counter modification
+	command(['collect'], '/collect <kind> [amount|clear] - give/remove counters. Syntax: /collect gift 100 or /collect 100 gift', 'admin', ({ }, client, message) => {
+		const parts = message.trim().split(/\s+/).filter(p => p);
+
+		// Show help if no arguments
+		if (parts.length === 0) {
+			saySystem(client, 'Usage: /collect <kind> [amount|clear]');
+			saySystem(client, 'Types: gift/gifts, egg/eggs, clover/clovers, candy/candies, toy/toys');
+			saySystem(client, 'Examples:');
+			saySystem(client, '  /collect gift 100 - give 100 gifts');
+			saySystem(client, '  /collect 100 gift - give 100 gifts (order is flexible)');
+			saySystem(client, '  /collect gift -50 - remove 50 gifts');
+			saySystem(client, '  /collect gift clear - clear all gifts to 0');
+			return;
+		}
+
+		// Parse arguments flexibly
+		let kind: string | null = null;
+		let amountStr: string | null = null;
+
+		for (const part of parts) {
+			// Check if it's a kind
+			if (['gift', 'gifts', 'egg', 'eggs', 'clover', 'clovers', 'candy', 'candies', 'toy', 'toys'].includes(part.toLowerCase())) {
+				if (kind !== null) {
+					throw new UserError('Type specified twice');
+				}
+				kind = part.toLowerCase();
+			} else if (part.toLowerCase() === 'clear') {
+				if (amountStr !== null) {
+					throw new UserError('Cannot specify amount and clear together');
+				}
+				amountStr = 'clear';
+			} else if (!isNaN(parseInt(part, 10))) {
+				if (amountStr !== null) {
+					throw new UserError('Amount specified twice');
+				}
+				amountStr = part;
+			} else {
+				throw new UserError(`Unknown param: "${part}"`);
+			}
+		}
+
+		if (kind === null) {
+			throw new UserError('Type not specified (gift, egg, clover, candy or toy)');
+		}
+
+		// Normalize kind to singular/proper form
+		const kindMap: any = {
+			'gift': 'gifts', 'gifts': 'gifts',
+			'egg': 'eggs', 'eggs': 'eggs',
+			'clover': 'clovers', 'clovers': 'clovers',
+			'candy': 'candies', 'candies': 'candies',
+			'toy': 'toys', 'toys': 'toys'
+		};
+		const normalizedKind = kindMap[kind];
+
+		if (normalizedKind === 'toys') {
+			// Handle toys - output like /toys command
+			if (amountStr === null) {
+				throw new UserError('For toys specify amount or clear');
+			}
+
+			if (amountStr === 'clear') {
+				updateAccountState(client.account, (state: any) => state.toys = 0);
+				saySystem(client, 'Toys cleared');
+			} else {
+				const amount = parseInt(amountStr, 10);
+				if (isNaN(amount)) {
+					throw new UserError('Invalid amount');
+				}
+
+				const n = Math.abs(amount);
+				const total = getCollectedToysCount(client).total;
+				const m = Math.min(n, total);
+
+				if (m === 0 && amount !== 0) {
+					saySystem(client, 'No toys to remove');
+					return;
+				}
+
+				updateAccountState(client.account, (state: any) => {
+					let mask = toInt(state.toys);
+					if (amount >= 0) {
+						for (let i = 0; i < m; i++) mask |= (1 << i);
+					} else {
+						for (let i = 0; i < m; i++) mask &= ~(1 << i);
+					}
+					state.toys = mask;
+				});
+
+				const { collected } = getCollectedToysCount(client);
+				saySystem(client, `${amount >= 0 ? 'Given' : 'Removed'} toys #1-${m}, total: ${collected}/${total}`);
+			}
+		} else {
+			// Handle gifts, eggs, clovers, candies
+			if (amountStr === null) {
+				throw new UserError('Specify amount or clear');
+			}
+
+			let amount: number;
+
+			if (amountStr === 'clear') {
+				amount = -(toInt((client.account as any)[normalizedKind]) || 0);
+			} else {
+				amount = parseInt(amountStr, 10);
+				if (isNaN(amount)) {
+					throw new UserError('Invalid amount');
+				}
+			}
+
+			const k = normalizedKind as 'gifts' | 'eggs' | 'clovers' | 'candies';
+
+			updateAccountState(client.account, (state: any) => {
+				state[k] = Math.max(0, toInt(state[k]) + amount);
+			});
+
+			if (amountStr === 'clear') {
+				saySystem(client, `${k} cleared`);
+			} else {
+				saySystem(client, `${amount >= 0 ? 'Given' : 'Removed'} ${Math.abs(amount)} ${k}`);
+			}
+		}
+	}, false, 'Admin'),
+
+		// admin helpers to set playtime & creation date with undo
+		command(['setplaytime'], '/setplaytime <seconds|reset> - set or restore your playtime', 'admin', ({ }, client, message) => {
+			const arg = (message || '').trim().toLowerCase();
+			if (!arg) {
+				throw new UserError('provide seconds or reset');
+			}
+			if (arg === 'reset') {
+				const prev = playtimeBackup.get(client);
+				if (prev === undefined) {
+					saySystem(client, 'no backup available');
+					return;
+				}
+				updateAccountState(client.account, (state: any) => {
+					state.counters = state.counters || {};
+					state.counters.playtime = prev;
+				});
+				playtimeBackup.delete(client);
+				saySystem(client, 'playtime restored');
+				return;
+			}
+			const sec = parseInt(arg, 10);
+			if (isNaN(sec) || sec < 0) {
+				throw new UserError('invalid seconds');
+			}
+			if (!playtimeBackup.has(client)) {
+				const stored = (client.account.counters && (client.account.counters as any).playtime) ? (client.account.counters as any).playtime : 0;
+				playtimeBackup.set(client, stored);
+			}
+			updateAccountState(client.account, (state: any) => {
+				state.counters = state.counters || {};
+				state.counters.playtime = sec;
+			});
+			saySystem(client, `playtime set to ${sec}`);
+		}, false, 'Admin'),
+
+		command(['setcreated'], '/setcreated <YYYY-MM-DD|reset> - change or restore account creation date', 'admin', ({ }, client, message) => {
+			const arg = (message || '').trim();
+			if (!arg) {
+				throw new UserError('provide date or reset');
+			}
+			if (arg.toLowerCase() === 'reset') {
+				const prev = createdBackup.get(client);
+				if (prev === undefined) {
+					saySystem(client, 'no backup available');
+					return;
+				}
+				client.account.createdAt = prev;
+				Account.updateOne({ _id: client.accountId }, { createdAt: prev }).exec();
+				createdBackup.delete(client);
+				saySystem(client, 'creation date restored');
+				return;
+			}
+			const d = new Date(arg);
+			if (isNaN(d.getTime())) {
+				throw new UserError('invalid date format');
+			}
+			if (!createdBackup.has(client)) {
+				createdBackup.set(client, client.account.createdAt);
+			}
+			client.account.createdAt = d;
+			Account.updateOne({ _id: client.accountId }, { createdAt: d }).exec();
+			saySystem(client, `creation date set to ${d.toISOString().replace(/T.*$/, '')}`);
+		}, false, 'Admin'),
+
+		command(['togglerestore'], '/togglerestore - toggle terrain restoration', 'admin', ({ world: { options } }, client) => {
+			options.restoreTerrain = !options.restoreTerrain;
+			saySystem(client, `restoration is ${options.restoreTerrain ? 'on' : 'off'}`);
+		}, false, 'Admin'),
+		command(['resettiles'], '/resettiles - reset tiles to original state', 'admin', ({ }, client) => {
+			for (const region of client.map.regions) {
+				resetTiles(client.map, region);
+			}
+		}, false, 'Admin'),
+		BETA && command(['season'], '/season <season> [<holiday>]', 'admin', ({ world }, _client, message) => {
+			const [s = '', h = ''] = message.split(' ');
+			const season = parseSeason(s);
+			const holiday = parseHoliday(h);
+
+			if (season === undefined) {
+				throw new UserError('invalid season');
+			} else {
+				world.setSeason(season, holiday === undefined ? world.holiday : holiday);
+			}
+		}, false, 'Admin'),
+		BETA && command(['weather'], '/weather <none|rain>', 'admin', ({ }, client, message) => {
+			const weather = parseWeather(message);
+
+			if (weather === undefined) {
+				throw new UserError('invalid weather');
+			} else {
+				updateMapState(client.map, { weather });
+			}
+		}, false, 'Admin'),
+
+		// owner
+		command(['update'], '/update - prepare server for update', 'owner', ({ world, liveSettings }) => {
+			createNotifyUpdate(world, liveSettings)();
+		}, false, 'Owner'),
+		command(['shutdown'], '/shutdown - shutdown server for update', 'owner', ({ world, liveSettings }) => {
+			createShutdownServer(world, liveSettings)(true);
+	}, false, 'Owner'),
+		command(['loadmap'], '/loadmap <file name> - load map from file', 'owner', ({ world }, client, message) => {
+			execWithFileName(client, message, fileName =>
+				loadMapFromFile(world, client.map, pathTo('store', `${fileName}.json`), { loadOnlyTiles: true }));
+		}, false, 'Owner'),
+		command(['savemap'], '/savemap <file name> - save map to file', 'owner', (_, client, message) => {
+			execWithFileName(client, message, async fileName => {
+				await saveMapToFile(client.map, pathTo('store', `${fileName}.json`), { saveTiles: true });
+				// await saveMapToFileBinary(client.map, pathTo('store', `${fileName}.bin`));
+			});
+		}, false, 'Owner'),
+		command(['savemapbin'], '/savemapbin <file name> - save map to file', 'owner', (_, client, message) => {
+			execWithFileName(client, message, fileName => saveMapToFileBinaryAlt(client.map, pathTo('store', `${fileName}.json`)));
+		}, false, 'Owner'),
+		command(['saveentities'], '/saveentities <file name> - save entities to file', 'owner', (_, client, message) => {
+			execWithFileName(client, message, fileName => saveEntitiesToFile(client.map, pathTo('store', `${fileName}.txt`)));
+		}, false, 'Owner'),
+		command(['savehides'], '/savehides - save hides to file', 'owner', async ({ world }, client) => {
+			const json = world.hidingService.serialize();
+			await writeFileAsync(pathTo('store', 'hides.json'), json, 'utf8');
+			saySystem(client, 'saved');
+		}, false, 'Owner'),
+		command(['throwerror'], '/throwerror <message> - throw test error', 'owner', (_, _client, message) => {
+			throw new Error(message || 'test');
+		}, false, 'Owner'),
+		BETA && command(['test'], '', 'owner', ({ }, client) => {
+			client.map.regions.forEach(region => {
+				console.log(region.x, region.y, region.colliders.length);
+			});
+		}, false, 'Owner'),
+		BETA && command(['spamchat'], '/spamchat - spam chat messages', 'owner',
+			({ world, random }, client, _, __, ___, settings) => {
+				if (interval) {
+					clearInterval(interval);
+					interval = undefined;
+				} else {
+					interval = setInterval(() => {
+						if (includes(world.clients, client)) {
+							const message = range(random(1, 10)).map(() => randomString(random(1, 10))).join(' ');
+							sayToEveryone(client, message, message, MessageType.Chat, settings);
+						} else {
+							clearInterval(interval);
+						}
+					}, 100);
+				}
+			}, false, 'Owner'),
+		BETA && command(['noclouds'], '/noclouds - remove clouds', 'owner', ({ world }, client) => {
+			findEntities(client.map, e => e.type === cloud.type).forEach(e => world.removeEntity(e, client.map));
+		}, false, 'Owner'),
+		BETA && command(['msg'], '/msg - say random stuff', 'owner', ({ }, client, _, __, ___, settings) => {
+			findEntities(client.map, e => !!e.options && e.name === 'debug 2')
+				.forEach(e => sayToAll(e, 'Hello there!', 'Hello there!', MessageType.Chat, settings));
+		}, false, 'Owner'),
+		BETA && command(['hold'], '/hold <name> - hold item', 'owner', ({ }, client, message) => {
+			holdItem(client.pony, getEntityType(message));
+		}, false, 'Owner'),
+		BETA && command(['toy'], '/toy <number> - hold toy', 'owner', ({ }, client, message) => {
+			holdToy(client.pony, parseInt(message, 10) | 0);
+		}, false, 'Owner'),
+		BETA && command(['dc'], '/dc', 'owner', ({ }, client) => {
+			client.disconnect(true, false);
+		}, false, 'Owner'),
+		BETA && command(['disconnect'], '/disconnect', 'owner', ({ }, client) => {
+			client.disconnect(true, true);
+		}, false, 'Owner'),
+		BETA && command(['info'], '/info <id>', 'owner', ({ world }, client, message) => {
+			const id = parseInt(message, 10) | 0;
+			const entity = world.getEntityById(id);
+
+			if (entity) {
+				const { id, type, x, y, options } = entity;
+				const info = { id, type: getEntityTypeName(type), x, y, options };
+				saySystem(client, JSON.stringify(info, null, 2));
+			} else {
+				saySystem(client, 'undefined');
+			}
+		}, false, 'Owner'),
+		BETA && command(['collider'], '/collider', 'owner', ({ }, client) => {
+			const region = getRegionGlobal(client.map, client.pony.x, client.pony.y);
+
+			if (region) {
+				saveRegionCollider(region);
+				saySystem(client, 'saved');
+				// console.log(region.tileIndices);
+			}
+		}, false, 'Owner'),
+		DEVELOPMENT && command(['testparty'], '', 'owner', ({ party }, client) => {
+			const entities = findEntities(client.map, e => !!e.client && /^debug/.test(e.name || ''));
+
+			for (const e of entities.slice(0, PARTY_LIMIT - 1)) {
+				party.invite(client, e.client!);
+			}
+		}, false, 'Owner'),
+
+		// Bunny summon command - manages follower bunnies around the player
+		command(['bunnies', 'summonbunnies'], '/bunnies - вызов управления кроликами; подробности через help или ?', '', ({ world }, client, message) => {
+			const map = client.map;
+			const player = client.pony;
+			const options = getBunnyOptions(client);
+			const args = (message || '').trim().split(/\s+/).filter(Boolean);
+			const subcommand = args[0] ? args[0].toLowerCase() : '';
+
+			if (!subcommand) {
+				clearSummonedBunnies(client, world);
+				clearFreeBunnies(client, world);
+				const offsets = getFormationOffsets(options.count, options.radius, options.shape);
+				const created: ServerEntity[] = [];
+
+				let i = 0;
+				for (const offset of offsets) {
+					const initialPhase = (i / offsets.length) * Math.PI * 2;
+					const bunnyEntities = createFollowerBunny(player, offset.x, offset.y, options.mode, options.radius, options.shape, initialPhase, false, client.map);
+					bunnyEntities.forEach(bunny => {
+						world.addEntity(bunny, map);
+						created.push(bunny);
+					});
+					i++;
+				}
+
+				summonedBunnies.set(client, created);
+				saySystem(client, `Кроликов:${created.length} r=${options.radius.toFixed(1)} s=${options.shape} m=${options.mode}`);
+				return;
+			}
+
+			if (subcommand === '?' || subcommand === 'help') {
+				saySystem(client, '/bunnies ? - управление кроликами:\ncount <n> - число кроликов\nshow - статус\nclear - убрать кроликов\nfree - освободить кроликов\nrecall - призвать свободных кроликов\nsize <0.1..15> - радиус разброса\nshape <none|circle|triangle|square|diamond|heart> - фигура\nmode <circle|stay|free> - поведение\naction <sit|look|blink|clean> - действие\ndefault: count 5, size 1, shape none, mode stay');
+				return;
+			}
+
+			if (subcommand === 'show' || subcommand === 'count') {
+				const created = summonedBunnies.get(client) || [];
+				saySystem(client, `Кроликов:${created.length} r=${options.radius.toFixed(1)} s=${options.shape} m=${options.mode}`);
+				return;
+			}
+
+			if (subcommand === 'clear' || subcommand === 'remove') {
+				clearSummonedBunnies(client, world);
+				clearFreeBunnies(client, world);
+				saySystem(client, 'Кролики сняты');
+				return;
+			}
+
+			if (subcommand === 'size' || subcommand === 'radius') {
+				if (args.length < 2) {
+					throw new UserError('Usage: /bunnies size <radius>');
+				}
+
+				const radius = parseFloat(args[1].replace(',', '.'));
+				if (isNaN(radius) || radius < minBunnyRadius || radius > maxBunnyRadius) {
+					throw new UserError(`Radius must be between ${minBunnyRadius.toFixed(1)} and ${maxBunnyRadius.toFixed(1)}`);
+				}
+
+				options.radius = radius;
+				clearSummonedBunnies(client, world);
+				clearFreeBunnies(client, world);
+
+				const offsets = getFormationOffsets(options.count, options.radius, options.shape);
+				const created: ServerEntity[] = [];
+
+				let i = 0;
+				for (const offset of offsets) {
+					const initialPhase = (i / offsets.length) * Math.PI * 2;
+					const bunnyEntities = createFollowerBunny(player, offset.x, offset.y, options.mode, options.radius, options.shape, initialPhase, false, client.map);
+					bunnyEntities.forEach(bunny => {
+						world.addEntity(bunny, map);
+						created.push(bunny);
+					});
+					i++;
+				}
+
+				summonedBunnies.set(client, created);
+				saySystem(client, `r=${radius.toFixed(1)} s=${options.shape}`);
+				return;
+			}
+
+			if (subcommand === 'shape') {
+				if (args.length < 2) {
+					throw new UserError('Usage: /bunnies shape <none|circle|triangle|square|diamond|heart>');
+				}
+
+				const shape = args[1].toLowerCase();
+				if (shape !== 'none' && shape !== 'circle' && shape !== 'triangle' && shape !== 'square' && shape !== 'diamond' && shape !== 'heart') {
+					throw new UserError('Shape must be none, circle, triangle, square, diamond, or heart');
+				}
+
+				options.shape = shape as 'none' | 'circle' | 'triangle' | 'square' | 'diamond' | 'heart';
+				clearSummonedBunnies(client, world);
+				clearFreeBunnies(client, world);
+
+				const offsets = getFormationOffsets(options.count, options.radius, options.shape);
+				const created: ServerEntity[] = [];
+
+				let i = 0;
+				for (const offset of offsets) {
+					const initialPhase = (i / offsets.length) * Math.PI * 2;
+					const bunnyEntities = createFollowerBunny(player, offset.x, offset.y, options.mode, options.radius, options.shape, initialPhase);
+					bunnyEntities.forEach(bunny => {
+						world.addEntity(bunny, map);
+						created.push(bunny);
+					});
+					i++;
+				}
+
+				summonedBunnies.set(client, created);
+				saySystem(client, `s=${options.shape}`);
+				return;
+			}
+
+			if (subcommand === 'mode') {
+				if (args.length < 2) {
+					throw new UserError('Usage: /bunnies mode <circle|stay|free>');
+				}
+
+				const mode = args[1].toLowerCase();
+				if (mode !== 'circle' && mode !== 'stay' && mode !== 'free') {
+					throw new UserError('Mode must be circle, stay, or free');
+				}
+
+				options.mode = mode as 'circle' | 'stay' | 'free';
+				clearSummonedBunnies(client, world);
+				clearFreeBunnies(client, world);
+
+				const offsets = getFormationOffsets(options.count, options.radius, options.shape);
+				const created: ServerEntity[] = [];
+
+				let i = 0;
+				for (const offset of offsets) {
+					const initialPhase = (i / offsets.length) * Math.PI * 2;
+					const bunnyEntities = createFollowerBunny(player, offset.x, offset.y, options.mode, options.radius, options.shape, initialPhase, false, client.map);
+					bunnyEntities.forEach(bunny => {
+						world.addEntity(bunny, map);
+						created.push(bunny);
+					});
+					i++;
+				}
+
+				summonedBunnies.set(client, created);
+				saySystem(client, `m=${options.mode}`);
+				return;
+			}
+
+			if (subcommand === 'action') {
+				if (args.length < 2) {
+					throw new UserError('Usage: /bunnies action <sit|look|blink|clean>');
+				}
+
+				const action = args[1].toLowerCase();
+				let anim: BunnyAnimation;
+
+				switch (action) {
+					case 'sit':
+						anim = BunnyAnimation.Sit;
+						break;
+					case 'look':
+						anim = BunnyAnimation.Look;
+						break;
+					case 'blink':
+						anim = BunnyAnimation.Blink;
+						break;
+					case 'clean':
+						anim = BunnyAnimation.Clean;
+						break;
+					default:
+						throw new UserError('Action must be sit, look, blink, or clean');
+				}
+
+				const count = setSummonedBunnyAnimation(client, anim);
+				if (!count) {
+					saySystem(client, 'Нет кроликов');
+					return;
+				}
+
+				saySystem(client, `cmd=${action} n=${count}`);
+				return;
+			}
+
+			if (subcommand === 'free') {
+				const created = summonedBunnies.get(client) || [];
+				if (created.length === 0) {
+					saySystem(client, 'Нет кроликов для освобождения');
+					return;
+				}
+
+				// Освобождаем кроликов - переводим в режим free
+				for (const bunny of created) {
+					bunny.bunnyMode = 'free';
+				}
+
+				// Очищаем список призванных кроликов
+				summonedBunnies.delete(client);
+				freeBunnies.set(client, created);
+
+				saySystem(client, `Освобождено кроликов: ${created.length}`);
+				return;
+			}
+
+			if (subcommand === 'recall') {
+				const free = freeBunnies.get(client) || [];
+				if (free.length === 0) {
+					saySystem(client, 'Нет свободных кроликов для призыва');
+					return;
+				}
+
+				// Призываем кроликов обратно - переводим в режим stay
+				const options = getBunnyOptions(client);
+				for (const bunny of free) {
+					bunny.bunnyMode = options.mode;
+				}
+
+				// Перемещаем в список призванных
+				summonedBunnies.set(client, free);
+				freeBunnies.delete(client);
+
+				saySystem(client, `Призвано кроликов: ${free.length}`);
+				return;
+			}
+
+			const count = parseInt(subcommand, 10);
+			if (!isNaN(count) && count > 0) {
+				options.count = Math.min(count, maxBunnyCount);
+				clearSummonedBunnies(client, world);
+				clearFreeBunnies(client, world);
+
+				const offsets = getFormationOffsets(options.count, options.radius, options.shape);
+				const created: ServerEntity[] = [];
+
+				let i = 0;
+				for (const offset of offsets) {
+					const initialPhase = (i / offsets.length) * Math.PI * 2;
+					const bunnyEntities = createFollowerBunny(player, offset.x, offset.y, options.mode, options.radius, options.shape, initialPhase, false, client.map);
+					bunnyEntities.forEach(bunny => {
+						world.addEntity(bunny, map);
+						created.push(bunny);
+					});
+					i++;
+				}
+
+				summonedBunnies.set(client, created);
+				saySystem(client, `Кроликов:${created.length} r=${options.radius.toFixed(1)} s=${options.shape} m=${options.mode}`);
+				return;
+			}
+
+			throw new UserError('Usage: /bunnies [count] | /bunnies show | /bunnies clear | /bunnies free | /bunnies recall | /bunnies size <radius> | /bunnies shape <none|circle|triangle|square|diamond|heart> | /bunnies mode <circle|stay|free> | /bunnies action <sit|look|blink|clean>');
+		}, false, 'mod'),
+	]);
+
+	return commands;
+}
+
+export function getSpamCommandNames(commands: Command[]): string[] {
+	return flatten(commands.filter(c => c.spam).map(c => c.names));
+}
+
+export type RunCommand = ReturnType<typeof createRunCommand>;
+
+export const createRunCommand =
+	(context: CommandContext, commands: Command[]) =>
+		(client: IClient, command: string, args: string, type: ChatType, target: IClient | undefined, settings: GameServerSettings) => {
+			command = command.toLowerCase().trim();
+			const func = commands.find(c => c.names.indexOf(command) !== -1);
+
+			try {
+				if (func && hasRoleNull(client, func.role)) {
+					func.handler(context, client, args, type, target, settings);
+				} else {
+					return false;
+				}
+			} catch (err) {
+				const e: any = err;
+				if (e && typeof e.message === 'string') {
+					saySystem(client, e.message);
+				} else {
+					throw err;
+				}
+			}
+
+			return true;
+		};
+
+const chatTypes = new Map<string, ChatType>();
+chatTypes.set('p', ChatType.Party);
+chatTypes.set('party', ChatType.Party);
+chatTypes.set('s', ChatType.Say);
+chatTypes.set('say', ChatType.Say);
+chatTypes.set('t', ChatType.Think);
+chatTypes.set('think', ChatType.Think);
+chatTypes.set('ss', ChatType.Supporter);
+chatTypes.set('s1', ChatType.Supporter1);
+chatTypes.set('s2', ChatType.Supporter2);
+chatTypes.set('s3', ChatType.Supporter3);
+chatTypes.set('s4', ChatType.Supporter4);
+chatTypes.set('r', ChatType.Whisper);
+chatTypes.set('reply', ChatType.Whisper);
+chatTypes.set('w', ChatType.Whisper);
+chatTypes.set('whisper', ChatType.Whisper);
+
+export function parseCommand(text: string, type: ChatType): { command?: string; args: string; type: ChatType; } {
+	if (!isCommand(text) || text.toLowerCase().startsWith('/shrug')) {
+		return { args: text, type };
+	}
+
+	const { command, args } = processCommand(text);
+
+	if (command) {
+		const chatType = chatTypes.get(command.toLowerCase());
+
+		if (chatType !== undefined) {
+			if (chatType === ChatType.Think) {
+				type = type === ChatType.Party ? ChatType.PartyThink : ChatType.Think;
+			} else {
+				type = chatType;
+			}
+
+			return { args, type };
+		}
+	}
+
+	return { command, args, type };
+}
+
+export function getChatPrefix(type: ChatType) {
+	switch (type) {
+		case ChatType.Party:
+		case ChatType.PartyThink:
+			return '/p ';
+		case ChatType.Supporter:
+			return '/ss ';
+		case ChatType.Supporter4:
+			return '';
+		case ChatType.Dismiss:
+			return '/dismiss ';
+		case ChatType.Whisper:
+			return '/w ';
+		default:
+			return '';
+	}
+}

@@ -1,0 +1,33 @@
+.modal-header
+	.modal-title-section
+		.changelog-logo-container
+			img.pixelart.changelog-logo(revSrc="images/logo-120.png" alt="Server Logo")
+		.header-info
+			h4.modal-title {{ headerTitle }}
+			p.header-status(*ngIf="currentStatus") {{ currentStatus }}
+	button.close-button(type='button' aria-label='Close' (click)='closeModal()')
+		span(aria-hidden='true') ×
+
+.modal-body.changelog-body
+	.update-about
+		.image-box
+			img.update-image(src='/assets/images/update_previews/season1.png' alt='Update preview')
+		.about-text
+			p Welcome to a new update!
+
+	.changelog-container
+		changelog-view(*ngIf="changelogResponse" [changelogResponse]="changelogResponse")
+
+	//- Debug option: always show after loading
+	.mt-4(*ngIf="debug")
+		custom-checkbox([(checked)]="alwaysShowAfterLoad" (checkedChange)="settingsService.browser.hideChangelogModal = !$event; settingsService.saveBrowserSettings()")
+			| Always show window after loading
+
+	//- Link to about page for full changelog
+	p.mb-0.mt-3.text-muted.text-center
+		| See the #[a(routerLink='/about' fragment='changelog') about page] for the full changelog.
+
+.modal-footer
+	.div(class='flex-grow-1')
+	button.btn.btn-lg.btn-outline-secondary(type='button' (click)='closeModal()') 
+		| Continue

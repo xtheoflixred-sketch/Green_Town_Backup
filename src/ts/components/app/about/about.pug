@@ -1,0 +1,113 @@
+.page-header-about
+	.header-content
+		img.pixelart.server-logo-icon(revSrc="images/logo-120.png" alt="Server Logo")
+		.header-text
+			h1(focusTitle) About
+			p.header-subtitle A Pony Town custom server
+
+.row.text-large
+	.col-lg-7
+		section
+			h2 Project Description
+			.text-muted.text-center.mb-3 Server Information:
+			p This is a personal project focused on improving the visual side of the game and making it more comfortable for players. The server is based on an older Pony Town build (version 0.55.2 from 2019), enhanced with useful additions that make gameplay more convenient.
+			hr
+
+		p This game is a derivative work based on #[a(href="https://pony.town") Pony Town]. The developers of Pony Town are not responsible for it in any way.
+
+		h2.text-center#socials Contacts and Community
+
+		section
+			h4.mb-2#telegram Telegram
+			p Our #[b Telegram channel] is the main place for #[i short updates], spoilers, concepts, and internal development news. Telegram is also where we communicate directly with players.
+			telegram-button.mb-3
+			hr
+
+		section
+			h4.mb-2#PT Original Pony Town Server
+			p This project is based on the original #[b Pony Town] build. We recommend checking out the official server as well, since it is the foundation of our world.
+			p If you are interested in the classic experience, be sure to visit the official Pony Town server.
+			visit-pt-button.mb-3
+			hr
+
+		h2 Contact
+		p
+			| For all inquiries please send an email to
+			b {{contactEmail}}
+			span(*ngIf="contactDiscord")
+				|  or message
+				b {{contactDiscord}}
+				|  on Discord
+			| .
+
+		h2 Technology
+
+		p.
+			The entire game is written in #[a(href="http://www.typescriptlang.org/") TypeScript],
+			a typed superset of JavaScript that compiles to plain JavaScript.
+			Server side code is running on #[a(href="https://nodejs.org/en/") Node.js]
+			server with WebSockets for communication.
+			User interface is built using #[a(href="https://angular.io/") Angular]
+			framework and the game itself is using WebGL for rendering graphics.
+
+		strong Game Version:
+			| {{ shortVersion || version }}
+
+		div(*ngIf="credits.length")
+			h2 The Team
+			.mb-4
+				.row.team-members.web-tab
+					.col-md-6(*ngFor="let c of credits")
+						.team-member.team.mt-2
+							.team-avatar(
+								[style.background-color]="c.backgroundColor"
+								[style.background-position]="c.position"
+								style="background-size: cover; width: 100px; height: 100px; position: relative;"
+								(mouseenter)="ponyExcite(characterPreview)"
+								(mouseleave)="ponyReset(characterPreview)"
+							)
+								.avatar-pony
+									team-pony(#characterPreview [pony]="c.pony")
+
+							.text-container.text-center
+								.d-flex.name-links.align-items-center.justify-content-center.mb-1
+									b.text-truncate.sno.mb-0 {{c.name}}
+									site-links([links]="c.links")
+
+								.text-badges
+									span.badge(
+										*ngFor="let badge of c.badges"
+										[style.background-color]="badge.color"
+										style="color:white;border-radius:4px;padding:2px 6px;margin-right:4px;font-size:12px;"
+									)
+										ng-container(*ngIf="badge.icon")
+											fa-icon([icon]="badge.icon" size="xs")
+										| {{badge.label}}
+
+		h2 Contributors
+
+		div(*ngFor="let g of contributors")
+			h3 {{g.group}}
+			p(*ngFor="let c of g.contributors")
+				strong {{c.name}}
+				span(*ngIf="c.links")
+					| -
+					site-links([links]="c.links")
+
+	.col-lg-5
+		h2 Changelog
+
+		.update-about
+			.image-box(style="background:url('/assets/images/update_previews/season1.png') center/cover;")
+			.about-text
+				p Welcome to a new update!
+
+		changelog-view(*ngIf="changelogResponse" [rawEntries]="changelogResponse.public")
+
+		hr
+
+		h2 Dev Changelog
+		changelog-view(*ngIf="changelogResponse" [rawEntries]="changelogResponse.dev")
+
+.text-center.text-muted
+	.tinyface

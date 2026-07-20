@@ -1,0 +1,1111 @@
+import {
+	Component, ViewChild, ElementRef, NgZone, AfterViewInit, OnDestroy, HostListener, Output, EventEmitter, DoCheck,
+} from '@angular/core';
+import { Subscription } from 'rxjs';
+import { escapeRegExp } from 'lodash';
+import { PonyTownGame } from '../../../client/game';
+import { MessageType, isPartyMessage, ChatMessage, Pony, FakeEntity, isWhisper, isWhisperTo } from '../../../common/interfaces';
+import { SettingsService } from '../../services/settingsService';
+import { AgDragEvent } from '../directives/agDrag';
+import { element, textNode, removeAllNodes, replaceNodes } from '../../../client/htmlUtils';
+import { DEFAULT_CHATLOG_OPACITY, PONY_TYPE, SECOND } from '../../../common/constants';
+import { faCaretUp, faArrowDown, faSearch, faComment, faUsers } from '../../../client/icons';
+import { icon } from '@fortawesome/fontawesome-svg-core';
+import { getTag, getTagTooltipById } from '../../../common/tags';
+import { SUPPORTER1_COLOR, SUPPORTER2_COLOR, SUPPORTER3_COLOR, SUPPORTER4_COLOR, WHITE } from '../../../common/colors';
+import { sampleMessages } from '../../../common/debugData';
+import { findEntityById } from '../../../common/worldMap';
+import { isFriend } from '../../../common/entityUtils';
+import { colorToRGBA, rgb2hsl, HSL, hsl2CSS } from '../../../common/color';
+import * as moment from 'moment';
+import { isMobile } from '../../../client/data';
+import { RubberPanelController, RubberPanelState, rubberPanelResizeEdgesFromCorner } from '../shared-physics/rubber-panel-controller';
+
+interface IndexEntryUser {
+	id: number;
+	crc: number | undefined;
+}
+
+interface IndexEntry {
+	users: IndexEntryUser[];
+	counter: number;
+}
+
+interface ChatLogLineDOM {
+	entry: ChatLogMessage;
+	root: HTMLElement;
+	label: HTMLElement;
+	labelIcon: HTMLElement;
+	time: HTMLElement;
+	timeContent: HTMLElement;
+	labelText: Text;
+	name: HTMLElement;
+	supporterIcon: HTMLElement;
+	nameContent: HTMLElement;
+	index: HTMLElement;
+	indexText: Text;
+	prefixText: Text;
+	suffixText: Text;
+	message: HTMLElement;
+}
+
+export interface ChatLogMessage {
+	message: string;
+	name?: string;
+	crc?: number;
+	prefix?: string;
+	suffix?: string;
+	label?: string;
+	index: number;
+	classes?: string;
+	entityId?: number;
+	dom?: ChatLogLineDOM;
+}
+
+type Tab = 'local' | 'personal' | 'party' | 'whisper';
+type ClickHandler = (entry: ChatLogMessage) => void;
+
+const GENERAL_CHAT_LIMIT = 100;
+const PARTY_CHAT_LIMIT = 100;
+const WHISPER_CHAT_LIMIT = 100;
+const FORGET_INDEX_AFTER = 1000;
+const SCROLL_END_THRESHOLD = 60;
+const CHATLOG_FILTER_BOX_WIDTH = 80;
+const CHATLOG_MIN_WIDTH = 200 + CHATLOG_FILTER_BOX_WIDTH;
+const CHATLOG_DEFAULT_WIDTH = 500;
+const CHATLOG_MIN_HEIGHT = 120;
+const CHATLOG_DEFAULT_HEIGHT = 310;
+const CHATLOG_MAX_SIZE = 2000;
+
+const LABELS: (string | undefined)[] = [];
+LABELS[MessageType.System] = 'system';
+LABELS[MessageType.Admin] = 'admin';
+LABELS[MessageType.Mod] = 'mod';
+LABELS[MessageType.Party] = 'party';
+LABELS[MessageType.PartyThinking] = 'party';
+LABELS[MessageType.PartyAnnouncement] = 'party';
+LABELS[MessageType.Whisper] = 'whisper';
+LABELS[MessageType.WhisperAnnouncement] = 'whisper';
+LABELS[MessageType.WhisperTo] = 'whisper';
+LABELS[MessageType.WhisperToAnnouncement] = 'whisper';
+LABELS[MessageType.Builder] = 'builder';
+LABELS[MessageType.NPC] = 'npc';
+
+const PREFIXES: (string | undefined)[] = [];
+PREFIXES[MessageType.WhisperTo] = 'To ';
+PREFIXES[MessageType.WhisperToAnnouncement] = 'To ';
+
+const SUFFIXES: (string | undefined)[] = [];
+SUFFIXES[MessageType.Thinking] = 'thinks';
+SUFFIXES[MessageType.PartyThinking] = 'thinks';
+SUFFIXES[MessageType.Whisper] = 'whispers';
+SUFFIXES[MessageType.WhisperAnnouncement] = 'whispers';
+
+const CLASSES: (string | undefined)[] = [];
+CLASSES[MessageType.System] = 'chat-line-system';
+CLASSES[MessageType.Admin] = 'chat-line-admin';
+CLASSES[MessageType.Mod] = 'chat-line-mod';
+CLASSES[MessageType.Party] = 'chat-line-party';
+CLASSES[MessageType.Thinking] = 'chat-line-thinking';
+CLASSES[MessageType.PartyThinking] = 'chat-line-party-thinking';
+CLASSES[MessageType.Announcement] = 'chat-line-announcement';
+CLASSES[MessageType.PartyAnnouncement] = 'chat-line-party-announcement';
+CLASSES[MessageType.Supporter1] = 'chat-line-supporter-1';
+CLASSES[MessageType.Supporter2] = 'chat-line-supporter-2';
+CLASSES[MessageType.Supporter3] = 'chat-line-supporter-3';
+CLASSES[MessageType.Supporter4] = 'chat-line-supporter-4';
+CLASSES[MessageType.Whisper] = 'chat-line-whisper';
+CLASSES[MessageType.WhisperTo] = 'chat-line-whisper';
+CLASSES[MessageType.WhisperAnnouncement] = 'chat-line-whisper-announcement';
+CLASSES[MessageType.WhisperToAnnouncement] = 'chat-line-whisper-announcement';
+CLASSES[MessageType.Builder] = 'chat-line-builder';
+CLASSES[MessageType.NPC] = 'chat-line-npc';
+
+export function createChatLogLineDOM(clickLabel: ClickHandler, clickName: ClickHandler): ChatLogLineDOM {
+	const line: ChatLogLineDOM = {} as any;
+
+	line.root = element('div', 'chat-line', [
+		element('span', 'chat-line-lead'),
+		line.time = element('span', 'chat-line-name', [
+			line.timeContent = element(
+				'span', 'chat-line-time-content', [textNode('')], undefined),
+			line.index = element('span', 'chat-line-time-index', [line.indexText = textNode('')]),
+		]),
+		line.label = element(
+			'span',
+			'chat-line-label mr-1',
+			[
+				textNode('['),
+				line.labelIcon = element('span', 'chat-line-label-icon'),
+				line.labelText = textNode(''),
+				textNode(']'),
+			],
+			undefined,
+			{ click: () => clickLabel(line.entry) },
+		),
+		line.prefixText = textNode(''),
+		line.name = element('span', 'chat-line-name', [
+			line.supporterIcon = element('span', 'chat-line-supporter-icon'),
+			textNode('['),
+			line.nameContent = element(
+				'span', 'chat-line-name-content', [textNode('')], undefined, { click: () => clickName(line.entry) }),
+			line.index = element('span', 'chat-line-name-index', [line.indexText = textNode('')], { title: 'duplicate name' }),
+			textNode(']'),
+		]),
+		line.suffixText = textNode(''),
+		line.message = element('span', 'chat-line-message', [textNode('')]),
+	]);
+
+	return line;
+}
+
+export function updateChatLogLine(line: ChatLogLineDOM, entry: ChatLogMessage, hourMode?: '12' | '24') {
+	const { classes, label, message, prefix, suffix } = entry;
+	const hasSpace = message.indexOf(' ') !== -1;
+
+	line.entry = entry;
+	line.root.className = `chat-line ${hasSpace ? '' : 'chat-line-break '}${classes}`.trim();
+	line.label.style.display = label ? 'inline' : 'none';
+
+	if (label) {
+		const icons: any[] = [];
+		let labelText = '';
+		let labelTooltip = '';
+
+		if (label === 'admin') {
+			const tag = getTag('dev');
+			if (tag && tag.icon) {
+				icons.push(tag.icon);
+			}
+			labelText = ' Admin';
+			labelTooltip = 'admin';
+		} else if (label === 'mod') {
+			const tag = getTag('mod');
+			if (tag && tag.icon) {
+				icons.push(tag.icon);
+			}
+			labelText = ' Mod';
+			labelTooltip = 'moderator';
+		} else if (label === 'party') {
+			icons.push(faUsers);
+			labelText = ' Party';
+			labelTooltip = 'party';
+		} else if (label === 'whisper') {
+			icons.push(faComment);
+			labelText = ' Whisper';
+			labelTooltip = 'whisper';
+		} else if (label === 'builder') {
+			const tag = getTag('builder');
+			if (tag && tag.icon) {
+				icons.push(tag.icon);
+			}
+			labelText = ' Builder';
+			labelTooltip = 'map builder';
+		} else if (label === 'npc') {
+			const tag = getTag('npc');
+			if (tag && tag.icon) {
+				icons.push(tag.icon);
+			}
+			labelText = ' NPC';
+			labelTooltip = 'npc';
+		} else {
+			const tag = getTag(label);
+			if (tag && tag.icon) {
+				icons.push(tag.icon);
+			}
+			labelTooltip = getTagTooltipById(label) || label;
+		}
+
+
+		removeAllNodes(line.labelIcon);
+		if (icons.length > 0) {
+			let created = false;
+			for (const iconDefinition of icons) {
+				if (!iconDefinition) continue;
+				const iconElement = createChatLogLabelIcon(iconDefinition);
+				if (iconElement) {
+					line.labelIcon.appendChild(iconElement);
+					created = true;
+				}
+			}
+
+			if (created) {
+				line.labelIcon.style.display = 'inline-flex';
+				line.labelText.nodeValue = labelText;
+			} else {
+				line.labelIcon.style.display = 'none';
+				line.labelText.nodeValue = label;
+			}
+		} else {
+			line.labelIcon.style.display = 'none';
+			line.labelText.nodeValue = label;
+		}
+
+		line.label.title = labelTooltip || label;
+	} else {
+		line.labelIcon.style.display = 'none';
+		removeAllNodes(line.labelIcon);
+		line.labelText.nodeValue = '';
+		line.label.title = '';
+	}
+
+	const isSupporter = classes && (
+		classes.includes('chat-line-supporter-1') ||
+		classes.includes('chat-line-supporter-2') ||
+		classes.includes('chat-line-supporter-3') ||
+		classes.includes('chat-line-supporter-4')
+	);
+
+	if (isSupporter && classes) {
+		let supporterLevel = '';
+		if (classes.includes('chat-line-supporter-1')) supporterLevel = 'sup1';
+		else if (classes.includes('chat-line-supporter-2')) supporterLevel = 'sup2';
+		else if (classes.includes('chat-line-supporter-3')) supporterLevel = 'sup3';
+		else if (classes.includes('chat-line-supporter-4')) supporterLevel = 'sup4';
+
+		if (supporterLevel) {
+			line.supporterIcon.title = getTagTooltipById(supporterLevel) || '';
+			const tag = getTag(supporterLevel);
+			if (tag && tag.icon) {
+				removeAllNodes(line.supporterIcon);
+				const iconElement = createChatLogLabelIcon(tag.icon);
+				if (iconElement) {
+					line.supporterIcon.style.display = 'inline-flex';
+					let color: number;
+					switch (supporterLevel) {
+						case 'sup1': color = SUPPORTER1_COLOR; break;
+						case 'sup2': color = SUPPORTER2_COLOR; break;
+						case 'sup3': color = SUPPORTER3_COLOR; break;
+						case 'sup4': color = SUPPORTER4_COLOR; break;
+						default: color = WHITE; break;
+					}
+					iconElement.style.color = '#' + color.toString(16).padStart(8, '0').slice(0, 6).toUpperCase();
+					line.supporterIcon.appendChild(iconElement);
+				} else {
+					line.supporterIcon.style.display = 'none';
+				}
+			} else {
+				line.supporterIcon.style.display = 'none';
+				removeAllNodes(line.supporterIcon);
+			}
+		} else {
+			line.supporterIcon.style.display = 'none';
+			removeAllNodes(line.supporterIcon);
+			line.supporterIcon.title = '';
+		}
+	} else {
+		line.supporterIcon.style.display = 'none';
+		removeAllNodes(line.supporterIcon);
+		line.supporterIcon.title = '';
+	}
+
+	updateChatLogName(line, entry);
+	updateTime(line, hourMode);
+
+	line.prefixText.nodeValue = prefix || '';
+	line.suffixText.nodeValue = suffix ? ` ${suffix}: ` : ': ';
+	replaceNodes(line.message, message);
+}
+
+function createChatLogLabelIcon(iconDefinition: any) {
+	try {
+		const rendered = icon(iconDefinition);
+
+		if (rendered && rendered.node && rendered.node[0]) {
+			return rendered.node[0] as HTMLElement;
+		}
+	} catch (err) {
+		// ignore icon render failures and fall back to text label
+	}
+
+	return undefined;
+}
+
+function updateTime(line: ChatLogLineDOM, hourMode?: '12' | '24') {
+	const momentFn = (moment as any).default || (moment as any);
+	line.time.style.display = 'inline';
+	if (!hourMode) return;
+	if (hourMode === '24')
+		replaceNodes(line.timeContent, `[${momentFn().format('HH:mm:ss')}] `);
+	if (hourMode === '12')
+		replaceNodes(line.timeContent, `[${momentFn().format('LTS')}] `);
+}
+
+function setNameColors(line: ChatLogLineDOM | undefined, colors?: string[]) {
+	if (!colors || !line) return;
+	if (colors[1]) line.name.style.color = colors[1];
+	if (colors[0]) line.nameContent.style.color = colors[0];
+}
+
+function updateChatLogName(line: ChatLogLineDOM, { name, index }: ChatLogMessage) {
+	if (name) {
+		line.name.style.display = 'inline';
+		replaceNodes(line.nameContent, name);
+		line.index.style.display = (index > 0) ? 'inline' : 'none';
+		line.indexText.nodeValue = (index > 0) ? ` #${index + 1}` : '';
+	} else {
+		line.name.style.display = 'none';
+	}
+}
+
+function isMatch(e: ChatLogMessage, id: number, name: string, crc: number | undefined) {
+	return e.name === name && (e.entityId === id || (e.crc === crc && crc !== undefined));
+}
+
+function addOrUpdatePony(pony: Pony, list: ChatLogMessage[]) {
+	for (const e of list) {
+		if (isMatch(e, pony.id, pony.name!, pony.crc)) {
+			e.entityId = pony.id;
+		}
+	}
+}
+
+function updateEntityId(list: ChatLogMessage[], oldId: number, newId: number) {
+	for (const e of list) {
+		if (e.entityId === oldId) {
+			e.entityId = newId;
+		}
+	}
+}
+
+function findUserIndex(users: IndexEntryUser[], id: number, crc: number | undefined) {
+	for (let i = 0; i < users.length; i++) {
+		const user = users[i];
+
+		if (user.id === id || (crc !== undefined && user.crc === crc)) {
+			user.id = id;
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+@Component({
+	selector: 'chat-log',
+	templateUrl: 'chat-log.pug',
+	styleUrls: ['chat-log.scss'],
+})
+export class ChatLog implements AfterViewInit, OnDestroy, DoCheck {
+	readonly toBottomIcon = faArrowDown;
+	readonly resizeIcon = faCaretUp;
+	readonly searchIcon = faSearch;
+	@ViewChild('chatLog', { static: true }) chatLog!: ElementRef;
+	@ViewChild('scroll', { static: true }) scroll!: ElementRef;
+	@ViewChild('lines', { static: true }) lines!: ElementRef;
+	@ViewChild('localTab', { static: true }) localTab!: ElementRef;
+	@ViewChild('partyTab', { static: true }) partyTab!: ElementRef;
+	@ViewChild('personalTab', { static: true }) personalTab!: ElementRef;
+	@ViewChild('whisperTab', { static: true }) whisperTab!: ElementRef;
+	@ViewChild('filterInput', { static: true }) filterInput!: ElementRef;
+	@ViewChild('toggleButton', { static: true }) toggleButton!: ElementRef;
+	@ViewChild('count', { static: true }) countElement!: ElementRef;
+	@ViewChild('content', { static: true }) contentElement!: ElementRef;
+	@Output() toggleType = new EventEmitter<string>();
+	@Output() nameClick = new EventEmitter<ChatLogMessage>();
+	innerWidth = 0;
+	renderedOpen = false;
+	// TODO: move to game ?
+	local: ChatLogMessage[] = [];
+	party: ChatLogMessage[] = [];
+	personal: ChatLogMessage[] = [];
+	whisper: ChatLogMessage[] = [];
+	filterColor = this.inactiveBg;
+	unread = 0;
+	private subscriptions: Subscription[] = [];
+	private shouldScrollToEnd = false;
+	private scrolledToEnd = true;
+	private scrollingToEnd = false;
+	private scrollToEndAtFrame = false;
+	private indexes = new Map<string, IndexEntry>();
+	private messageCounter = 0;
+	private lastOpacity = 0;
+	private autoClear?: ReturnType<typeof setTimeout>;
+	private autoUnfocus?: ReturnType<typeof setTimeout>;
+	private panelWidth = CHATLOG_DEFAULT_WIDTH;
+	private panelHeight = CHATLOG_DEFAULT_HEIGHT;
+	private panelMinWidth = CHATLOG_MIN_WIDTH;
+	private panelMinHeight = CHATLOG_MIN_HEIGHT;
+	private physicsOffsetX = 0;
+	private physicsOffsetY = 0;
+	private physicsStretchX = 1;
+	private physicsStretchY = 1;
+	private isOverLimit = false;
+	private applyPanelState = (state: RubberPanelState) => {
+		this.panelWidth = state.width;
+		this.panelHeight = state.height;
+		this.panelMinWidth = state.minWidth;
+		this.panelMinHeight = state.minHeight;
+		this.physicsOffsetX = state.contentOffsetX;
+		this.physicsOffsetY = state.contentOffsetY;
+		this.physicsStretchX = state.contentStretchX;
+		this.physicsStretchY = state.contentStretchY;
+		this.isOverLimit = state.isOverLimit;
+		this.updateChatlog();
+		if (this.renderedOpen) {
+			this.updateInnerWidth();
+		}
+	}
+	private readonly panelController = new RubberPanelController({
+		width: { min: CHATLOG_MIN_WIDTH, max: CHATLOG_MAX_SIZE, defaultValue: CHATLOG_DEFAULT_WIDTH },
+		height: { min: CHATLOG_MIN_HEIGHT, max: CHATLOG_MAX_SIZE, defaultValue: CHATLOG_DEFAULT_HEIGHT },
+		resizeEdges: rubberPanelResizeEdgesFromCorner('top-right'),
+		tuning: {
+			rubberBandFactor: 0.24,
+			dragElasticity: 0,
+			dragRangeForceFactor: 0,
+			physicsSmoothing: 0.28,
+			dragPhysicsFactor: 4,
+			dragReleaseFactor: 8,
+			releaseVelocityFactor: 0.22,
+			forceScale: 0.09,
+			forceClamp: 14,
+			stretchMajorScale: 0.00115,
+			stretchMinorScale: 0.0004,
+			stretchMin: 0.95,
+			stretchMax: 1.07,
+		},
+		onUpdate: this.applyPanelState,
+	});
+	constructor(
+		private game: PonyTownGame,
+		private settingsService: SettingsService,
+		private element: ElementRef,
+		private zone: NgZone,
+	) {
+		// TODO: just put reference to chatlog on game ???
+		this.subscriptions.push(
+			game.onFrame.subscribe(() => {
+				if (this.scrollToEndAtFrame) {
+					this.scrollToEndAtFrame = false;
+					this.scrollHandler();
+				}
+			}),
+			game.onMessage.subscribe(message => {
+				this.addMessage(message);
+			}),
+			// TODO: move to game ?
+			game.onPonyAddOrUpdate.subscribe(pony => {
+				addOrUpdatePony(pony, this.local);
+				addOrUpdatePony(pony, this.party);
+				addOrUpdatePony(pony, this.whisper);
+			}),
+			game.onJoined.subscribe(() => {
+				if (!DEVELOPMENT) {
+					// TODO: move to game ?
+					this.local = [];
+					this.party = [];
+					this.whisper = [];
+					this.messageCounter = 0;
+					this.indexes = new Map();
+					this.clearList();
+				}
+			}),
+			game.onEntityIdUpdate.subscribe(update => {
+				updateEntityId(this.local, update.old, update.new);
+				updateEntityId(this.party, update.old, update.new);
+				updateEntityId(this.whisper, update.old, update.new);
+			}),
+			this.game.onSearch.subscribe(() => {
+				this.focus();
+			}),
+		);
+	}
+	get linesElement() {
+		return this.lines.nativeElement as HTMLElement;
+	}
+	private updateOpen() {
+		if (this.open) {
+			this.renderedOpen = true;
+			this.panelController.sync(this.getTargetOpenLayout());
+			this.updateChatlog();
+			this.setUnread(0);
+			this.regenerateList();
+			this.scrollToEnd();
+		} else {
+			this.renderedOpen = false;
+			this.updateChatlog();
+			this.clearList();
+		}
+
+		this.updateInnerWidth();
+	}
+	private animateOpen() {
+		this.renderedOpen = true;
+		this.updateChatlog();
+		this.setUnread(0);
+		this.regenerateList();
+		this.scrollToEnd();
+		this.panelController.open(this.getTargetOpenLayout());
+		this.updateInnerWidth();
+	}
+	private animateClose() {
+		if (!this.renderedOpen) {
+			this.updateChatlog();
+			return;
+		}
+
+		this.panelController.close(this.readChatLogLayout(), () => {
+			this.renderedOpen = false;
+			this.updateChatlog();
+			this.clearList();
+		});
+	}
+	private updateChatlog() {
+		if (!this.chatLog) {
+			return;
+		}
+
+		const element = this.chatLog.nativeElement as HTMLElement;
+		element.style.display = this.renderedOpen ? 'flex' : 'none';
+		element.classList.toggle('chat-log-over-limit', this.isOverLimit);
+		element.style.setProperty('--chat-log-physics-offset-x', `${this.physicsOffsetX}px`);
+		element.style.setProperty('--chat-log-physics-offset-y', `${this.physicsOffsetY}px`);
+		element.style.setProperty('--chat-log-physics-stretch-x', `${this.physicsStretchX}`);
+		element.style.setProperty('--chat-log-physics-stretch-y', `${this.physicsStretchY}`);
+
+		if (this.renderedOpen) {
+			element.style.width = `${this.panelWidth}px`;
+			element.style.height = `${this.panelHeight}px`;
+			element.style.minWidth = `${this.panelMinWidth}px`;
+			element.style.minHeight = `${this.panelMinHeight}px`;
+		}
+	}
+	private getTargetOpenLayout() {
+		return {
+			width: this.width,
+			height: this.height,
+			top: this.readChatLogTop(),
+		};
+	}
+	private readChatLogTop() {
+		if (!this.chatLog) {
+			return undefined;
+		}
+
+		return (this.chatLog.nativeElement as HTMLElement).getBoundingClientRect().top || undefined;
+	}
+	private readChatLogLayout() {
+		return {
+			width: this.panelWidth || this.width,
+			height: this.panelHeight || this.height,
+			top: this.readChatLogTop(),
+		};
+	}
+	ngAfterViewInit() {
+		const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+		canvas.addEventListener('click', () => this.unFocus());
+		this.game.findEntityFromChatLog = this.findEntityFromMessages;
+		this.game.findEntityFromChatLogByName = this.findEntityFromMessagesByName;
+
+		this.updateTabs();
+		this.updateOpen();
+
+		this.zone.runOutsideAngular(() => {
+			const scroll = this.scroll.nativeElement as HTMLElement;
+
+			scroll.addEventListener('scroll', () => {
+				if (this.scrollingToEnd) {
+					this.scrolledToEnd = true;
+					this.scrollingToEnd = false;
+				} else {
+					const clientHeight = scroll.getBoundingClientRect().height;
+					this.scrolledToEnd = scroll.scrollTop >= (scroll.scrollHeight - clientHeight - SCROLL_END_THRESHOLD);
+				}
+			});
+		});
+
+		setTimeout(() => {
+			this.scrollToEnd();
+			this.updateInnerWidth();
+		});
+
+		if (DEVELOPMENT) {
+			sampleMessages.forEach(({ name, id, message, type }) =>
+				this.addMessage({ id: id || 999999, crc: undefined, name, message, type: type || MessageType.Chat }));
+		}
+	}
+	ngOnDestroy() {
+		if (this.game.findEntityFromChatLog === this.findEntityFromMessages) {
+			this.game.findEntityFromChatLog = () => undefined;
+		}
+
+		if (this.game.findEntityFromChatLogByName === this.findEntityFromMessagesByName) {
+			this.game.findEntityFromChatLogByName = () => undefined;
+		}
+
+		this.panelController.destroy();
+		this.subscriptions.forEach(s => s.unsubscribe());
+		this.subscriptions = [];
+	}
+	ngDoCheck() {
+		if (this.lastOpacity !== this.opacity) {
+			this.lastOpacity = this.opacity;
+			this.contentElement.nativeElement.style.backgroundColor = this.bg;
+			this.updateTabs();
+		}
+	}
+	@HostListener('window:resize')
+	updateInnerWidth() {
+		if (!this.renderedOpen || !this.linesElement) {
+			return;
+		}
+
+		const maxWidth = (this.element.nativeElement as HTMLElement).getBoundingClientRect().width;
+		const baseWidth = this.panelWidth || this.width;
+		const innerWidth = Math.min(maxWidth || baseWidth, baseWidth) - 40;
+
+		if (this.innerWidth !== innerWidth) {
+			this.innerWidth = innerWidth;
+			this.linesElement.style.width = `${innerWidth}px`;
+		}
+
+		if (!maxWidth) {
+			setTimeout(() => this.updateInnerWidth(), 10);
+		}
+	}
+	get messages() {
+		return this[this.activeTab];
+	}
+	get settings() {
+		return this.settingsService.browser;
+	}
+	get settings2() {
+		return this.settingsService.account;
+	}
+	get activeTab(): Tab {
+		const tab = this.settings.chatlogTab;
+		return (tab === 'local' || tab === 'party' || tab === 'personal' || tab === 'whisper') ? tab : 'local';
+	}
+	get open() {
+		if (this.settings.chatlogClosed === undefined) {
+			return !isMobile; // closed by default on mobile
+		}
+		return this.settings.chatlogClosed === false;
+	}
+	get width() {
+		return this.settings.chatlogWidth || CHATLOG_DEFAULT_WIDTH;
+	}
+	get height() {
+		return this.settings.chatlogHeight || CHATLOG_DEFAULT_HEIGHT;
+	}
+	get opacity() {
+		return this.settings2.chatlogOpacity === undefined ? DEFAULT_CHATLOG_OPACITY : this.settings2.chatlogOpacity;
+	}
+	get bg() {
+		return `rgba(0, 0, 0, ${this.opacity / 100})`;
+	}
+	get inactiveBg() {
+		return `rgba(0, 0, 0, ${(this.opacity / 200) * 0.5})`;
+	}
+	private createEntry({ id, crc, name, message, type }: ChatMessage): ChatLogMessage {
+		const system = type === MessageType.System;
+		const entry: ChatLogMessage = {
+			entityId: system ? 0 : id,
+			name: system ? '' : name,
+			index: 0,
+			crc,
+			message,
+			label: LABELS[type] || '',
+			prefix: PREFIXES[type] || '',
+			suffix: SUFFIXES[type] || '',
+			classes: CLASSES[type] || '',
+		};
+
+		if (!system) {
+			entry.index = this.findOrCreateIndex(name, id, crc);
+		}
+
+		return entry;
+	}
+	private findOrCreateIndex(name: string, id: number, crc: number | undefined) {
+		let found = this.indexes.get(name);
+
+		if (!found || (this.messageCounter - found.counter) > FORGET_INDEX_AFTER) {
+			found = {
+				users: [{ id, crc }],
+				counter: 0,
+			};
+
+			this.indexes.set(name, found);
+		}
+
+		found.counter = this.messageCounter;
+
+		let index = findUserIndex(found.users, id, crc);
+
+		if (index === -1) {
+			index = found.users.length;
+			found.users.push({ id, crc });
+		}
+
+		return index;
+	}
+	filterChat() {
+		this.clearTimeOutAutoClear();
+		this.clearTimeOutAutoUnfocus();
+		let value = this.filterInput.nativeElement.value;
+
+		if (!value) {
+			this.clearTimeOutAutoClear();
+			this.filterChatLogLines('', false);
+			return;
+		} else {
+			this.filterColor = this.bg;
+		}
+
+		this.autoClear = setTimeout(() => {
+			this.filterInput.nativeElement.value = '';
+			this.filterChat();
+			this.unFocus();
+		}, SECOND * 30);
+
+		this.autoUnfocus = setTimeout(() => {
+			this.unFocus();
+		}, SECOND * 3);
+
+		let toLowerCase = false;
+
+		this.filterInput.nativeElement.style.color = '';
+		if (value.startsWith('#')) {
+			value = value.slice(1);
+		} else if (value.startsWith('/')) {
+			value = value.slice(1);
+			try {
+				const regExp = new RegExp(value);
+				this.filterChatLogLines(regExp, toLowerCase);
+			} catch (err) {
+				if (DEVELOPMENT) console.error(err);
+				this.filterInput.nativeElement.style.color = '#ff6666';
+			}
+			return;
+		} else {
+			value = value.toLowerCase();
+			toLowerCase = true;
+		}
+
+		this.filterChatLogLines(value, toLowerCase);
+	}
+	filterChatLogLines(content: string | RegExp, caseSensitive: boolean) {
+		const lines = this.linesElement.getElementsByTagName('div');
+
+		for (let i = 0; i < lines.length; i++) {
+			let textContent = lines[i].textContent;
+
+			if (textContent) {
+				textContent = textContent.slice(10);
+
+				if (typeof content === 'string') {
+					if (caseSensitive) {
+						lines[i].hidden = !textContent.toLowerCase().includes(content);
+					} else {
+						lines[i].hidden = !textContent.includes(content);
+					}
+				} else {
+					lines[i].hidden = !textContent.match(content);
+				}
+			}
+		}
+	}
+	unhideAllLines() {
+		const lines = this.linesElement.getElementsByTagName('div');
+		for (let i = 0; i < lines.length; i++) {
+			lines[i].hidden = false;
+		}
+	}
+	brightenDarkColors(hsl: HSL) {
+		if (hsl.l < 40) {
+			if (hsl.l > 20 && hsl.l < 40) {
+				hsl.l += 20;
+				if (hsl.s > 11) hsl.s -= 11;
+			} else {
+				hsl.l = 40;
+				if (hsl.s > 11) hsl.s = 0;
+			}
+		}
+		return hsl;
+	}
+	private getCharacterColors(id: number | undefined) {
+		if (!id) return;
+		const entity = findEntityById(this.game.map, id) as Pony;
+		if (!entity || !entity.palettePonyInfo) return;
+		let colors = [];
+		let { body, mane } = entity.palettePonyInfo;
+		if (body && body.palette && body.palette.colors[1]) {
+			const rgb = colorToRGBA(body.palette.colors[1]);
+			const hsl = rgb2hsl(rgb);
+			this.brightenDarkColors(hsl);
+			colors.push(hsl2CSS(hsl));
+		}
+		if (mane && mane.palette && mane.palette.colors[1]) {
+			const rgb = colorToRGBA(mane.palette.colors[1]);
+			const hsl = rgb2hsl(rgb);
+			this.brightenDarkColors(hsl);
+			colors.push(hsl2CSS(hsl));
+		} else if (colors && colors[0]) {
+			colors.push((colors[0]));
+		}
+		return colors;
+	}
+
+	clearTimeOutAutoClear() {
+		if (this.autoClear) clearTimeout(this.autoClear);
+		this.autoClear = undefined;
+		this.filterColor = this.inactiveBg;
+	}
+	clearTimeOutAutoUnfocus() {
+		if (this.autoUnfocus) clearTimeout(this.autoUnfocus);
+		this.autoUnfocus = undefined;
+	}
+	focus() {
+		this.clearTimeOutAutoUnfocus();
+		if (this.filterInput.nativeElement)
+			this.filterInput.nativeElement.focus();
+	}
+	unFocus() {
+		this.clearTimeOutAutoUnfocus();
+		if (this.filterInput.nativeElement)
+			this.filterInput.nativeElement.blur();
+	}
+	addMessage(message: ChatMessage) {
+		if (message.name && message.message) {
+			const entry = this.createEntry(message);
+			const party = isPartyMessage(message.type);
+			const whisper = isWhisper(message.type) || isWhisperTo(message.type);
+			const open = this.open;
+			const scrolledToEnd = open ? this.scrolledToEnd : false;
+			const tab = this.activeTab;
+			const colors = this.getCharacterColors(message.id);
+
+			this.addEntryToList(this.local, GENERAL_CHAT_LIMIT, open && tab === 'local', entry);
+			setNameColors(entry.dom, colors);
+
+			if (party || whisper) {
+				const partyEntry = { ...entry };
+				partyEntry.dom = undefined;
+				partyEntry.label = whisper ? partyEntry.label : undefined;
+				this.addEntryToList(this.party, PARTY_CHAT_LIMIT, open && tab === 'party', partyEntry);
+				setNameColors(partyEntry.dom, colors);
+			}
+
+			if (whisper) {
+				const whisperEntry = { ...entry };
+				whisperEntry.dom = undefined;
+				whisperEntry.label = undefined;
+				this.addEntryToList(this.whisper, WHISPER_CHAT_LIMIT, open && tab === 'whisper', whisperEntry);
+				setNameColors(whisperEntry.dom, colors);
+			}
+
+			if (message.id) {
+				const entity = findEntityById(this.game.map, message.id);
+				if (entity && isFriend(entity)) {
+					const personalEntry = { ...entry };
+					personalEntry.dom = undefined;
+					personalEntry.label = undefined;
+					this.addEntryToList(this.personal, GENERAL_CHAT_LIMIT, open && tab === 'personal', personalEntry);
+					setNameColors(personalEntry.dom, colors);
+				}
+			}
+
+			if (message.id) {
+				const entity = findEntityById(this.game.map, message.id);
+				if (entity && isFriend(entity)) {
+					const personalEntry = { ...entry };
+					personalEntry.dom = undefined;
+					personalEntry.label = undefined;
+					this.addEntryToList(this.personal, GENERAL_CHAT_LIMIT, open && tab === 'personal', personalEntry);
+					setNameColors(personalEntry.dom, colors);
+				}
+			}
+
+			if (message.type === MessageType.Whisper && !this.open) {
+				this.setUnread(this.unread + 1);
+			}
+
+			if (scrolledToEnd) {
+				this.scrollToEnd();
+			}
+
+			if (tab !== 'whisper' && isWhisper(message.type)) {
+				this.whisperTab.nativeElement.classList.add('unread');
+				this.whisperTab.nativeElement.style.backgroundColor = `rgba(225, 161, 223, ${this.opacity / 100})`;
+			}
+			if (tab !== 'party' && party) {
+				this.partyTab.nativeElement.classList.add('unread');
+				this.partyTab.nativeElement.style.backgroundColor = `rgba(184, 227, 255, ${this.opacity / 100})`;
+			}
+			this.filterChat();
+			this.messageCounter++;
+		}
+	}
+	private addEntryToList(list: ChatLogMessage[], limit: number, isOpen: boolean, entry: ChatLogMessage) {
+		let removedDom: ChatLogLineDOM | undefined;
+
+		while (list.length >= limit) {
+			const removed = list.shift();
+
+			if (isOpen && removed && removed.dom) {
+				if (removed.dom.root.parentElement) {
+					removed.dom.root.parentElement.removeChild(removed.dom.root);
+				}
+
+				removedDom = removed.dom;
+				removed.dom = undefined;
+			}
+		}
+
+		list.push(entry);
+
+		if (isOpen) {
+			entry.dom = removedDom || createChatLogLineDOM(this.clickLabel, this.clickNameHandler);
+			updateChatLogLine(entry.dom, entry, this.settings.timestamp);
+			this.linesElement.appendChild(entry.dom.root);
+		}
+	}
+	toggle() {
+		this.settings.chatlogClosed = this.open;
+		this.settingsService.saveBrowserSettings();
+
+		if (this.open) {
+			this.animateOpen();
+		} else {
+			this.animateClose();
+		}
+	}
+	switchTab(tab: Tab) {
+		if (this.activeTab !== tab) {
+			this.settings.chatlogTab = tab;
+			this.settingsService.saveBrowserSettings();
+			this.regenerateList();
+			this.scrollToEnd();
+			this.updateTabs();
+			this.filterChat();
+		}
+	}
+	private updateTabs() {
+		this.setActiveTab(this.localTab.nativeElement, this.activeTab === 'local');
+		this.setActiveTab(this.partyTab.nativeElement, this.activeTab === 'party');
+		this.setActiveTab(this.personalTab.nativeElement, this.activeTab === 'personal');
+		this.setActiveTab(this.whisperTab.nativeElement, this.activeTab === 'whisper');
+	}
+	private setActiveTab(tab: HTMLElement, active: boolean) {
+		if (active) {
+			tab.classList.add('active');
+			tab.classList.remove('unread');
+			tab.style.backgroundColor = this.bg;
+		} else {
+			tab.classList.remove('active');
+			if (!tab.classList.contains('unread'))
+				tab.style.backgroundColor = this.inactiveBg;
+		}
+	}
+	scrollToEnd() {
+		// requestAnimationFrame(this.scrollHandler);
+		this.scrollToEndAtFrame = true;
+	}
+	scrollHandler = () => {
+		this.scrollingToEnd = true;
+		this.scroll.nativeElement.scrollTop = 99999;
+	}
+	clickNameHandler = (message: ChatLogMessage) => {
+		this.zone.run(() => this.nameClick.emit(message));
+	}
+	clickLabel = (message: ChatLogMessage) => {
+		this.zone.run(() => {
+			if (message.label) {
+				this.toggleType.emit(message.label);
+			}
+		});
+	}
+	private clearList() {
+		removeAllNodes(this.linesElement);
+	}
+	private regenerateList() {
+		this.clearList();
+
+		const lines = this.linesElement;
+
+		this.messages.forEach(entry => {
+			if (!entry.dom) {
+				entry.dom = createChatLogLineDOM(this.clickLabel, this.clickNameHandler);
+				setNameColors(entry.dom, this.getCharacterColors(entry.entityId));
+				updateChatLogLine(entry.dom, entry, this.settings.timestamp);
+			}
+
+			lines.appendChild(entry.dom.root);
+		});
+	}
+	drag({ dx, dy, type, event }: AgDragEvent, resizeY: boolean, resizeX: boolean) {
+		event.preventDefault();
+
+		if (type === 'start') {
+			this.shouldScrollToEnd = this.scrolledToEnd;
+			this.panelController.beginResize(this.readChatLogLayout());
+		}
+
+		this.panelController.resizeBy(resizeX ? dx : 0, resizeY ? dy : 0);
+
+		if (type === 'end') {
+			this.panelController.endResize(() => {
+				this.settings.chatlogWidth = Math.round(this.panelWidth);
+				this.settings.chatlogHeight = Math.round(this.panelHeight);
+				this.settingsService.saveBrowserSettings();
+			});
+		}
+
+		if (this.shouldScrollToEnd) {
+			this.scrollToEnd();
+		}
+	}
+	private setUnread(value: number) {
+		if (this.unread !== value) {
+			this.unread = value;
+			const count = this.countElement.nativeElement as HTMLElement;
+			const toggle = this.toggleButton.nativeElement as HTMLElement;
+
+			if (value) {
+				count.textContent = value > 99 ? '99+' : `${value}`;
+				toggle.classList.add('has-unread');
+			} else {
+				count.textContent = '';
+				toggle.classList.remove('has-unread');
+			}
+		}
+	}
+	private findEntityFromMessages = (id: number): FakeEntity | undefined => {
+		return findEntityFromMessages(id, this.whisper) ||
+			findEntityFromMessages(id, this.party) ||
+			findEntityFromMessages(id, this.local);
+	}
+	private findEntityFromMessagesByName = (name: string): FakeEntity | undefined => {
+		return findEntityFromMessagesByName(name, this.game.playerId, this.whisper) ||
+			findEntityFromMessagesByName(name, this.game.playerId, this.party) ||
+			findEntityFromMessagesByName(name, this.game.playerId, this.local);
+	}
+}
+
+function findEntityFromMessages(id: number, messages: ChatLogMessage[]): FakeEntity | undefined {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		if (messages[i].entityId === id) {
+			return { fake: true, id, type: PONY_TYPE, name: messages[i].name, crc: messages[i].crc };
+		}
+	}
+
+	return undefined;
+}
+
+function findEntityFromMessagesByName(
+	name: string, playerId: number | undefined, messages: ChatLogMessage[]
+): FakeEntity | undefined {
+	const regex = new RegExp(`^${escapeRegExp(name)}$`, 'i');
+
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const message = messages[i];
+
+		if (message.name && message.entityId && message.entityId !== playerId && regex.test(message.name)) {
+			return { fake: true, id: message.entityId, type: PONY_TYPE, name: message.name, crc: message.crc };
+		}
+	}
+
+	return undefined;
+}

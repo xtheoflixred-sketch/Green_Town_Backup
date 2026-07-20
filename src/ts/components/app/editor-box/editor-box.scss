@@ -1,0 +1,119 @@
+:host {
+	display: block;
+}
+
+.editor-tools-panel {
+	width: 100%;
+	margin-top: 0.5rem;
+}
+
+.editor-tools-panel .btn-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+}
+
+:host ::ng-deep .modal-dialog.modal-lg {
+	width: 92vw;
+	max-width: 900px;
+}
+
+.editor-entity-modal-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	max-height: calc(100vh - 180px);
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.editor-entity-list {
+	max-height: 55vh;
+	overflow-y: auto;
+	overflow-x: hidden;
+	background-color: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 8px;
+	padding: 0.25rem 0.35rem;
+}
+
+.editor-entity-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	font-size: 13px;
+	line-height: 1.3;
+	white-space: normal;
+	word-break: break-word;
+	border-radius: 6px;
+	padding: 0.4rem 0.5rem;
+	background: transparent;
+	cursor: pointer;
+
+	&:hover,
+	&:focus {
+		background: rgba(255, 255, 255, 0.07);
+	}
+
+	&.active {
+		background: rgba(255, 255, 255, 0.14);
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+	}
+}
+
+.editor-entity-main {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+	gap: 0.6rem;
+}
+
+.editor-entity-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 30px;
+	height: 30px;
+	border-radius: 6px;
+	background: rgba(0, 0, 0, 0.25);
+
+	action-button {
+		margin: 0;
+		pointer-events: none;
+	}
+}
+
+.editor-entity-name {
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.92);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.editor-entity-status {
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	opacity: 0.88;
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.editor-entity-separator {
+	margin: 0.12rem 0;
+	border: 0;
+	border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.editor-search-clear {
+	min-width: 34px;
+	font-size: 18px;
+	line-height: 1;
+	padding: 0 0.4rem;
+}
+
+.search-highlight {
+	font-weight: 700;
+	text-shadow: 0 0 0 rgba(0, 0, 0, 0.001);
+}

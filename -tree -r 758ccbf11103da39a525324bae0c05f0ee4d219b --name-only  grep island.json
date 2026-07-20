@@ -1,0 +1,38 @@
+[33mcommit 758ccbf11103da39a525324bae0c05f0ee4d219b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mwork-dev[m[33m, [m[1;31morigin/work-dev[m[33m)[m
+Merge: b476b7c 76430ff
+Author: zaxa651 <zaxa651248g@gmail.com>
+Date:   Wed Jul 8 10:52:12 2026 +0200
+
+    Fix: Resolved all code and image conflicts
+
+[33mcommit 00a0d24a035fe71c1f5112e3eee9dec3d847f970[m
+Author: zaxa651 <zaxa651248g@gmail.com>
+Date:   Tue Jul 7 21:56:49 2026 +0200
+
+    Fix: fixed the path to faCircleUser and converted the project files to LF
+
+[33mcommit c48be7166174c68eff63bcf3e8cb4ba29d706801[m
+Merge: 60df71e 76430ff
+Author: zaxa651 <zaxa651248g@gmail.com>
+Date:   Tue Jul 7 21:34:48 2026 +0200
+
+    Fix merge conflicts with main
+
+[33mcommit 76430ff61715a5fe66bdbbe9566b29212cd4a6a0[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Merge: 700b2c1 ae7ab4d
+Author: lol537lol <rahmanovdarhan18@gmail.com>
+Date:   Sun Jul 5 23:36:05 2026 +0500
+
+    fix minor bugs
+
+[33mcommit ae7ab4dcc6d2b8cdf3405b6f8d533fee547919a0[m[33m ([m[1;31morigin/dev[m[33m, [m[1;31morigin/Adi-dev[m[33m)[m
+Author: Abdul4ikk <abdul4ikk@yandex.ru>
+Date:   Tue Jun 30 20:26:40 2026 +0300
+
+    Initial commit (What a hell)
+
+[33mcommit d83c19b43aee85fb2167f252066a448d1df1c5be[m
+Author: kurobaaka <psykhokidzxc@gmail.com>
+Date:   Tue Dec 9 23:49:40 2025 +0700
+
+    init

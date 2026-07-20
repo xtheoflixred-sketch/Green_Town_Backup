@@ -1,0 +1,33 @@
+// Стили для глобальных объявлений (announcement)
+.alert-announcement {
+	background: linear-gradient(90deg, #497ea5 0%, #b8c8d4 100%);
+	color: #f8f9fa;
+	border: none;
+	box-shadow: 0 2px 8px rgba(73,126,165,0.08);
+}
+@import '../../../../styles/partials/variables';
+
+.home-logo {
+	width: 578px;
+
+	@include media-breakpoint-down(sm) {
+		width: 287px;
+	}
+}
+
+.home-content {
+	max-width: 400px;
+	margin-top: 50px;
+
+	@include media-breakpoint-down(md) {
+		margin-top: 15px;
+	}
+}
+
+.heading {
+	margin-bottom: 50px;
+		
+	@include media-breakpoint-down(sm) {
+		margin-bottom: 20px;
+	}
+}

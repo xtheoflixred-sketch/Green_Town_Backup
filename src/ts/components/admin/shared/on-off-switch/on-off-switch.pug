@@ -1,0 +1,6 @@
+div.btn-group.mb-1.toggle-switch
+	button.btn.btn-xs.toggle-switch__control(type="button" [attr.aria-pressed]="on" [disabled]="disabled" (click)="onToggle(!on)")
+		span.toggle-switch__track
+		span.toggle-switch__thumb
+		b.toggle-switch__state {{on ? 'ON' : 'OFF'}}
+	b.ml-2.mb-1.text-muted {{label}}

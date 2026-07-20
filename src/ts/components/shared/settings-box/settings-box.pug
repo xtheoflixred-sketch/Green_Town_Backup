@@ -1,0 +1,183 @@
+ng-template(#settingsModal)
+	settings-modal(
+		(close)="modalRef.hide()"
+		[focusTrap]="true"
+		(keydown)="$event.stopPropagation()"
+	)
+
+ng-template(#invitesModal)
+	invites-modal(
+		(close)="modalRef.hide()"
+		[focusTrap]="true"
+		(keydown)="$event.stopPropagation()"
+	)
+
+ng-template(#actionsModal)
+	actions-modal(
+		(close)="modalRef.hide()"
+		[focusTrap]="true"
+		(keydown)="$event.stopPropagation()"
+	)
+
+ng-template(#toyModal)
+	select-toy-modal(
+		(close)="modalRef.hide()"
+		[focusTrap]="true"
+		(keydown)="$event.stopPropagation()"
+	)
+
+ng-template(#testModal)
+	test-modal(
+		(close)="modalRef.hide()"
+		[focusTrap]="true"
+		(keydown)="$event.stopPropagation()"
+	)
+
+.settings-box.unselectable
+	.dropdown(
+		#dropdown="ag-dropdown"
+		dropdown
+		autoClose="outsideClick"
+		[hookToCanvas]="true"
+	)
+
+		button.game-button.dropdown-toggle.no-arrow(
+			dropdownToggle
+			title="Settings"
+			style="position:relative;"
+		)
+			fa-icon([icon]="cogIcon" [fixedWidth]="true")
+			span.pony-box-status-badge.settings-afk-badge(*ngIf="isAfk" [ngClass]="{'afk-visible': isAfk}") AFK
+
+		.dropdown-menu.dropdown-menu-right.settings-box-menu.dropdown-menu-nipple-right(*dropdownMenu)
+
+			.dropdown-header.d-flex.justify-content-between.mb-1
+				span {{server}}
+				span.clock-display {{time}}
+
+			// =========================
+			// SCALE (ZOOM OVERHAUL)
+			// =========================
+			.dropdown-item.d-flex.align-items-center.flex-column.mb-1
+
+				.d-flex.align-items-center.w-100
+					fa-icon.mr-2([icon]="zoomIcon" [fixedWidth]="true" [ngClass]="zoomIconClass")
+
+					.flex-grow-1
+						| Zoom: x{{scale}}
+
+					button.btn.btn-xs.btn-outline-secondary(
+						(click)="zoomOut()"
+						[disabled]="scale <= scaleOptions.min"
+					)
+						fa-icon([icon]="minusIcon")
+
+					button.btn.btn-xs.btn-outline-secondary.ml-2(
+						(click)="zoomIn()"
+						[disabled]="scale >= scaleOptions.max"
+					)
+						fa-icon([icon]="plusIcon")
+
+
+
+			// VOLUME
+			.dropdown-item.dropdown-item-static.mb-1.d-flex.align-items-center
+				a.mr-2((click)="toggleVolume()")
+					fa-icon([icon]="volumeIcon")
+
+				slider-bar.flex-grow-1(
+					[(value)]="volume"
+					[step]="1"
+					(started)="volumeStarted()"
+				)
+
+			// =========================
+			// 🎵 MUSIC BLOCK
+			// =========================
+			.music-wrapper(*ngIf="track")
+
+				.music-block(
+					(click)="toggleMusicExpanded(); $event.stopPropagation()"
+				)
+					.music-compact
+						.track-visualizer.mr-2
+							.visualizer-bar(
+								*ngFor="let bar of visualizerBars"
+								[style.height]="(40 + bar * 60) + '%'"
+							)
+
+						span.track-name {{track}}
+
+						span.expand-icon(
+							(click)="toggleMusicExpanded(); $event.stopPropagation()"
+						)
+							fa-icon([icon]="musicExpanded ? chevronDownIcon : chevronUpIcon")
+
+				.music-player([class.expanded]="musicExpanded")
+					.progress-row
+						.progress-time {{trackCurrentTime}}
+
+						.progress-bar-wrapper(
+							(click)="seek($event); $event.stopPropagation()"
+						)
+							.progress-bar-fill([style.width]="trackProgress + '%'")
+
+						.progress-time {{trackDuration}}
+
+					.player-controls
+						button.btn.btn-xs.btn-outline-secondary(
+							(click)="previousTrack(); $event.stopPropagation()"
+						)
+							fa-icon.backward-icon([icon]="backwardIcon")
+
+						button.btn.btn-xs.btn-outline-secondary.mx-1(
+							(click)="togglePausePlay(); $event.stopPropagation()"
+						)
+							fa-icon([icon]="isPlaying ? pauseIcon : playIcon")
+
+						button.btn.btn-xs.btn-outline-secondary(
+							(click)="nextTrack(); $event.stopPropagation()"
+						)
+							fa-icon([icon]="forwardIcon")
+
+			a.dropdown-item.mb-1((click)="unhideAllHiddenPlayers()")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| Unhide players (temporary)
+
+			a.dropdown-item.mb-1((click)="toggleSeeThrough()")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| {{ seeThroughButtonText }}
+
+			a.dropdown-item.mb-1((click)="toggleDisableUI()")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| {{ disableUIButtonText }}
+
+			a.dropdown-item.mb-1((click)="openGameCharacter()")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| Edit Character
+
+			a.dropdown-item.mb-1((click)="openOwnProfile($event)")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| Open my profile
+
+			a.dropdown-item.mb-1((click)="openSettings()")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| Settings
+
+			a.dropdown-item.mb-1((click)="openActions()")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| Actions
+
+			a.dropdown-item.mb-1((click)="openToys()")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| Select toys
+
+			a.dropdown-item.mb-1((click)="openTestModal()")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| {{ testModalButtonText }}
+
+			.dropdown-divider
+
+			a.dropdown-item((click)="leave()")
+				fa-icon.mr-2([icon]="signOutIcon")
+				| Leave

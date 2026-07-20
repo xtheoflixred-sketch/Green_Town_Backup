@@ -1,0 +1,374 @@
+.pony-box(*ngIf="pony" [class.pony-box-wide]="canUseWideRect" [class.pony-box-compact]="isCompactRect" [class.pony-box-resized]="isRectResized")
+	.pony-box-tags(#tagsBox)
+		.pony-box-tag(*ngIf="specialTag" [ngClass]="specialClass" [tooltip]="specialTagTooltip" placement="top" container="body")
+			fa-icon.mr-1(*ngIf="specialTag.icon" [icon]="specialTag.icon" [fixedWidth]="true" [style.color]="specialTag.color")
+			span.pony-box-tag-label {{specialTag.name}}
+
+		.pony-box-tag.tag-friend(*ngIf="isSelectedFriend" [tooltip]="'friend'" placement="top" container="body")
+			fa-icon.mr-1([icon]="friendTagIcon" [fixedWidth]="true")
+			span.pony-box-tag-label friend
+
+		.pony-box-tag.tag-party-pending(*ngIf="isPartyInvitePending" [tooltip]="'party invite pending'" placement="top" container="body")
+			fa-icon.mr-1([icon]="partyTagIcon" [fixedWidth]="true")
+			span.pony-box-tag-label sending...
+
+		.pony-box-tag.tag-party-member(*ngIf="isPartyMember" [tooltip]="'party member'" placement="top" container="body")
+			fa-icon.mr-1([icon]="partyTagIcon" [fixedWidth]="true")
+			span.pony-box-tag-label party
+
+	.pony-box-rect(#rectBox [style.width.px]="currentRectWidth")
+		.pony-box-name-row
+			.pony-box-name(title="{{pony.name}}")
+				| {{pony.name}}
+
+			.pony-box-statuses
+				span.pony-box-status-badge(*ngIf="isAfk" [ngClass]="{'afk-visible': isAfk}")
+					| AFK
+
+				fa-icon.pony-box-status-icon.pony-box-status-icon-afk(
+					*ngIf="isAfk"
+					[icon]="afkIcon")
+
+				fa-icon.pony-box-status-icon.pony-box-status-icon-modal(
+					*ngIf="isInModal"
+					[icon]="modalIcon"
+					[tooltip]="'In modal window'"
+					placement="top"
+					container="body")
+
+				fa-icon.pony-box-status-icon.pony-box-status-icon-offline(
+					*ngIf="isShowAsOffline"
+					[icon]="hideIcon"
+					[tooltip]="'Show as offline'"
+					placement="top"
+					container="body")
+
+				fa-icon.pony-box-status-icon.pony-box-status-icon-offline(
+					*ngIf="isOffline"
+					[icon]="offlineIcon"
+					[tooltip]="'Offline'"
+					placement="top"
+					container="body")
+
+				fa-icon.pony-box-status-icon.pony-box-status-icon-typing(
+					*ngIf="isTyping(pony)"
+					[icon]="typingIcon"
+					[tooltip]="'Typing'"
+					placement="top"
+					container="body")
+
+				fa-icon.pony-box-status-icon.pony-box-status-icon-editing(
+					*ngIf="isEditingCharacter(pony)"
+					[icon]="editingIcon"
+					[tooltip]="'Editing character'"
+					placement="top"
+					container="body")
+
+		.pony-box-buttons
+			site-info([site]="pony.site")
+
+		.pony-box-resizer(
+			*ngIf="canUseWideRect"
+			agDragRelative="self"
+			(agDrag)="resizeRect($event)")
+
+		.pony-box-buttons-box
+			ng-container(*ngIf="isOwnPlayer")
+				.btn-group.btn-group-shadow.dropdown(
+					dropdown
+					autoClose="outsideClick"
+					[preventAutoCloseOnOutlet]="true")
+
+					button.btn.btn-xs.dropdown-toggle(
+						dropdownToggle
+						[ngClass]="'btn-default'")
+
+						fa-icon([icon]="selfMenuIcon")
+
+					.dropdown-menu(*dropdownMenu)
+
+						button.dropdown-item(
+							*ngIf="canUseWideRect && isRectResized"
+							(click)="resetRectWidth()")
+
+							fa-icon.mr-2([icon]="resetWidthIcon" [fixedWidth]="true")
+							| Reset width
+
+						button.dropdown-item(
+							type="button"
+							(click)="editOwnCharacter()")
+
+							fa-icon.mr-2.text-primary([icon]="editingIcon" [fixedWidth]="true")
+							span.text-primary Edit character
+
+						button.dropdown-item(
+							type="button"
+							(click)="leaveGame()")
+
+							fa-icon.mr-2.text-danger([icon]="leaveIcon" [fixedWidth]="true")
+							span.text-danger Leave game
+
+			ng-container(*ngIf="showInteractionDropdown")
+				.btn-group.btn-group-shadow.dropdown(
+					dropdown
+					(isOpenChange)="removingFriend = false")
+
+				.btn-group.btn-group-shadow.dropdown(
+					dropdown
+					autoClose="outsideClick"
+					[preventAutoCloseOnOutlet]="true"
+					(isOpenChange)="editingFriendNoteMode = null; showMoreFriendButtons = false")
+
+					button.btn.btn-xs.dropdown-toggle(
+						dropdownToggle
+						[ngClass]="ignoredOrHidden ? 'btn-danger' : 'btn-default'")
+
+						fa-icon([icon]="cogIcon")
+
+					.dropdown-menu(*dropdownMenu)
+
+						button.dropdown-item(
+							(click)="sendMessageTo()"
+							[disabled]="isInteractionUnavailable")
+
+							fa-icon.mr-2.pony-action-icon-whisper(
+								[icon]="messageIcon"
+								[fixedWidth]="true")
+
+							| Send whisper
+
+						button.dropdown-item(
+							*ngIf="canInviteToParty"
+							(click)="inviteToParty()"
+							[disabled]="isInteractionUnavailable")
+
+							fa-icon.mr-2.pony-action-icon-party(
+								[icon]="inviteIcon"
+								[fixedWidth]="true")
+
+							| Invite to party
+
+						button.dropdown-item(
+							*ngIf="canPromoteToLeader"
+							(click)="promoteToLeader()"
+							[disabled]="isInteractionUnavailable")
+
+							fa-icon.mr-2.pony-action-icon-party(
+								[icon]="leaderIcon"
+								[fixedWidth]="true")
+
+							| Promote to party leader
+
+						button.dropdown-item(
+							*ngIf="canRemoveFromParty"
+							(click)="removeFromParty()"
+							[disabled]="isInteractionUnavailable")
+
+							fa-icon.mr-2.pony-action-icon-party-remove(
+								[icon]="removeIcon"
+								[fixedWidth]="true")
+
+							| Remove from party
+
+						button.dropdown-item(
+							*ngIf="!isSelectedFriend"
+							(click)="addFriend()")
+
+							fa-icon.mr-2.text-success(
+								[icon]="addFriendIcon"
+								[fixedWidth]="true")
+
+							| Send friend request
+
+						div(*ngIf="isSelectedFriend" style="position: relative;")
+
+							button.dropdown-item(
+								(click)="removingFriend = true; $event.stopPropagation()")
+
+								fa-icon.mr-2.text-danger(
+									[icon]="removeFriendIcon"
+									[fixedWidth]="true")
+
+								| Remove from friends
+
+							.remove-confirmation.px-2.d-flex.justify-content-center(
+								*ngIf="removingFriend")
+
+								button.btn.btn-sm.btn-outline-success.flex-grow-1(
+									(click)="removingFriend = false; $event.stopPropagation()")
+
+									| Cancel
+
+								button.btn.btn-sm.btn-outline-danger.flex-grow-1.ml-1(
+									(click)="removeFriend()")
+
+									| Confirm remove
+
+						button.dropdown-item(
+							*ngIf="isSelectedFriend"
+							type="button"
+							(click)="toggleMoreFriendButtons(); $event.stopPropagation()")
+
+							fa-icon.me-2([icon]="moreButtonsIcon" [fixedWidth]="true")
+
+							| {{hasExpandedFriendButtons ? 'Hide buttons...' : 'Show more...'}}
+
+						button.dropdown-item(
+							*ngIf="isSelectedFriend && hasExpandedFriendButtons"
+							type="button"
+							(click)="toggleShowAsOfflineForSelectedFriend()"
+							[disabled]="isInteractionUnavailable || !canToggleShowAsOfflineForSelectedFriend")
+
+							fa-icon.me-2(
+								[icon]="hideIcon"
+								[fixedWidth]="true"
+								[class]="isShownOfflineForSelectedFriend ? '' : 'text-muted'")
+
+							| {{isShownOfflineForSelectedFriend ? 'Disable' : 'Enable'}} show as offline for this friend
+
+						button.dropdown-item(
+							*ngIf="isSelectedFriend && hasExpandedFriendButtons"
+							type="button"
+							(click)="togglePinSelectedFriend()"
+							[disabled]="isInteractionUnavailable")
+
+							span.dropdown-icon
+								fa-icon([icon]="pinIcon" [fixedWidth]="true")
+
+							| {{isSelectedFriendPinned ? 'Unpin in friend list' : 'Pin in friend list'}}
+
+						button.dropdown-item(
+							*ngIf="hasExpandedFriendButtons"
+							type="button"
+							(click)="requestOpenFriendsList(); $event.stopPropagation()")
+
+							fa-icon.mr-2([icon]="partyTagIcon" [fixedWidth]="true")
+
+							| Open friends list
+
+
+						.dropdown-divider
+
+						button.dropdown-item
+							.d-flex.align-items-center.pony-box-actions-row
+
+								.mr-2
+									fa-icon.mr-2([icon]="ponyIcon" [fixedWidth]="true")
+									| Item:
+
+								.pony-box-actions-btns
+
+									button.btn.btn-outline-secondary.btn-xs(
+										(click)="sendItem()"
+										[tooltip]="'Send item'"
+										placement="top"
+										[disabled]="!canSendItem || isInteractionUnavailable")
+
+										fa-icon([icon]="transferIcon" [fixedWidth]="true")
+
+									button.btn.btn-outline-secondary.btn-xs.ml-1(
+										(click)="tradeItem()"
+										[tooltip]="'Trade item'"
+										placement="top"
+										[disabled]="!canTradeItem || isInteractionUnavailable")
+
+										fa-icon([icon]="swapIcon" [fixedWidth]="true")
+
+									button.btn.btn-outline-secondary.btn-xs.ml-1(
+										(click)="pickupItem()"
+										[tooltip]="'Pick up item'"
+										placement="top"
+										[disabled]="!canPickupItem || isInteractionUnavailable")
+
+										fa-icon([icon]="takeIcon" [fixedWidth]="true")
+
+						button.dropdown-item
+							.d-flex.align-items-center.pony-box-actions-row
+
+								.mr-2
+									fa-icon.mr-2([icon]="ponyIcon" [fixedWidth]="true")
+									| Toy:
+
+								.pony-box-actions-btns
+
+									button.btn.btn-outline-secondary.btn-xs(
+										(click)="sendToy()"
+										[tooltip]="'Send toy'"
+										placement="top"
+										[disabled]="!canSendToy || isInteractionUnavailable")
+
+										fa-icon([icon]="transferIcon" [fixedWidth]="true")
+
+									button.btn.btn-outline-secondary.btn-xs.ml-1(
+										(click)="tradeToy()"
+										[tooltip]="'Trade toy'"
+										placement="top"
+										[disabled]="!canTradeToy || isInteractionUnavailable")
+
+										fa-icon([icon]="swapIcon" [fixedWidth]="true")
+
+									button.btn.btn-outline-secondary.btn-xs.ml-1(
+										(click)="pickupToy()"
+										[tooltip]="'Pick up toy'"
+										placement="top"
+										[disabled]="!canPickupToy || isInteractionUnavailable")
+
+										fa-icon([icon]="takeIcon" [fixedWidth]="true")
+
+						.dropdown-divider
+
+						div.dropdown-item.pony-box-hide-options
+							div.pony-box-hide-options-title
+								fa-icon.mr-2([icon]="hideIcon" [fixedWidth]="true")
+								| Hide options:
+
+							div.pony-box-hide-options-buttons
+								button.btn.btn-outline-secondary.btn-sm(
+									(click)="hidePlayer(1);")
+
+									| 24 hours
+
+								button.btn.btn-outline-secondary.btn-sm(
+									(click)="hidePlayer(0);")
+
+									| permanent
+
+						button.dropdown-item((click)="toggleIgnore()")
+
+							fa-icon.mr-2(
+								[icon]="ignoreIcon"
+								[fixedWidth]="true")
+
+							| {{isIgnored(pony) ? 'Ignore Player' : 'Ignore player'}}
+
+							fa-icon.ml-1(
+								*ngIf="isIgnored(pony)"
+								[icon]="checkIcon")
+
+						div(*ngIf="canInviteToSupporterServers")
+
+							h6.dropdown-header Supporter options
+
+							button.dropdown-item(
+								(click)="inviteToSupporterServers()")
+
+								fa-icon.mr-2.text-success(
+									[icon]="starIcon"
+									[fixedWidth]="true")
+
+								| Invite to supporter servers
+
+								fa-icon.ml-1(
+									*ngIf="isInvitedToSupporterServers"
+									[icon]="checkIcon")
+
+			mod-box(
+				*ngIf="isMod && !isOwnPlayer"
+				[pony]="pony")
+
+	portrait-box.pony-box-avatar(
+		[pony]="paletteInfo"
+		[class.pony-box-avatar-draggable]="dragEnabled"
+		[class.dragging]="dragging"
+		agDragRelative="self"
+		(agDrag)="onPortraitDrag($event)")

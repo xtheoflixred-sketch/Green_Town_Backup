@@ -1,0 +1,22 @@
+.modal-preview-box {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  background: var(--grass-color);
+  border-radius: 16px;
+  transition: background-color 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .modal-preview-box {
+    width: 280px;
+    height: 280px;
+  }
+}
+
+.modal-preview-box.fixed-to-top {
+  position: fixed;
+  top: -45px;
+  z-index: 100;
+  pointer-events: none;
+}

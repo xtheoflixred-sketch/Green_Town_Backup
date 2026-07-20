@@ -1,0 +1,126 @@
+.tools-map-header
+	a.btn.btn-default.tools-map-home-btn(
+		*ngIf="!isBuilderOnly"
+		routerLink="/" 
+		title="Back to home")
+		fa-icon([icon]="homeIcon" [fixedWidth]="true")
+
+	.tools-map-controls
+		.tools-map-control-group
+			label map:
+			.btn-group.dropdown.tools-map-dropdown(dropdown)
+				button.btn.btn-default.dropdown-toggle(
+					dropdownToggle 
+					(click)="generateAllPreviews()") {{selectedMap ? selectedMap : 'Select Map'}}
+				.dropdown-menu.map-dropdown-menu(*dropdownMenu)
+					button.dropdown-item.map-select-item(*ngFor="let m of maps" (click)="selectMap(m)")
+						.map-preview-wrapper(*ngIf="mapPreviews[m || 'main']")
+							img.map-preview-img([src]="mapPreviews[m || 'main']" [alt]="(m || 'main') + ' preview'")
+						span.map-name {{m || 'main'}}
+
+		.tools-map-control-group.current-map-display(*ngIf="selectedMap && mapPreviews[selectedMap]")
+			.current-map-preview
+				img.map-preview-img([src]="mapPreviews[selectedMap]" [alt]="selectedMap + ' current'")
+			span.current-map-name {{selectedMap}}
+
+		.tools-map-control-group
+			label type:
+			.btn-group.dropdown.tools-map-dropdown(dropdown)
+				button.btn.btn-default.dropdown-toggle(dropdownToggle) {{type}}
+				.dropdown-menu.type-dropdown-menu(*dropdownMenu)
+					button.dropdown-item.type-select-item((click)="setType('regular')" [class.active]="type === 'regular'")
+						.map-preview-wrapper(*ngIf="selectedMap && mapPreviews[selectedMap]")
+							img.map-preview-img([src]="mapPreviews[selectedMap]" [alt]="selectedMap + ' regular'")
+						span.type-label regular
+					button.dropdown-item.type-select-item((click)="setType('minimap')" [class.active]="type === 'minimap'")
+						.map-preview-wrapper(*ngIf="selectedMap && mapMinimapPreviews[selectedMap]")
+							img.map-preview-img([src]="mapMinimapPreviews[selectedMap]" [alt]="selectedMap + ' minimap'")
+						span.type-label minimap
+
+		.tools-map-control-group
+			label scale:
+			scale-picker.ml-1([(scale)]="scale" (scaleChange)="redraw()" [maxScale]="8")
+
+	.tools-map-tools
+		.tools-map-tool-item
+			custom-checkbox([(checked)]="grid" (checkedChange)="onGridChange($event)" [inline]="true" [tooltip]="'Toggle grid overlay to show tile coordinates'")
+			span.tools-map-tool-label Grid
+
+		.tools-map-tool-item
+			custom-checkbox([(checked)]="showTimeOnMap" (change)="redraw()" [inline]="true" [tooltip]="'Show game time overlay on the map'")
+			span.tools-map-tool-label Time
+
+		button.btn.btn-default.tools-map-tool-btn(
+			(click)="copyCanvasToClipboard()"
+			[disabled]="!isMapLoaded || !selectedMap"
+			[tooltip]="'Copy current map to clipboard'")
+			fa-icon([icon]="copyIcon" [fixedWidth]="true")
+
+		button.btn.btn-default.tools-map-tool-btn(
+			(click)="png()"
+			[disabled]="!isMapLoaded || !selectedMap"
+			[tooltip]="'Download map as PNG'")
+			fa-icon([icon]="imageIcon" [fixedWidth]="true")
+
+.tools-map-content
+	.tools-map-canvas-container(#canvasContainer [ngStyle]="{'cursor': cursorStyle}")
+		canvas(#canvas [class.fading-out]="isMapLoading || !isMapLoaded" [class.fading-in]="isMapLoaded")
+		
+		.tools-map-placeholder(*ngIf="showPlaceholder" [class.visible]="showPlaceholder")
+			.placeholder-icon
+				fa-icon([icon]="imageIcon" [fixedWidth]="true")
+			.placeholder-text
+				| Please select a map
+		
+		.tools-map-loading(*ngIf="isMapLoading" [class.visible]="isMapLoading")
+			.loading-content
+				fa-icon([icon]="spinnerIcon" [fixedWidth]="true" [spin]="true" size="3x")
+				.loading-text Loading map...
+
+.tools-map-footer
+	.tools-map-footer-left
+		button.btn.btn-default.tools-map-btn(
+			(click)="zoomOut()"
+			[disabled]="isAtMinZoom"
+			title="Zoom out (Scroll -)")
+			fa-icon([icon]="searchMinusIcon" [fixedWidth]="true")
+
+		button.btn.btn-default.tools-map-btn(
+			(click)="resetZoomPan()"
+			title="Reset zoom and pan (Double click)")
+			fa-icon([icon]="syncIcon" [fixedWidth]="true")
+
+		button.btn.btn-default.tools-map-btn(
+			(click)="zoomIn()"
+			[disabled]="isAtMaxZoom"
+			title="Zoom in (Scroll +)")
+			fa-icon([icon]="searchPlusIcon" [fixedWidth]="true")
+
+	.tools-map-footer-center
+		button.btn.btn-default.tools-map-btn(
+			title="Game time")
+			fa-icon([icon]="clockIcon" [fixedWidth]="true")
+			span {{gameTime}}
+
+	.tools-map-footer-right
+		.tools-map-stats-group
+			.tools-map-stat
+				fa-icon([icon]="cogIcon" [fixedWidth]="true")
+				input.tools-map-fps-input(
+					type="number"
+					min="1"
+					max="60"
+					[(ngModel)]="maxFpsLimit"
+					(change)="updateFps(maxFpsLimit)"
+					title="Set FPS (1-60)")
+
+			.tools-map-stat
+				span.tools-map-fps-label {{currentFps}} FPS
+
+		button.btn.btn-default.tools-map-btn(
+			[class.tools-map-btn-active]="isStreaming"
+			(click)="streamLive()"
+			[disabled]="!selectedMap"
+			[tooltip]="isStreaming ? 'Stop live stream' : 'Start live stream'")
+			fa-icon([icon]="imageIcon" [fixedWidth]="true")
+			span {{ isStreaming ? 'Stream ON' : 'Stream' }}

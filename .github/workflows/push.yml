@@ -1,0 +1,48 @@
+name: Push Checks
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '10.x'
+      - name: install gulp
+        run: bash .github/ci-install-gulp.sh
+      - run: npm install --no-audit --no-fund # или npm ci, если решили проблему с локфайлом
+      - name: write config.json
+        run: cp .github/ci-config.json config.json
+      
+      # НАПРАВЛЯЕМ ГИТ К ПАПКЕ: Создаем структуру папок, которую стёр .gitignore
+      - name: create generated directory
+        run: mkdir -p src/ts/generated
+        
+      - name: pre-generate assets for lint
+        run: npx gulp common || true
+      - name: build assets for lint
+        run: npx gulp build
+      - run: npm run lint -- --fix 
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '10.x'
+      - name: install gulp
+        run: bash .github/ci-install-gulp.sh
+      - run: npm install --no-audit --no-fund
+      - name: write config.json
+        run: cp .github/ci-config.json config.json
+        
+      # ПОВТОРЯЕМ ДЛЯ JOB БИЛДА
+      - name: create generated directory
+        run: mkdir -p src/ts/generated
+        
+      - name: pre-generate assets
+        run: npx gulp common || true
+      - name: build production assets
+        run: npx gulp build

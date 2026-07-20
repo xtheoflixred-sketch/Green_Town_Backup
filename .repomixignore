@@ -1,0 +1,92 @@
+# ==============================================================================
+# REPOMIX OPTIMIZATION: ОЧИСТКА ОТ МУСОРА И ОПТИМИЗАЦИЯ ТОКЕНОВ
+# ==============================================================================
+
+# 1. Графика, дизайн, анимации и медиафайлы
+/assets/
+/assets-source/
+/favicons/
+/public/
+src/ts/graphics/
+**/animations/
+**/*Animations.ts
+src/ts/client/ponyAnimations.ts
+*.psd
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.svg
+*.mp3
+*.webm
+*.wav
+*.ogg
+
+# 2. Окружение, сборка, кэши и системный мусор
+/node_modules/
+/dist/
+/build/
+/.out/
+/out/
+/.next/
+/.turbo/
+/.cache/
+/.vscode/
+/.idea/
+.DS_Store
+Thumbs.db
+*.log
+*.bat
+*.py
+
+# 3. Менеджеры зависимостей и конфигурации сборщиков
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.npm/
+tsconfig*.json
+webpack*.js
+gulpfile.js
+tslint.json
+workbox-config.js
+pony-town-offline.js
+
+# 4. Тесты и скриншоты интерфейса
+src/tests/
+src/ts/tests/
+**/src/tests/
+**/*.spec.ts
+**/*.test.ts
+
+# 5. Тяжелые структуры данных (Карты, Локализация, Словари)
+/src/maps/*.json
+src/ts/server/maps/
+**/maps/
+**/localization/
+**/locales/
+src/ts/common/swears.ts
+**/swears.ts
+
+# 6. Верстка, стили и UI-компоненты
+*.scss
+*.sass
+*.css
+*.pug
+*.html
+src/ts/client/
+src/ts/components/
+
+# 7. Инструменты разработки, скрипты и фиксы
+src/ts/tools/
+tools/
+store/
+src/fixes/
+src/scripts/
+**/generated/
+
+# 8. Документация, лицензии и текстовые описания
+*.md
+*.txt
+LICENSE*

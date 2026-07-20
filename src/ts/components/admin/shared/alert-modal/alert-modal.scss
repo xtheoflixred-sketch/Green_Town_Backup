@@ -1,0 +1,112 @@
+.modal-body {
+	max-height: 72vh;
+	min-height: 0;
+	font-size: 16px;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.alert-body-scroll {
+	max-height: calc(72vh - 1.5rem);
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding-right: 6px;
+}
+
+:host ::ng-deep tabset {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	flex: 1 1 auto;
+}
+
+:host ::ng-deep .tab-content {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding-right: 6px;
+}
+
+.modal-footer {
+	.btn-wide {
+		min-width: 100px;
+	}
+}
+
+.dropdown-narrow {
+	min-width: 140px;
+}
+
+.dropdown-item-radio {
+	&.checked {
+		font-weight: 600;
+	}
+}
+
+.alert-board {
+	margin-bottom: 1rem;
+}
+
+.alert-entry-card {
+	border: 1px solid rgba(0, 0, 0, 0.08);
+	border-radius: 6px;
+	padding: 1rem;
+	margin-bottom: 1rem;
+	background: #fff;
+}
+
+.alert-entry-card.alert-card-warning {
+	border-color: #f0ad4e;
+	background: #1e1e1e;
+}
+
+.alert-entry-card.alert-card-danger {
+	border-color: #d9534f;
+	background: #1e1e1e;
+}
+
+.alert-entry-card.alert-card-info {
+	border-color: #5bc0de;
+	background: #1e1e1e;
+}
+
+.alert-entry-card.alert-card-announcement {
+	border-color: #497ea5;
+	background: linear-gradient(90deg, #497ea5 0%, #b8c8d4 100%);
+	color: #f8f9fa;
+}
+
+.alert-entry-header {
+	margin-bottom: 0.75rem;
+}
+
+.alert-entry-controls .form-control {
+	width: 100%;
+}
+
+.alert-entry-controls label {
+	font-weight: 600;
+}
+
+.alert-preview-card {
+	margin-bottom: 0.75rem;
+}
+
+.alert-preview-card .alert {
+	margin-bottom: 0;
+	padding: 0.75rem 1rem;
+}
+
+.alert-preview-card .alert-announcement {
+	background: linear-gradient(90deg, #497ea5 0%, #b8c8d4 100%);
+	color: #f8f9fa;
+	border: none;
+	box-shadow: 0 2px 8px rgba(73,126,165,0.08);
+}
+
+.alert-preview-info {
+	font-size: 0.95rem;
+	color: #6c757d;
+}

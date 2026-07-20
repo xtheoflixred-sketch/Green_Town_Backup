@@ -1,0 +1,97 @@
+import { Component, OnInit } from '@angular/core';
+import { emojis } from '../../../client/emoji';
+import { CREDITS, CONTRIBUTORS, Credit, } from '../../../client/credits';
+import { OFFLINE_PONY, AXL_PONY, KREYSER_PONY, LOREINE_PONY, FIERAMORE_PONY } from '../../../common/constants';
+import { decompressPonyString } from '../../../common/compressPony';
+import { SUPPORTER_REWARDS_LIST } from '../../../common/constants';
+import { discordLink, contactEmail, contactDiscord, version, shortVersion } from '../../../client/data';
+import { isPrivilegedAccount } from '../../../common/changelogUtils';
+import { Model } from '../../services/model';
+
+function colorFromSkin(skin?: string) {
+	if (!skin) return '#494242';
+	// simple deterministic color from string (HSL)
+	let h = 0;
+	for (let i = 0; i < skin.length; i++) {
+		h = (h * 31 + skin.charCodeAt(i)) % 360;
+	}
+	return `hsl(${h}, 18%, 36%)`;
+}
+
+const SKIN_MAP: { [key: string]: string } = {
+	// map avatarSkin id -> compressed pony string (use existing constants as examples)
+	'axl-pony': AXL_PONY,
+	'loreine-pony': LOREINE_PONY,
+	'kreyser-pony': KREYSER_PONY,
+	'fieramore-pony': FIERAMORE_PONY,
+};
+
+function toCredit(credit: Credit) {
+	const skin = (credit as any).avatarSkin as string | undefined;
+	const candidate = SKIN_MAP[skin || ''];
+	let ponyData: any;
+	if (typeof candidate === 'string') {
+		try {
+			ponyData = decompressPonyString(candidate);
+		} catch (e) {
+			// If the stored string is invalid, fall back to the offline pony
+			ponyData = decompressPonyString(OFFLINE_PONY);
+		}
+	} else {
+		ponyData = decompressPonyString(OFFLINE_PONY);
+	}
+
+	return {
+		...credit,
+		backgroundColor: credit.avatarBgColor || colorFromSkin(skin),
+		position: 'center',
+		pony: ponyData,
+		avatarSkin: skin,
+	} as any;
+}
+
+@Component({
+	selector: 'about',
+	templateUrl: 'about.pug',
+	styleUrls: ['about.scss'],
+})
+export class About implements OnInit {
+	constructor(public model: Model) {}
+
+	readonly title = document.title;
+	readonly emotes = emojis;
+	readonly credits = CREDITS.map(toCredit);
+	readonly contributors = CONTRIBUTORS;
+	readonly rewards = SUPPORTER_REWARDS_LIST;
+	readonly discordLink = discordLink;
+	readonly contactEmail = contactEmail;
+	readonly contactDiscord = contactDiscord;
+	readonly version = version;
+	readonly shortVersion = shortVersion;
+
+	ponyExcite(preview: any) {
+		if (preview) {
+			preview.excite();
+		}
+	}
+
+	ponyReset(preview: any) {
+		if (preview) {
+			preview.reset();
+		}
+	}
+	changelogResponse: any = null;
+
+	get isPrivileged() {
+		return isPrivilegedAccount(this.model.account);
+	}
+
+	ngOnInit() {
+		// Fetch changelog from server
+		this.model.fetchChangelog().then(response => {
+			this.changelogResponse = response;
+		}).catch(err => {
+			console.error('Failed to fetch changelog:', err);
+		});
+	}
+}

@@ -1,0 +1,186 @@
+doctype html
+html(lang="en")
+	head
+		meta(charset="utf-8")
+		meta(name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no")
+		meta(name="description" content=description)
+
+		if noindex
+			meta(name="robots" content="noindex, nofollow")
+
+		base(href=base)
+		title=title
+		style!=inlineStyle
+
+		link(rel="stylesheet" href=style)
+
+		//- open graph
+		meta(property="og:title" content=title)
+		meta(property="og:site_name" content=title)
+		meta(property="og:type" content="website")
+		meta(property="og:url" content=host.replace(/\/$/, ''))
+		meta(property="og:description" content=description)
+		meta(property="og:image" content=logo)
+		if facebookAppId
+			meta(property="fb:app_id" content=facebookAppId)
+
+
+		//- favicons
+		link(rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png")
+		link(rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png")
+		link(rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png")
+		link(rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png")
+		link(rel="icon" type="image/png" sizes="194x194" href="/favicon-194x194.png")
+		link(rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png")
+		link(rel="manifest" href="/manifest.json?v2")
+		link(rel="mask-icon" href="/safari-pinned-tab.svg" color="#ff98d9")
+
+		//- other
+		meta(name="theme-color" content="#5b6ee1")
+		meta(name="apple-mobile-web-app-capable" content="yes")
+
+	body(
+		data-key="kmncxb908z"
+		data-version=version
+		data-discord-link=discordLink
+		data-tiktok-link=tiktokLink
+		data-vk-link=vkLink
+		data-telegram-link=telegramLink
+		data-email=email
+		data-contact-discord=contactDiscord
+		data-copyright=title
+		data-host=host
+		data-local=local
+		data-public=isPublic
+		data-sw=sw
+		data-token=token
+		data-wasm=wasm)
+		pony-town-app
+			#loading.loading-card
+				.gif-container
+					img.gif-image(
+						src="assets/images/loading-pony.gif"  
+						alt="Loading animation"
+						style="max-width: 150px; margin: 0 auto 20px; display: block; z-index: 10000;"
+						onerror="this.style.display='none'; console.log('GIF failed to load')"
+						onload="console.log('GIF loaded successfully')")
+				.loader
+					p Loading
+					.loading-words#loadingWords(style="--current-position: 0px; --next-position: -40px;")
+						.loading-words-track#loadingWordsTrack
+							each word in ['buttons', 'forms', 'magic', 'patterns', 'maps', 'switches', 'ponies', 'canvas', 'objects', 'forms', 'assets', 'images', 'fonts', 'styles', 'scripts', 'files', 'data', 'icons', 'sprites', 'textures', 'models', 'shaders', 'sounds', 'music', 'animations', 'components', 'modules', 'widgets', 'features', 'buttons', 'forms']
+								span.loading-word= word
+				if !production
+					.dev-update-wrapper
+						.dev-update-header DevUpdate Console
+						.dev-update-console#devUpdateConsole
+				p.loading-error
+					| Could not load the game... #[a.loading-error-btn(href="/reset.html") reload] to continue.
+
+		if oauthProviders
+			script#oauth-providers(type="application/json")!=JSON.stringify(oauthProviders)
+
+		if socketOptions
+			script#socket-options(type="text/plain")!=socketOptions
+
+		script.
+			(function () {
+				const wordsViewport = document.getElementById('loadingWords');
+				const wordsTrack = document.getElementById('loadingWordsTrack');
+				const devConsole = document.getElementById('devUpdateConsole');
+
+				if (devConsole) {
+					const maxLines = 220;
+
+					function formatArg(arg) {
+						if (typeof arg === 'string') return arg;
+						if (arg instanceof Error) return arg.stack || arg.message;
+						try {
+							return JSON.stringify(arg);
+						} catch (e) {
+							return String(arg);
+						}
+					}
+
+					function appendLine(type, args) {
+						const line = document.createElement('div');
+						line.className = 'dev-log-line';
+
+						const label = document.createElement('span');
+						label.className = 'log-label';
+						label.textContent = '[' + type + ']';
+
+						const text = document.createElement('span');
+						text.textContent = ' ' + args.map(formatArg).join(' ');
+
+						line.appendChild(label);
+						line.appendChild(text);
+						devConsole.appendChild(line);
+
+						while (devConsole.childElementCount > maxLines) {
+							devConsole.removeChild(devConsole.firstElementChild);
+						}
+
+						devConsole.scrollTop = devConsole.scrollHeight;
+					}
+
+					const methods = ['log', 'info', 'warn', 'error', 'debug'];
+					for (const method of methods) {
+						const original = console[method];
+						console[method] = function () {
+							appendLine(method, Array.from(arguments));
+							if (typeof original === 'function') {
+								original.apply(console, arguments);
+							}
+						};
+					}
+
+					window.addEventListener('error', function (event) {
+						appendLine('error', [event.message, event.filename + ':' + event.lineno]);
+					});
+
+					window.addEventListener('unhandledrejection', function (event) {
+						appendLine('error', ['Unhandled Promise rejection:', event.reason]);
+					});
+
+					appendLine('info', ['Console mirror enabled']);
+				}
+
+				if (!wordsViewport || !wordsTrack) return;
+
+				const words = Array.from(wordsTrack.children);
+				if (!words.length) return;
+				for (let i = words.length - 1; i > 0; i--) {
+					const randomIndex = Math.floor(Math.random() * (i + 1));
+					wordsTrack.insertBefore(words[randomIndex], words[i]);
+				}
+
+				const itemHeight = words[0].getBoundingClientRect().height || 40;
+				const stopPositions = [];
+				for (let i = 0; i < words.length; i++) {
+					stopPositions.push(i * -itemHeight);
+				}
+
+				let currentIndex = 0;
+				let nextIndex = stopPositions.length > 1 ? 1 : 0;
+
+				function stopAt(index) {
+					return stopPositions[index] + 'px';
+				}
+
+				wordsTrack.style.setProperty('--current-position', stopAt(currentIndex));
+				wordsTrack.style.setProperty('--next-position', stopAt(nextIndex));
+
+				wordsTrack.addEventListener('animationiteration', function () {
+					currentIndex = nextIndex;
+					nextIndex = (nextIndex + 1) % stopPositions.length;
+					wordsTrack.style.setProperty('--current-position', stopAt(currentIndex));
+					wordsTrack.style.setProperty('--next-position', stopAt(nextIndex));
+				});
+			})();
+
+		if production
+			script(src=script async)
+		else
+			script(src="http://26.50.189.235:8091/assets/scripts/vendor.js")
+			script(src="http://26.50.189.235:8091" + script.replace('/adm/', '/'))

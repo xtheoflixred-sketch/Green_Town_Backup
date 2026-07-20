@@ -1,0 +1,92 @@
+.modal-header
+	h4.modal-title {{ title }}
+
+.modal-body.delete-modal-body
+
+	.delete-modal-info
+
+		h5.delete-modal-character-name
+			span {{ subtitle }}
+
+		.delete-modal-warning-box
+			fa-icon([icon]="warningIcon")
+			p.delete-modal-warning
+				| {{ warningText }}
+
+	.preview-card
+
+		// =========================
+		// 1-3 characters
+		// =========================
+
+		.preview-grid.large-preview(
+			*ngIf="useLargePreview"
+			[ngClass]="previewClass"
+		)
+
+			.preview-item(
+				*ngFor="let preview of displayPonies; let i = index"
+				[ngClass]="{ deleting: deleting }"
+				[style.animationDelay]="getPreviewDelay(i)"
+			)
+
+				.character-preview-wrapper
+
+					character-preview.delete-modal-preview(
+						[pony]="preview"
+						[noBackground]="true"
+						[scale]="previewScale"
+					)
+
+		// =========================
+		// 4-12 characters
+		// =========================
+
+		.preview-grid.portrait-grid(
+			*ngIf="usePortraitGrid"
+			[ngClass]="previewClass"
+		)
+
+			.preview-item(
+				*ngFor="let preview of displayPonies"
+			)
+
+				portrait-box(
+					[pony]="toPalette(preview)"
+					size="small"
+					[noBorder]="true"
+				)
+
+		// =========================
+		// 13+
+		// =========================
+
+		.preview-grid.compact-grid(
+			*ngIf="useCompactGrid"
+			[ngClass]="previewClass"
+		)
+
+			.preview-item(
+				*ngFor="let preview of displayPonies"
+			)
+
+				portrait-box(
+					[pony]="toPalette(preview)"
+					size="small"
+					[noBorder]="true"
+				)
+
+.modal-footer.justify-content-center
+
+	button.btn.btn-outline-secondary(
+		type="button"
+		(click)="closeModal()"
+	)
+		| Cancel
+
+	button.btn.btn-outline-danger(
+		type="button"
+		(click)="confirmDelete()"
+	)
+		fa-icon.icon-gap([icon]="trashIcon")
+		| Delete

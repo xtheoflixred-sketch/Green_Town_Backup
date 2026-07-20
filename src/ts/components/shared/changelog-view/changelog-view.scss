@@ -1,0 +1,110 @@
+.changelog-view {
+	.changelog-view-controls {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		margin-bottom: 20px;
+		padding: 12px 0;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+		button {
+			padding: 8px 14px;
+			font-size: 0.9rem;
+			border-radius: 4px;
+			transition: all 0.2s ease;
+
+			&:hover:not(:disabled) {
+				background-color: rgba(255, 255, 255, 0.15);
+				border-color: rgba(255, 255, 255, 0.3);
+			}
+
+			&:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+		}
+	}
+
+	.changelog-season {
+		margin-bottom: 28px;
+		background: rgba(255, 255, 255, 0.02);
+		padding: 16px;
+		border-radius: 6px;
+		border: 1px solid rgba(255, 255, 255, 0.06);
+
+		&:last-child {
+			margin-bottom: 0;
+		}
+	}
+
+	.changelog-season-title {
+		font-size: 1.6rem;
+		font-weight: 600;
+		margin-bottom: 12px;
+		color: #ffd700;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+
+		&::before {
+			content: '🎮';
+			font-size: 1.4rem;
+		}
+	}
+
+	.changelog-season-image {
+		max-width: 100%;
+		height: auto;
+		border-radius: 12px;
+		margin-bottom: 16px;
+		object-fit: cover;
+		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		max-height: 300px;
+		display: block;
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	.changelog-patch {
+		margin-bottom: 18px;
+
+		&:last-child {
+			margin-bottom: 0;
+
+			hr {
+				display: none;
+			}
+		}
+	}
+
+	.changelog-patch-title {
+		font-size: 1.15rem;
+		font-weight: 600;
+		margin: 12px 0 10px 0;
+		color: #e0e0e0;
+		padding-bottom: 8px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	ul {
+		margin: 0.5rem 0 1rem 1.5rem;
+		padding: 0;
+
+		li {
+			margin-bottom: 6px;
+			line-height: 1.5;
+			color: #b0b0b0;
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+		}
+	}
+
+	hr {
+		border: none;
+		border-top: 1px solid rgba(255, 255, 255, 0.08);
+		margin: 14px 0;
+	}
+}

@@ -1,0 +1,58 @@
+.modal-header.d-none.d-sm-block
+	h4.modal-title Unsaved Changes
+
+.modal-body.unsaved-modal-body
+	.unsaved-info
+		h5.unsaved-character-name {{ponyName}}
+		.unsaved-info-box
+			fa-icon([icon]="infoIcon")
+			p.unsaved-info-text
+				| A previous draft was found. Choose which version you want to continue editing.
+
+	.preview-layout
+		.preview-col.stored
+			h6 Server draft
+
+			.preview-card
+				.character-preview-wrapper
+					character-preview(
+						*ngIf="storedPony"
+						[pony]="storedPony"
+						[noBackground]="true"  
+                        [scale]="3")
+
+				div.text-muted(*ngIf="!storedPony")
+					| No saved draft found.
+
+			button.btn.btn-danger.action-btn(
+				(click)="confirmDiscard()")
+				fa-icon(
+					[icon]="discardIcon"
+					class="icon-gap"
+					aria-label="Discard")
+				span {{discardLabel}}
+
+		.preview-divider
+
+		.preview-col.current
+			h6 Local changes
+
+			.preview-card
+				.character-preview-wrapper
+					character-preview(
+						[pony]="currentPony"
+						[noBackground]="true"  
+                        [scale]="3")
+
+			button.btn.btn-success.action-btn(
+				(click)="confirmSave()")
+				fa-icon(
+					[icon]="saveIcon"
+					class="icon-gap"
+					aria-label="Save")
+				span {{saveLabel}}
+
+.modal-footer
+	button.btn.btn-outline-secondary(
+		(click)="close()")
+		| Close

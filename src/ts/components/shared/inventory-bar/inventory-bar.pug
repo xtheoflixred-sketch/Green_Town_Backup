@@ -1,0 +1,17 @@
+.inventory-bar
+	.inventory-bar-inner
+		.action-label Inventory
+		.inventory-slot-container
+			.inventory-slot-wrapper(*ngFor="let slot of visibleSlots; let i = index; trackBy: trackByIndex")
+				action-button.inventory-slot(
+					[editable]="true"
+					[shadow]="false"
+					[action]="slot.action"
+					[zoomClass]="getSlotZoomClass(i)"
+					[tooltipText]="slot.action && slot.action.title || ''"
+					[tooltipClass]="slot.rare ? 'tooltip-rare-item' : ''"
+					[rare]="!!slot.rare"
+					[class.selected]="isSelected(i)"
+					(click)="onSlotClick(i)"
+				)
+				.inventory-count(*ngIf="slot.count && slot.count > 1") {{ slot.count }}

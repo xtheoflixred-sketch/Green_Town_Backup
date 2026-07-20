@@ -1,0 +1,15 @@
+@import '../../../../styles/partials/variables';
+@import '../../../../styles/partials/mixins';
+
+.swap-box-menu {
+	@include nipple(9px);
+	min-width: 220px;
+}
+
+.timer-icon {
+	position: absolute;
+	top: 15px;
+	right: 3px;
+	font-size: 14px;
+	color: #ffcc55;
+}

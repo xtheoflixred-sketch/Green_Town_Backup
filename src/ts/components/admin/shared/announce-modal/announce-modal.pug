@@ -1,0 +1,24 @@
+ng-template(#template)
+	.modal-header
+		h4.modal-title
+			fa-icon([icon]="faBullhorn" [fixedWidth]="true")
+			| Send global announcement
+	.modal-body
+		.form-group
+			label Message
+			textarea.form-control(rows="5" [(ngModel)]="message" placeholder="Write the announcement text here...")
+			div.text-muted.mt-2
+				| This message will be sent to all connected players.
+		.form-group
+			label Type
+			div.btn-group.btn-group-toggle.d-flex.flex-wrap(role="group")
+				button.btn.btn-sm.btn-outline-secondary.mb-2.mr-2(type="button" *ngFor="let option of typeOptions" [class.active]="announceType === option.value" (click)="announceType = option.value")
+					fa-icon([icon]="option.icon" [fixedWidth]="true")
+					| {{option.label}}
+					div.text-muted.mt-1 {{option.description}}
+		.div.mt-3
+			strong Preview
+			p.text-break {{ message || 'No announcement text entered yet.' }}
+	.modal-footer.d-flex.justify-content-end
+		button.btn.btn-secondary(type="button" (click)="cancel()") Cancel
+		button.btn.btn-primary.ml-2(type="button" (click)="send()" [disabled]="!canSend()") Send

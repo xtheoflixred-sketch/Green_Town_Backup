@@ -1,0 +1,66 @@
+@import '../../../../styles/partials/variables';
+
+.navbar-link {
+	position: relative;
+	margin-right: 6px;
+	border-radius: 8px;
+	overflow: hidden;
+
+	// плавность
+	transition: background $nav-link-transition, transform $nav-link-transition;
+
+	// hover эффект (фон + лёгкое поднятие)
+	&:hover {
+		background: $nav-link-hover-bg;
+		transform: translateY(-1px);
+	}
+
+	// active состояние
+	&.active {
+		background: $nav-link-active-bg;
+	}
+
+	// верхний акцент (линия)
+	&::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 50%;
+		width: 0%;
+		height: 2px;
+		background: $navbar-dark-active-color;
+		transition: width $nav-link-transition, left $nav-link-transition;
+	}
+
+	// при hover или active — линия появляется
+	&:hover::before,
+	&.active::before {
+		width: 100%;
+		left: 0;
+	}
+
+	// ссылка внутри
+	> a {
+		display: block;
+		padding: 10px 14px;
+		color: $nav-tabs-link-active-color;
+		text-decoration: none;
+		transition: color $nav-link-transition;
+
+		@media (max-width: 360px) {
+			padding-left: 10px;
+			padding-right: 10px;
+		}
+	}
+
+	// hover цвет текста
+	&:hover > a {
+		color: #fff;
+	}
+
+	// active текст
+	&.active > a {
+		color: #fff;
+		font-weight: 500;
+	}
+}

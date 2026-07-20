@@ -1,0 +1,7 @@
+span(*ngFor="let l of links; let i = index")
+	span(*ngIf="i > 0")  | 
+	a([href]="l" target="_blank" rel="noopener noreferrer")
+		ng-container(*ngIf="getLinkIcon(l) as icon")
+			fa-icon([icon]="icon" size="xs")
+		ng-container(*ngIf="!getLinkIcon(l)")
+			| {{l | siteName}}

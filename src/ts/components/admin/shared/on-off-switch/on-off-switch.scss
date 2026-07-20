@@ -1,0 +1,65 @@
+@import '../../../../styles/partials/variables';
+
+.toggle-switch {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.75rem;
+	font-size: 0.85rem;
+}
+
+.toggle-switch__control {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 80px;
+	height: 30px;
+	padding: 0 8px;
+	border: 1px solid rgba($border-color, 0.24);
+	border-radius: 999px;
+	background: rgba($body-color, 0.06);
+	cursor: pointer;
+	outline: none;
+	transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.toggle-switch__control[disabled] {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.toggle-switch__thumb {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 0 0 1px rgba($border-color, 0.12), 0 1px 2px rgba(0, 0, 0, 0.15);
+	transition: transform 0.18s ease;
+}
+
+.toggle-switch__control[aria-pressed="true"] {
+	background: rgba($success, 0.35);
+	border-color: $success;
+}
+
+.toggle-switch__control[aria-pressed="true"] .toggle-switch__thumb {
+	transform: translateX(50px);
+}
+
+.toggle-switch__state {
+	font-weight: 600;
+	font-size: 0.78rem;
+	letter-spacing: 0.02em;
+	color: $text-muted;
+}
+
+.toggle-switch__control[aria-pressed="true"] .toggle-switch__state {
+	color: $success;
+}
+
+b.ml-2.mb-1.text-muted {
+	color: $text-muted;
+}

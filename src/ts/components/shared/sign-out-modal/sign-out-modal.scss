@@ -1,0 +1,149 @@
+:host {
+	display: block;
+	width: 100%;
+	max-width: 600px;
+}
+
+.modal-header {
+	padding: 16px 20px 10px;
+	border-bottom: 1px solid rgba(255, 255, 255, .08);
+
+	.modal-title {
+		margin: 0;
+		font-size: 1.35rem;
+		font-weight: 600;
+		text-align: center;
+		width: 100%;
+	}
+}
+
+.sign-out-modal-body {
+	width: 100%;
+	padding: 18px 20px;
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+.sign-out-modal-info {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	margin-bottom: 18px;
+}
+
+.sign-out-modal-warning-box {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 14px;
+
+	border: 1px solid rgba(220, 53, 69, .55);
+	border-radius: 6px;
+	background: rgba(220, 53, 69, .08);
+
+	fa-icon {
+		flex-shrink: 0;
+		font-size: 1.8rem;
+		color: #dc3545;
+	}
+}
+
+.sign-out-modal-warning {
+	margin: 0;
+	line-height: 1.45;
+	font-size: .92rem;
+	color: #ffb4b4;
+}
+
+.preview-card {
+	width: 100%;
+	padding: 16px;
+
+	background: rgba(255, 255, 255, .03);
+
+	border: 1px solid rgba(255, 255, 255, .08);
+	border-radius: 6px;
+
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, .03),
+		0 4px 12px rgba(0, 0, 0, .22);
+
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.sign-out-preview-center {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 120px;
+}
+
+.sign-out-preview-placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 120px;
+	height: 120px;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, .05);
+	color: rgba(255, 255, 255, .5);
+	font-size: 0.9rem;
+}
+
+.sign-out-session-info {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 0;
+	border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.session-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 0.9rem;
+
+	.label {
+		color: rgba(255, 255, 255, .7);
+		font-weight: 500;
+	}
+
+	.value {
+		color: rgba(255, 255, 255, .85);
+		text-align: right;
+	}
+}
+
+.modal-footer {
+	padding: 14px 20px;
+	border-top: 1px solid rgba(255, 255, 255, .08);
+	display: flex;
+	justify-content: center;
+	gap: 12px;
+
+	.btn {
+		min-width: 140px;
+	}
+
+	.icon-gap {
+		margin-right: 6px;
+	}
+}
+
+@media (max-width: 480px) {
+	.modal-header .modal-title {
+		font-size: 1.15rem;
+	}
+
+	.modal-footer {
+		flex-direction: column;
+	}
+
+	.modal-footer .btn {
+		width: 100%;
+	}
+}

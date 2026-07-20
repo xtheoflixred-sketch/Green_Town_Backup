@@ -1,0 +1,292 @@
+@import '../../app/character/character';
+@import '../../../../styles/partials/variables';
+
+/* ====================================================== */
+/* MODAL */
+/* ====================================================== */
+
+.game-character-modal-body {
+	padding: 8px 10px;
+
+	max-height: calc(100vh - 170px);
+
+	display: flex;
+	flex-direction: column;
+
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+/* Webkit scrollbar */
+.game-character-modal-body::-webkit-scrollbar {
+	width: 8px;
+}
+
+.game-character-modal-body::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.game-character-modal-body::-webkit-scrollbar-thumb {
+	background-color: rgba(255, 255, 255, 0.18);
+	border-radius: 10px;
+	border: 2px solid transparent;
+	background-clip: content-box;
+}
+
+.game-character-modal-body::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ====================================================== */
+/* MAIN TAB CONTAINER */
+/* ====================================================== */
+
+.game-character-tab {
+	display: block;
+	width: 100%;
+	height: 1000vh;
+	max-height: 1000vh;
+	min-height: 0;
+	overflow: visible;
+
+	background-color: #1a1a1a;
+	padding: 0 15px 12px 0;
+
+	> .row {
+		display: flex;
+		height: 100%;
+		min-height: 0;
+		align-items: stretch;
+	}
+
+	.character-preview-box {
+		margin-top: 1rem;
+	}
+
+	.character-preview-actions {
+		max-width: 400px;
+		margin: 0.75rem auto 0;
+		padding: 0 4px;
+	}
+}
+
+/* ====================================================== */
+/* CHARACTER TABS */
+/* ====================================================== */
+
+.character-tabs {
+	display: flex;
+	flex-direction: column;
+
+	height: 100%;
+	min-height: 0;
+
+	margin-bottom: 0;
+
+	.character-tabs-undo-wrap {
+		position: relative;
+		height: 0;
+
+		.character-tabs-undo-btns {
+			position: absolute;
+			top: 5px;
+			right: 0;
+			z-index: 10;
+
+			display: flex;
+			gap: 2px;
+
+			button.nav-link {
+				border: none;
+				padding: 0.35rem 0.55rem;
+				line-height: 1;
+
+				&[disabled] {
+					opacity: 0.3;
+					pointer-events: none;
+				}
+			}
+		}
+	}
+
+	> tabset {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+	}
+
+	.tab-content {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.tab-pane {
+		min-height: 0;
+		overflow: hidden;
+
+		&.active {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+		}
+	}
+
+	.character-tab {
+		flex: 1;
+		min-height: 0;
+		margin-top: 10px;
+		overflow-y: auto;
+		overflow-x: hidden;
+
+		background: $dark-bg;
+		padding: 10px 15px;
+		border-radius: $border-radius-sm;
+
+		.character-tab-warning & {
+			box-shadow: 0 0 0 2px $warning;
+		}
+	}
+}
+
+/* ====================================================== */
+/* ACCESSORY */
+/* ====================================================== */
+
+.accessory-tab {
+	margin-top: 10px;
+}
+
+/* ====================================================== */
+/* STICKY COLUMN */
+/* ====================================================== */
+
+.character-col-sticky {
+	position: sticky;
+	top: 0;
+	align-self: flex-start;
+	z-index: 5;
+}
+
+/* ====================================================== */
+/* PREVIEW BOX */
+/* ====================================================== */
+
+.character-preview-box {
+	position: relative;
+	width: 400px;
+	height: 400px;
+
+	background: var(--grass-color);
+	border-radius: $border-radius-lg;
+
+	transition: background-color 0.3s ease;
+
+	@include media-breakpoint-down(sm) {
+		width: 280px;
+		height: 280px;
+	}
+
+	&.fixed-to-top {
+		character-preview {
+			position: fixed;
+			top: -45px;
+			z-index: 100;
+			pointer-events: none;
+		}
+	}
+}
+
+/* ====================================================== */
+/* LOCK BOX SYSTEM (MERGED + FIXED) */
+/* ====================================================== */
+
+.col-lock-box {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+
+	> .lock-box {
+		@include media-breakpoint-down(xs) {
+			margin-right: 0;
+			margin-bottom: 5px;
+		}
+	}
+
+	> label {
+		margin: 0;
+		padding-top: 6px;
+	}
+
+	/* old fix merged */
+	.eyeshadow-lock-box,
+	.eyeshadow-enable-box,
+	.eyeshadow-left-enable,
+	.blush-enable-box,
+	.blush-reset-box {
+		margin-right: 0 !important;
+		float: none;
+	}
+}
+
+.has-neighbour,
+.blush-controls {
+	display: flex !important;
+	align-items: center;
+	flex-wrap: nowrap;
+	gap: 6px;
+}
+
+.has-neighbour {
+	margin-right: 6px;
+}
+
+/* ====================================================== */
+/* EYESHADOW + BLUSH */
+/* ====================================================== */
+
+.eyeshadow-checks,
+.blush-checks {
+	display: inline-flex;
+	align-items: center;
+}
+
+.eyeshadow-enable-box,
+.eyeshadow-lock-box {
+	flex: 0 0 auto;
+}
+
+.eyeshadow-left-row {
+	.col-lock-box {
+		justify-content: flex-start;
+		gap: 8px;
+	}
+
+	.col-lock-box > label {
+		padding-top: 6px;
+		margin: 0;
+	}
+}
+
+@include media-breakpoint-down(sm) {
+	.eyeshadow-checks {
+		display: none;
+	}
+}
+
+/* ====================================================== */
+/* TAG */
+/* ====================================================== */
+
+.character-tag-badge {
+	display: inline-flex;
+	align-items: center;
+	border-radius: 6px;
+
+	.fa-icon {
+		font-size: 0.85em;
+	}
+}

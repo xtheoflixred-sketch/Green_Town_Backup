@@ -1,0 +1,1 @@
+{ "lsp": { "typescript-language-server": { "initialization_options": { "tsserver": { "path": "./node_modules/typescript/lib" } } } } }

@@ -1,0 +1,27 @@
+# зависимости
+node_modules/
+
+# результаты сборки (генерируются из src/ts и assets)
+/build/
+/build-copy/
+/logs/
+/settings/
+/src/scripts/
+/src/ts/generated/*
+!/src/ts/generated/gamepad-template.ts
+/tools/output/
+/tools/temp/
+
+# секреты и локальный конфиг
+/config.json
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# lock-файлы (если команда договорилась не коммитить)
+yarn.lock
+pnpm-lock.yaml
