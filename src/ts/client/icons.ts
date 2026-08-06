@@ -8,6 +8,22 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 export * from '@fortawesome/free-solid-svg-icons';
+export {
+    faTelegram,
+    faBoosty,
+    faCircleUserCirclePlus,
+    faTiktok,
+    faTwitch,
+    faSteam,
+    faCommentQuestion,
+    faMasks,
+    faNote,
+    faBlush,
+    faDroplet,
+    faRaindrops,
+    faSnooze,
+    faSparkles,
+} from '../generated/fa-icons';
 
 import {
     faPatreon,
@@ -32,6 +48,8 @@ import {
     faApple,
     faDiscord
 } from '../generated/fa-icons';
+
+import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 
 export {
     faPatreon,
@@ -74,7 +92,8 @@ export const oauthIcons: { [key: string]: any; } = {
     github: faGithub,
     vkontakte: faVk,
     google: faGoogle,
-    discord: faDiscord
+    discord: faDiscord,
+    telegram: faPaperPlane
 };
 
 export const uaIcons: { [key: string]: any; } = {

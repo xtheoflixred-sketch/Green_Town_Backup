@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { emojis } from '../../../client/emoji';
 import { CREDITS, CONTRIBUTORS, Credit, } from '../../../client/credits';
-import { OFFLINE_PONY, AXL_PONY, KREYSER_PONY, LOREINE_PONY, FIERAMORE_PONY } from '../../../common/constants';
+import { OFFLINE_PONY, KREYSER_PONY, LOREINE_PONY } from '../../../common/constants';
 import { decompressPonyString } from '../../../common/compressPony';
 import { SUPPORTER_REWARDS_LIST } from '../../../common/constants';
 import { discordLink, contactEmail, contactDiscord, version, shortVersion } from '../../../client/data';
@@ -20,10 +20,8 @@ function colorFromSkin(skin?: string) {
 
 const SKIN_MAP: { [key: string]: string } = {
 	// map avatarSkin id -> compressed pony string (use existing constants as examples)
-	'axl-pony': AXL_PONY,
 	'loreine-pony': LOREINE_PONY,
 	'kreyser-pony': KREYSER_PONY,
-	'fieramore-pony': FIERAMORE_PONY,
 };
 
 function toCredit(credit: Credit) {
@@ -56,6 +54,8 @@ function toCredit(credit: Credit) {
 	styleUrls: ['about.scss'],
 })
 export class About implements OnInit {
+	private tinyFaceVariants = ['tinyface--alt', 'tinyface--alt2', 'tinyface--alt3', 'tinyface--alt4', 'tinyface--logo'];
+
 	constructor(public model: Model) {}
 
 	readonly title = document.title;
@@ -84,6 +84,28 @@ export class About implements OnInit {
 
 	get isPrivileged() {
 		return isPrivilegedAccount(this.model.account);
+	}
+
+	private setTinyFaceVariant(elementId: string, force?: boolean) {
+		const element = document.getElementById(elementId);
+		if (!element) return;
+
+		for (const className of this.tinyFaceVariants) {
+			element.classList.remove(className);
+		}
+
+		if (!force) {
+			const variant = this.tinyFaceVariants[Math.floor(Math.random() * this.tinyFaceVariants.length)];
+			element.classList.add(variant);
+		}
+	}
+
+	onTinyFaceEnter() {
+		this.setTinyFaceVariant('tinyFaceAbout');
+	}
+
+	onTinyFaceLeave() {
+		this.setTinyFaceVariant('tinyFaceAbout', true);
 	}
 
 	ngOnInit() {

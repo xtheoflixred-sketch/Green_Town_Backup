@@ -14,8 +14,8 @@ ng-template(#signOutModal)
 nav.navbar.navbar-expand.justify-content-end(role="navigation")
 	.d-none.d-md-block
 		a.pixelart.logo(*ngIf="logo" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }")
-			img.pixelart.logo-large(revSrc="images/logo-large.png" alt="Green Town" width="298" height="76")
-			img.pixelart.logo-small(revSrc="images/logo-small.png" alt="Green Town" width="41" height="52")
+			img.pixelart.logo-large(revSrc="images/logo-large.png" alt="Green Town" width="auto" height="auto")
+			img.pixelart.logo-small(revSrc="images/logo-small.png" alt="Green Town" width="auto" height="auto")
 
 	.navbar-collapse.text-right
 		.navbar-nav.ml-auto
@@ -214,30 +214,47 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 		form.navbar-form.ml-2(*ngIf="!loading && !account")
 			.button-group.dropdown(dropdown)
 
-				button.btn.btn-default.dropdown-toggle(
+				button.btn.btn-default.dropdown-toggle.login-register-button(
 					dropdownToggle
 					[disabled]="!!loadingError"
 				)
-					| Sign in
+
+					fa-icon(
+						[icon]="userIcon"
+						[fixedWidth]="true"
+					)
+
+					span
+						| Login & Reg
+
+
 
 				.dropdown-menu.dropdown-menu-right(*dropdownMenu)
 
-					.dropdown-header(*ngIf="signUpProviders.length")
-						| Sign in or sign up
 
-					button.dropdown-item(
+
+					.dropdown-header(*ngIf="signUpProviders.length")
+						| Log In or Register
+
+
+
+					button.dropdown-item.provider-item(
 						*ngFor="let p of signUpProviders"
 						(click)="signInTo(p)"
+						[ngStyle]="{'--provider-color': p.color}"
 					)
-						fa-icon.mr-1([icon]="icon(p.id)" [fixedWidth]="true")
-						| {{p.name}}
+						span.provider-badge
+							| {{p.name}}
+
 
 					.dropdown-header(*ngIf="signInProviders.length")
-						| Sign in only
+						| Log In only
 
-					button.dropdown-item.sign-in-only(
+
+					button.dropdown-item.provider-item.sign-in-only(
 						*ngFor="let p of signInProviders"
 						(click)="signInTo(p)"
+						[ngStyle]="{'--provider-color': p.color}"
 					)
-						fa-icon.mr-1([icon]="icon(p.id)" [fixedWidth]="true")
-						| {{p.name}}
+						span.provider-badge
+							| {{p.name}}

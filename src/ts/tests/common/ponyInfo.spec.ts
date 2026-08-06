@@ -1,7 +1,8 @@
 import '../lib';
 import { expect } from 'chai';
 import {
-	syncLockedPonyInfo, syncLockedSpriteSet, syncLockedPonyInfoNumber, toPaletteSet, releasePalettes
+	syncLockedPonyInfo, syncLockedSpriteSet, syncLockedPonyInfoNumber, toPaletteSet, releasePalettes,
+	createDefaultPony, createServerDefaultPony
 } from '../../common/ponyInfo';
 import { SpriteSet, PonyInfo, PaletteManager, ColorExtraSets, Palette } from '../../common/interfaces';
 import { RED, BLUE, YELLOW, ORANGE, TRANSPARENT } from '../../common/colors';
@@ -88,6 +89,26 @@ describe('ponyInfo', () => {
 		});
 	});
 
+	describe('createDefaultPony()', () => {
+		it('keeps the existing default pony styling for the regular default', () => {
+			const pony = createDefaultPony();
+
+			expect(pony.mane!.type).equal(2);
+			expect(pony.backMane!.type).equal(1);
+			expect(pony.tail!.type).equal(1);
+		});
+
+		it('creates a simpler server default pony from constants-based overrides', () => {
+			const pony = createServerDefaultPony();
+
+			expect(pony.mane!.type).equal(0);
+			expect(pony.backMane!.type).equal(0);
+			expect(pony.tail!.type).equal(0);
+			expect(pony.coatFill).equal('ff0000');
+			expect(pony.coatOutline).equal('8b0000');
+		});
+	});
+
 	describe('syncLockedPonyInfo()', () => {
 		it('syncs coatOutline if customOutlines is false', () => {
 			const pony = ponyInfo({
@@ -171,6 +192,34 @@ describe('ponyInfo', () => {
 			syncLockedPonyInfo(pony);
 
 			expect(pony.eyeColorLeft).equal('ff0000');
+		});
+
+		it('preserves a custom right-ear fill when ears are unlocked', () => {
+			const pony = ponyInfo({
+				coatFill: 'ff0000',
+				unlockEars: true,
+				ears: {
+					type: 1,
+					pattern: 0,
+					fills: ['ff0000'],
+					outlines: ['00ff00'],
+					lockFills: [true],
+					lockOutlines: [true],
+				},
+				earsRight: {
+					type: 1,
+					pattern: 0,
+					fills: ['00ff00'],
+					outlines: ['0000ff'],
+					lockFills: [true],
+					lockOutlines: [true],
+				},
+			});
+
+			syncLockedPonyInfo(pony);
+
+			expect(pony.earsRight!.fills![0]).equal('00ff00');
+			expect(pony.earsRight!.outlines![0]).equal('0000ff');
 		});
 
 		const fields: (keyof PonyInfo)[] = [

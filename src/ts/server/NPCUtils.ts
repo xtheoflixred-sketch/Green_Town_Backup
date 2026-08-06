@@ -1,5 +1,5 @@
 import { Action, EntityState, MessageType, PonyInfo } from '../common/interfaces';
-import { createDefaultPony } from '../common/ponyInfo';
+import { createServerDefaultPony } from '../common/ponyInfo';
 import { compressPonyString } from '../common/compressPony';
 import { pony as ponyEntity } from '../common/entities';
 import { DISCORD_PONY, OFFLINE_PONY, SUPPORTER_PONY } from '../common/constants';
@@ -72,7 +72,7 @@ export class NPCUtils {
 			entity.infoSafe = definition.info;
 			entity.encryptedInfoSafe = encryptInfo(definition.info);
 		} else {
-			const ponyInfo = definition.ponyInfo || createDefaultPony();
+			const ponyInfo = definition.ponyInfo || createServerDefaultPony();
 			entity.info = compressPonyString(ponyInfo);
 			entity.infoSafe = entity.info;
 			entity.encryptedInfoSafe = encryptInfo(entity.info);

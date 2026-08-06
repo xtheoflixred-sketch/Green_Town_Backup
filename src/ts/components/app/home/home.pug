@@ -1,6 +1,6 @@
 div(*ngIf="!playing")
 	.text-center.heading
-		img.pixelart.home-logo(revSrc="images/logo-large.png" alt="Green Town")
+		img.pixelart.home-logo(revSrc="images/logo.png" alt="Green Town")
 
 	.mx-auto.home-content
 		page-loader
@@ -16,7 +16,7 @@ div(*ngIf="!playing")
 							fa-icon.mr-2([icon]="alertIcon(entry.type)" size="2x")
 							span.flex-grow-1 {{entry.message}}
 			.form-group(*ngIf="!account")
-				sign-in-box([showLoginWarning]="showLoginWarning" (signIn)="signIn($event)")
+				p.text-muted.text-center.mb-3 Please use the welcome page to register or log in: #[a.router-link-active(href="/welcome" routerLink="/welcome") Welcome]
 
 			div(*ngIf="!!account")
 				.form-group

@@ -1,0 +1,562 @@
+@import '../../../../styles/partials/variables';
+@import '../../../../styles/partials/mixins';
+
+
+.welcome-page {
+	background-color: #222;
+	padding: 15px;
+	border-radius: 5px;
+}
+
+
+.page-header-welcome {
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+
+	padding-bottom: 1.5rem;
+	border-bottom: 1px solid rgba(255,255,255,.08);
+
+	margin-bottom: 1.5rem;
+}
+
+
+.header-content {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+
+.server-logo-icon {
+	width:70px;
+	height:auto;
+
+	image-rendering:pixelated;
+
+	filter:
+		drop-shadow(0 4px 12px rgba(0,0,0,.35));
+}
+
+
+.page-header-welcome h1 {
+	font-size:2.4rem;
+	margin:0;
+}
+
+
+.header-subtitle {
+	margin:0;
+	font-size:1rem;
+
+	color:
+		rgba(246,240,217,.78);
+}
+
+
+
+/* ==========================
+   INFO ALERT
+   ========================== */
+
+
+.info-alert {
+
+	.alert {
+		background:
+			rgba(255,189,88,.12);
+
+		border:
+			1px solid rgba(255,189,88,.22);
+
+		color:#f7d9a3;
+
+		padding:1.2rem;
+	}
+
+
+	strong {
+		color:#ffe9b7;
+	}
+
+
+	ul {
+		padding-left:20px;
+	}
+}
+
+
+
+/* ==========================
+   ACCOUNT
+   ========================== */
+
+
+.account-info-block {
+
+	background:
+		rgba(34,34,34,.7);
+
+	padding:15px;
+
+	border-radius:5px;
+}
+
+
+
+.provider-panel {
+
+	background:
+		rgba(255,255,255,.03);
+
+	border:
+		1px solid rgba(255,255,255,.08);
+
+	border-radius:.75rem;
+
+	padding:1.4rem;
+}
+
+
+
+.provider-panel h3 {
+
+	margin-bottom:1rem;
+
+	font-size:1.15rem;
+
+	letter-spacing:.05em;
+
+	text-transform:uppercase;
+
+	color:#f9f2c1;
+}
+
+
+
+.provider-panel p.text-muted {
+
+	color:
+		rgba(246,240,217,.72);
+}
+
+
+
+/* ==========================
+   REGISTER / LOG IN BUTTON STYLE
+   ========================== */
+
+@import '../../../../styles/partials/variables';
+@import '../../../../styles/partials/mixins';
+
+
+.welcome-page {
+	background-color: #222;
+	padding: 15px;
+	border-radius: 5px;
+}
+
+
+.page-header-welcome {
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+
+	padding-bottom: 1.5rem;
+	border-bottom: 1px solid rgba(255,255,255,.08);
+
+	margin-bottom: 1.5rem;
+}
+
+
+.header-content {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+
+.server-logo-icon {
+	width:70px;
+	height:auto;
+
+	image-rendering:pixelated;
+
+	filter:
+		drop-shadow(0 4px 12px rgba(0,0,0,.35));
+}
+
+
+.page-header-welcome h1 {
+	font-size:2.4rem;
+	margin:0;
+}
+
+
+.header-subtitle {
+	margin:0;
+	font-size:1rem;
+
+	color:
+		rgba(246,240,217,.78);
+}
+
+
+
+/* ==========================
+   INFO ALERT
+   ========================== */
+
+
+.info-alert {
+
+	.alert {
+		background:
+			rgba(255,189,88,.12);
+
+		border:
+			1px solid rgba(255,189,88,.22);
+
+		color:#f7d9a3;
+
+		padding:1.2rem;
+	}
+
+
+	strong {
+		color:#ffe9b7;
+	}
+
+
+	ul {
+		padding-left:20px;
+	}
+}
+
+
+
+/* ==========================
+   ACCOUNT
+   ========================== */
+
+
+.account-info-block {
+
+	background:
+		rgba(34,34,34,.7);
+
+	padding:15px;
+
+	border-radius:5px;
+}
+
+
+
+.provider-panel {
+
+	background:
+		rgba(255,255,255,.03);
+
+	border:
+		1px solid rgba(255,255,255,.08);
+
+	border-radius:.75rem;
+
+	padding:1.4rem;
+}
+
+
+
+.provider-panel h3 {
+
+	margin-bottom:1rem;
+
+	font-size:1.15rem;
+
+	letter-spacing:.05em;
+
+	text-transform:uppercase;
+
+	color:#f9f2c1;
+}
+
+
+
+.provider-panel p.text-muted {
+
+	color:
+		rgba(246,240,217,.72);
+}
+
+
+/* ==========================
+   SIGN IN BUTTON STYLE
+   ========================== */
+
+.sign-in-box-providers {
+
+	max-width: 420px;
+	width: 100%;
+	margin: auto;
+
+
+	> .provider-button {
+
+		position: relative;
+
+		display: flex;
+		align-items: stretch;
+
+		width: 100%;
+		height: 56px;
+
+		padding: 0;
+		margin-bottom: 12px;
+
+		border: none;
+		border-radius: 5px;
+
+		overflow: hidden;
+
+		background: #212529;
+
+		cursor: pointer;
+
+
+		box-shadow:
+			0 8px 25px rgba(0,0,0,.45),
+			0 0 0 1px rgba(255,255,255,.05);
+
+
+		transition:
+			transform .2s ease,
+			box-shadow .2s ease;
+	}
+
+
+
+	> .provider-button:last-child {
+		margin-bottom: 0;
+	}
+
+
+
+	/* ==========================
+	   COLOR LINE (TEXT SIDE)
+	   ========================== */
+
+
+	> .provider-button::after {
+
+		content: "";
+
+		position: absolute;
+
+
+		left: 75px;
+		right: 0;
+
+
+		bottom: 0;
+
+
+		height: 4px;
+
+
+		background: var(--provider-color);
+
+
+		z-index: 10;
+	}
+
+
+
+	> .provider-button:hover {
+
+		transform: translateY(-2px);
+
+
+		box-shadow:
+
+			0 14px 35px rgba(0,0,0,.55),
+			0 0 0 1px rgba(255,255,255,.08);
+	}
+
+
+
+	> .provider-button:active {
+
+		transform: translateY(0);
+	}
+
+
+
+	/* ==========================
+	   ICON
+	   ========================== */
+
+
+	.provider-icon-box {
+
+		position: relative;
+
+
+		width: 75px;
+		min-width: 75px;
+
+
+		display: flex;
+
+		align-items: center;
+		justify-content: center;
+
+
+		background: var(--provider-color);
+
+
+		border-radius: 5px 0 0 5px;
+
+
+		z-index: 5;
+	}
+
+
+
+	/* WHITE LINE (ICON SIDE) */
+
+
+	.provider-icon-box::after {
+
+		content: "";
+
+
+		position: absolute;
+
+
+		left: 0;
+		right: 0;
+
+
+		bottom: 0;
+
+
+		height: 4px;
+
+
+		background: #fff;
+
+
+		z-index: 20;
+	}
+
+
+
+	.provider-icon-box fa-icon,
+	.provider-icon-box svg {
+
+		color: #fff;
+
+		font-size: 1.35rem;
+	}
+
+
+
+	/* ==========================
+	   TEXT
+	   ========================== */
+
+
+	.provider-text {
+
+		flex: 1;
+
+
+		display: flex;
+
+		align-items: center;
+
+
+		padding: 0 30px;
+
+
+		font-size: 18px;
+
+		font-weight: 600;
+
+
+		color: white;
+
+
+		letter-spacing: .2px;
+	}
+
+
+
+
+	.provider-button:hover .provider-icon-box {
+
+		filter: brightness(1.08);
+	}
+
+
+
+
+
+	/* ==========================
+	   MOBILE ADAPTATION
+	   ========================== */
+
+
+	@media (max-width: 480px) {
+
+
+		> .provider-button {
+
+
+			width: 56px;
+			height: 56px;
+
+
+			margin-left: auto;
+			margin-right: auto;
+
+
+			border-radius: 5px;
+		}
+
+
+
+
+		.provider-icon-box {
+
+
+			width: 56px;
+			min-width: 56px;
+
+
+			border-radius: 5px;
+		}
+
+
+
+
+		.provider-text {
+
+			display: none;
+		}
+
+
+		/* белая линия слева */
+
+		.provider-icon-box::after {
+
+			width: 100%;
+
+			right: auto;
+
+			height: 4px;
+
+			background: #fff;
+		}
+	}
+}

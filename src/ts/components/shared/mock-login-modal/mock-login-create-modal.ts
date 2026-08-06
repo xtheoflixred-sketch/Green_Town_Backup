@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { createDefaultPony } from '../../../common/ponyInfo';
+import { createServerDefaultPony } from '../../../common/ponyInfo';
 import { faInfoCircle } from '../../../client/icons';
 import { MockAccount } from './mock-login-modal';
 
@@ -31,7 +31,7 @@ export class MockLoginCreateModal implements OnChanges {
   }
 
   getPreviewPony() {
-    return createDefaultPony();
+    return createServerDefaultPony();
   }
 
   getPreviewName() {

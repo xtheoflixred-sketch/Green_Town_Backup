@@ -9,12 +9,20 @@
 	
 		section
 			h2 Contact
-			p
-				| For technical issues, see the #[a(routerLink="/help" fragment="issues") Common Issues] section. If it doesn't solve your problem, 
-				| send an email to #[b {{contactEmail}}]
-				span(*ngIf="contactDiscord")
-					|  or message #[b {{contactDiscord}}] on Discord
-				| .
+			
+			h4.mb-2#telegram Telegram
+			p Our #[b Telegram channel] is the main place for #[i short updates], spoilers, concepts, and internal development news. Telegram is also where we communicate directly with players.
+			telegram-button.mb-3
+			hr
+
+
+			h4.mb-2#tiktok TikTok
+			p Our #[b TikTok channel] is the main place for #[i short updates], spoilers, concepts, and internal development news. TikTok is also where we communicate directly with players.
+			tiktok-button.mb-3
+			hr
+
+			.text-muted For all inquiries please send an message to our #[b Telegram channel] or #[b TikTok channel]. We value your feedback and are always happy to hear from our community.
+			hr
 
 		section
 			h2 Controls
@@ -350,4 +358,4 @@
 					internet connections where network issues can be misinterpreted as use of scripts or spam.
 
 .text-center.text-muted.mt-3
-	.tinyface
+	.tinyface#tinyFaceHelp((mouseenter)="onTinyFaceEnter()" (mouseleave)="onTinyFaceLeave()")

@@ -104,6 +104,39 @@ export class ChangelogView implements OnInit, OnChanges {
 	}
 
 	getSeasonImageUrl(season: number) {
-		return `/assets/images/seasonal update previews/season${season}.png`;
+		// Use the actual update previews folder used by assets
+		return `/assets/images/update_previews/season${season}.png`;
+	}
+
+	isFirstVisibleWithContent(seasonIndex: number, patchIndex: number) {
+		const season = this.seasonGroups[seasonIndex];
+		if (!season) return false;
+		const patch = season.patches[patchIndex];
+		if (!patch) return false;
+		// patch must be visible and have at least one change
+		if (!this.isPatchVisible(patch) || !patch.changes || patch.changes.length === 0) return false;
+
+		// ensure no earlier patch in the same season is visible with content
+		for (let i = 0; i < patchIndex; i++) {
+			const p = season.patches[i];
+			if (p && this.isPatchVisible(p) && p.changes && p.changes.length > 0) return false;
+		}
+
+		return true;
+	}
+
+	// Returns true if the provided (seasonIndex, patchIndex) is the first visible patch
+	// in the rendered order (scans seasonGroups from start to the given indices).
+	isFirstVisiblePatch(seasonIndex: number, patchIndex: number) {
+		for (let s = 0; s < this.seasonGroups.length; s++) {
+			const season = this.seasonGroups[s];
+			for (let p = 0; p < season.patches.length; p++) {
+				const patch = season.patches[p];
+				if (this.isPatchVisible(patch)) {
+					return s === seasonIndex && p === patchIndex;
+				}
+			}
+		}
+		return false;
 	}
 }

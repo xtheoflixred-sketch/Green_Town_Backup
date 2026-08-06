@@ -144,6 +144,18 @@ function fixAccountSettings(settings: AccountSettings | undefined, level: number
 			fixed.chatlogRange = clamp(settings.chatlogRange | 0, MIN_CHATLOG_RANGE, MAX_CHATLOG_RANGE);
 		}
 
+		if (settings.chatBubbleLimit !== undefined) {
+			fixed.chatBubbleLimit = clamp(settings.chatBubbleLimit | 0, 1, 6);
+		}
+
+		if (settings.showChatBubbleProfiles !== undefined) {
+			fixed.showChatBubbleProfiles = !!settings.showChatBubbleProfiles;
+		}
+
+		if (settings.showOwnChatBubbleProfile !== undefined) {
+			fixed.showOwnChatBubbleProfile = !!settings.showOwnChatBubbleProfile;
+		}
+
 		if (settings.seeThroughObjects !== undefined) {
 			fixed.seeThroughObjects = !!settings.seeThroughObjects;
 		}

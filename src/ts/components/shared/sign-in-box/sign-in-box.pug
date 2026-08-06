@@ -1,6 +1,6 @@
 .sign-in-box.mx-auto
 	p.lead.text-center
-		| Sign in with your social site account
+		| Registration and Log In with your social site account
 
 	div(*ngIf="showLoginWarning")
 		.alert.alert-warning.mb-3(role="alert")
@@ -58,7 +58,7 @@
 
 	div(*ngIf="signUpProviders.length")
 		.sign-in-heading.mt-2.text-center
-			span(aria-hidden="true") Sign in #[i or] sign up
+			span(aria-hidden="true") Registration
 
 		.sign-in-box-providers.text-center
 			button.btn.btn-lg.btn-dark(
@@ -66,25 +66,24 @@
 				(click)="signInTo(p)"
 				[class.disabled]="p.disabled"
 				[style.border-bottom-color]="p.color"
-				title="Sign in using {{p.name}}")
+				title="Register using {{p.name}}")
 				fa-icon([icon]="icon(p.id)" [fixedWidth]="true" size="lg")
-				.sr-only Sign in or sign up using {{p.name}}
+				.sr-only Register using {{p.name}}
 
 	div(*ngIf="signInProviders.length")
-		.sign-in-heading.text-center
-			span(aria-hidden="true") Sign in #[i only]
+	.sign-in-heading.text-center
+		span(aria-hidden="true") Log In
 
-		.text-muted.mb-3 (You #[b cannot] use these social sites to create new account)
-
-		.sign-in-box-providers.sign-in-only.text-center
-			button.btn.btn-lg.btn-dark(
-				*ngFor="let p of signInProviders"
-				(click)="signInTo(p)"
-				[class.disabled]="p.disabled"
-				[style.border-bottom-color]="p.color"
-				title="Sign in using {{p.name}}")
-				fa-icon([icon]="icon(p.id)" [fixedWidth]="true" size="lg")
-				.sr-only Sign in using {{p.name}}
+	.text-muted.mb-3 (These social providers can only be used to log in to an existing account)
+	.sign-in-box-providers.sign-in-only.text-center
+		button.btn.btn-lg.btn-dark(
+			*ngFor="let p of signInProviders"
+			(click)="signInTo(p)"
+			[class.disabled]="p.disabled"
+			[style.border-bottom-color]="p.color"
+			title="Log in using {{p.name}}")
+			fa-icon([icon]="icon(p.id)" [fixedWidth]="true" size="lg")
+			.sr-only Log in using {{p.name}}
 
 	div.text-center(*ngIf="showMockLoginButton")
 		button.btn.btn-lg.btn-dark(type="button" (click)="onMockLogin()") Mock login

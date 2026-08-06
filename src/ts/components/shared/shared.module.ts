@@ -89,6 +89,8 @@ import { VisitPTButton } from './visit-pt-button/visit-pt-button';
 import { VisitPTPony } from './visit-pt-pony/visit-pt-pony';
 import { TelegramButton } from './telegram-button/telegram-button';
 import { TelegramPony } from './telegram-pony/telegram-pony';
+import { TiktokButton } from './tiktok-button/tiktok-button';
+import { TiktokPony } from './tiktok-pony/tiktok-pony';
 import { VkButton } from './vk-button/vk-button';
 import { VkPony } from './vk-pony/vk-pony';
 import { AboutButton } from './about-button/about-button';
@@ -117,6 +119,8 @@ const declarations = [
 	VisitPTPony,
 	TelegramButton,
 	TelegramPony,
+	TiktokButton,
+	TiktokPony,
 	VkButton,
 	VkPony,
 	AboutButton,

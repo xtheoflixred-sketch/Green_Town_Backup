@@ -3,21 +3,53 @@
 	50% { transform: translate3d(2px, 2px, 0); }
 }
 
-.tinyface  {
+.tinyface {
 	padding: 20px;
 	display: inline-block;
-	
+	vertical-align: middle;
+	line-height: 1;
+	font-size: 18px;
+	user-select: none;
+	position: relative;
+
 	&::after {
 		content: '• c •';
 		white-space: nowrap;
+		display: inline-block;
+		vertical-align: middle;
+		transform: translate3d(0, 0, 0);
+		transition: content 0.2s ease, transform 0.2s ease;
 	}
 
 	&:hover {
 		will-change: transform;
-		animation: 0.1s infinite tiny-shake;
-		
-		&::after {
-			content: '•` c ˊ•';
-		}
+		animation: 0.16s infinite tiny-shake;
+	}
+
+	&.tinyface--alt::after {
+		content: '•` c ˊ•';
+	}
+
+	&.tinyface--alt2::after {
+		content: 'ˊ• c •`';
+	}
+
+	&.tinyface--alt3::after {
+		content: '^ c ^';
+	}
+
+	&.tinyface--alt4::after {
+		content: '- c -';
+	}
+
+	&.tinyface--logo::after {
+		content: '';
+		width: 24px;
+		height: 24px;
+		display: inline-block;
+		background-image: url('/assets/images/logo-small-v2.png');
+		background-size: contain;
+		background-repeat: no-repeat;
+		background-position: center;
 	}
 }

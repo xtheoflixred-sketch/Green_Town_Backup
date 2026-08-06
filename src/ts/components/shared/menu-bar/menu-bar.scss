@@ -1,26 +1,30 @@
 @import '../../../../styles/partials/variables';
 
-// === ACCOUNT BUTTON (dropdown-toggle) ===
-// максимально совместимо со старым кодом
+
+// === ACCOUNT BUTTON ===
 
 .navbar .dropdown {
 	display: flex;
-	align-items: stretch; // чтобы кнопка тянулась как navbar-link
+	align-items: stretch;
 }
+
 
 .navbar .dropdown > .btn.dropdown-toggle {
 	position: relative;
-	display: flex;              // 🔥 ключевой момент
-	align-items: center;        // центрируем контент
+
+	display: flex;
+	align-items: center;
 	justify-content: center;
 
-	height: 100%;               // растягиваем по высоте navbar
-	min-height: 42px;           // 👈 подгони под свои navbar-link (обычно 40–44px)
-	padding: 10px 14px;         // такой же как у ссылок
+	height: 100%;
+	min-height: 42px;
+
+	padding: 10px 14px;
 	margin-left: 6px;
 
 	border-radius: 8px;
 	border: none;
+
 	background: transparent;
 	color: $nav-tabs-link-active-color;
 
@@ -28,33 +32,43 @@
 	line-height: 1;
 	white-space: nowrap;
 
-	// плавность (в отличие от .btn где отключено)
-	transition: background 0.2s ease, transform 0.15s ease, color 0.2s ease;
+	transition:
+		background 0.2s ease,
+		transform 0.15s ease,
+		color 0.2s ease;
 
-	// hover
+
 	&:hover {
-		background: rgba(255, 255, 255, 0.06);
+		background: rgba(255,255,255,.06);
 		transform: translateY(-1px);
 		color: #fff;
 	}
 
-	// активное состояние (dropdown открыт)
+
 	&[aria-expanded="true"] {
-		background: rgba(255, 255, 255, 0.10);
+		background: rgba(255,255,255,.10);
 		color: #fff;
 	}
 
-	// верхний акцент (чуть слабее чем у navbar-link)
+
 	&::before {
 		content: '';
+
 		position: absolute;
+
 		top: 0;
 		left: 50%;
+
 		width: 0%;
 		height: 2px;
-		background: fade-out($navbar-dark-active-color, 0.4);
-		transition: width 0.2s ease, left 0.2s ease;
+
+		background: fade-out($navbar-dark-active-color, .4);
+
+		transition:
+			width .2s ease,
+			left .2s ease;
 	}
+
 
 	&:hover::before,
 	&[aria-expanded="true"]::before {
@@ -62,60 +76,197 @@
 		left: 0;
 	}
 
-	// фикс иконок внутри (очень важно)
+
 	fa-icon {
 		display: inline-flex;
 		align-items: center;
 	}
 
-	// убираем дефолтный bootstrap focus
+
 	&:focus {
 		outline: none;
 		box-shadow: none;
 	}
 }
 
+
+
+// === LOGIN REGISTER BUTTON ===
+
+.login-register-button {
+
+	display: inline-flex;
+
+	align-items: center;
+	justify-content: center;
+
+	gap: .45rem;
+
+
+	padding: 10px 14px;
+
+	border-radius: 8px;
+
+
+	transition:
+		background $nav-link-transition,
+		transform $nav-link-transition;
+
+
+
+	&:hover {
+		background: $nav-link-hover-bg;
+		transform: translateY(-1px);
+	}
+
+
+
+	&[aria-expanded="true"] {
+		background: $nav-link-active-bg;
+	}
+
+
+
+	fa-icon {
+		display: inline-flex;
+		align-items: center;
+	}
+}
+
+
+
+// === PROVIDER BADGES ===
+
+.provider-item {
+
+	display: flex;
+
+	align-items: center;
+
+	padding: 6px 12px;
+
+	gap: .5rem;
+}
+
+
+.provider-badge {
+
+	display: inline-flex;
+
+	align-items: center;
+	justify-content: center;
+
+	gap: .45rem;
+
+	padding: 4px 9px;
+
+	border-radius: 6px;
+
+	background: var(--provider-color, gray);
+
+	color: #fff !important;
+
+	font-size: .875rem;
+
+	font-weight: 600;
+
+	line-height: 1;
+
+	white-space: nowrap;
+
+
+	&:hover {
+		filter: brightness(1.1);
+	}
+
+
+	fa-icon {
+		display: inline-flex;
+		align-items: center;
+	}
+}
+
+
+
+
 .logo {
+
 	margin-top: 5px;
+
 	position: absolute;
+
 	top: 0;
 	left: 0;
+
 
 	&.active {
 		display: none;
 	}
+
 }
+
+
 
 .logo-large {
+
 	display: none;
 
+
 	@include media-breakpoint-up(lg) {
+
 		display: block;
-	}	
+
+	}
+
 }
+
+
 
 .logo-small {
+
 	display: block;
 
+
 	@include media-breakpoint-up(lg) {
+
 		display: none;
+
 	}
+
 }
+
+
 
 .btn {
+
 	transition: none;
+
 }
+
+
 
 .sign-in-only {
-	opacity: 0.6;	
+
+	opacity: .6;
+
 }
+
+
 
 .account-alert-icon {
+
 	position: absolute;
+
 	right: 20px;
+
 	top: 5px;
+
 }
 
+
+
 .online-offline {
+
 	font-weight: 500;
+
 }

@@ -4,7 +4,8 @@ import { AccountSettings, BrowserSettings, GraphicsQuality } from '../../../comm
 import { SettingsService } from '../../services/settingsService';
 import { Model } from '../../services/model';
 import {
-	DEFAULT_CHATLOG_OPACITY, MAX_CHATLOG_RANGE, MIN_CHATLOG_RANGE, isChatlogRangeUnlimited, MAX_FILTER_WORDS_LENGTH
+	DEFAULT_CHATLOG_OPACITY, MAX_CHATLOG_RANGE, MIN_CHATLOG_RANGE, isChatlogRangeUnlimited, MAX_FILTER_WORDS_LENGTH,
+	MIN_CHAT_BUBBLES_LIMIT, MAX_CHAT_BUBBLES_LIMIT, DEFAULT_CHAT_BUBBLES_LIMIT
 } from '../../../common/constants';
 import { StorageService } from '../../services/storageService';
 import { cloneDeep, clamp } from '../../../common/utils';
@@ -32,6 +33,8 @@ export class SettingsModal implements OnInit, OnDestroy {
 	readonly minChatlogRange = MIN_CHATLOG_RANGE;
 	readonly maxGraphicsQuality: number;
 	readonly maxGraphicsQualityValue: GraphicsQuality;
+	readonly minChatBubbleLimit = MIN_CHAT_BUBBLES_LIMIT;
+	readonly maxChatBubbleLimit = MAX_CHAT_BUBBLES_LIMIT;
 	readonly gameIcon = faSlidersH;
 	readonly chatIcon = faComment;
 	readonly filtersIcon = faCommentSlash;
@@ -138,6 +141,10 @@ export class SettingsModal implements OnInit, OnDestroy {
 	get afkSleepText() {
 		return `${this.account.afkSleepMinutes || DEFAULT_AFK_SLEEP_MINUTES}`;
 	}
+	get chatBubbleLimitValue() {
+		const value = this.account.chatBubbleLimit === undefined ? DEFAULT_CHAT_BUBBLES_LIMIT : this.account.chatBubbleLimit;
+		return clamp(value, this.minChatBubbleLimit, this.maxChatBubbleLimit);
+	}
 	get partyInvitesPolicy() {
 		return this.account.ignorePartyInvites ? 'friends' : 'everyone';
 	}
@@ -152,6 +159,9 @@ export class SettingsModal implements OnInit, OnDestroy {
 	}
 	setPartyInvitesPolicy(value: string) {
 		this.account.ignorePartyInvites = value !== 'everyone';
+	}
+	setChatBubbleLimit(value: number) {
+		this.account.chatBubbleLimit = clamp(value, this.minChatBubbleLimit, this.maxChatBubbleLimit);
 	}
 	setFriendRequestsPolicy(value: string) {
 		this.account.ignoreFriendInvites = value === 'nobody';

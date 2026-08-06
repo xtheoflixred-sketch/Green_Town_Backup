@@ -5,7 +5,14 @@ import {
 	PonyInfoNumber, ColorExtra
 } from './interfaces';
 import { toInt, array, includes, att } from './utils';
-import { CM_SIZE } from './constants';
+import {
+	CM_SIZE,
+	SERVER_DEFAULT_PONY_BACK_MANE_TYPE,
+	SERVER_DEFAULT_PONY_COAT_FILL,
+	SERVER_DEFAULT_PONY_COAT_OUTLINE,
+	SERVER_DEFAULT_PONY_MANE_TYPE,
+	SERVER_DEFAULT_PONY_TAIL_TYPE,
+} from './constants';
 import { parseColorFast, getR, getAlpha, colorFromRGBA, getG, getB, colorToHexRGB } from './color';
 import { BLACK, fillToOutline, fillToOutlineColor, WHITE, TRANSPARENT, fillToOutlineWithDarken } from './colors';
 import {
@@ -53,12 +60,28 @@ export function spriteSet(type: number, lockFirstFill = true, fill = 'ffd700', o
 	};
 }
 
+function applyPonyOverrides(pony: PonyInfo, overrides: Partial<PonyInfo>): PonyInfo {
+	return syncLockedPonyInfo({ ...pony, ...overrides });
+}
+
 export function createDefaultPony(): PonyInfo {
 	const pony = createBasePony();
-	pony.mane!.type = 2;
-	pony.backMane!.type = 1;
-	pony.tail!.type = 1;
-	return pony;
+	return applyPonyOverrides(pony, {
+		mane: { ...pony.mane!, type: 2 },
+		backMane: { ...pony.backMane!, type: 1 },
+		tail: { ...pony.tail!, type: 1 },
+	});
+}
+
+export function createServerDefaultPony(): PonyInfo {
+	const pony = createBasePony();
+	return applyPonyOverrides(pony, {
+		mane: { ...pony.mane!, type: SERVER_DEFAULT_PONY_MANE_TYPE },
+		backMane: { ...pony.backMane!, type: SERVER_DEFAULT_PONY_BACK_MANE_TYPE },
+		tail: { ...pony.tail!, type: SERVER_DEFAULT_PONY_TAIL_TYPE },
+		coatFill: SERVER_DEFAULT_PONY_COAT_FILL,
+		coatOutline: SERVER_DEFAULT_PONY_COAT_OUTLINE,
+	});
 }
 
 export function createBasePony(): PonyInfo {
@@ -298,6 +321,16 @@ function ensureMarkingSet<T>(set: SpriteSet<T> | undefined, fill: T | undefined,
 	return set || createDefaultMarkingSet(fill, outline);
 }
 
+function unlockFirstFill<T>(set: SpriteSet<T> | undefined): SpriteSet<T> | undefined {
+	if (!set || !set.lockFills || set.lockFills.length === 0) {
+		return set;
+	}
+
+	set.lockFills = set.lockFills.slice();
+	set.lockFills[0] = false;
+	return set;
+}
+
 function syncLockedBasePonyInfo<T>(
 	info: PonyInfoGeneric<T>, fillToOutline: FillToOutline<T>, defaultColor: T
 ): PonyInfoGeneric<T> {
@@ -313,24 +346,30 @@ function syncLockedBasePonyInfo<T>(
 		info.bodyRight = copySpriteSet(info.bodyRight, info.body);
 	} else {
 		info.bodyRight = ensureMarkingSet(info.bodyRight, info.coatFill, info.coatOutline);
+		unlockFirstFill(info.bodyRight);
 	}
 
 	if (!info.unlockFrontLegs) {
 		info.frontLegsRight = copySpriteSet(info.frontLegsRight, info.frontLegs);
 	} else if (info.frontLegsRight === info.frontLegs) {
 		info.frontLegsRight = copySpriteSet(undefined, info.frontLegs);
+		unlockFirstFill(info.frontLegsRight);
+	} else {
+		unlockFirstFill(info.frontLegsRight);
 	}
 
 	if (info.lockBackLegs !== false) {
 		info.backLegs = copySpriteSet(info.backLegs, info.frontLegs);
 		const sourceRight = info.unlockFrontLegs ? info.frontLegsRight : info.frontLegs;
 		info.backLegsRight = copySpriteSet(info.backLegsRight, sourceRight);
+		unlockFirstFill(info.backLegsRight);
 	} else {
 		if (!info.unlockBackLegs) {
 			info.backLegsRight = copySpriteSet(info.backLegsRight, info.backLegs);
 		} else if (info.backLegsRight === info.backLegs) {
 			info.backLegsRight = copySpriteSet(undefined, info.backLegs);
 		}
+		unlockFirstFill(info.backLegsRight);
 	}
 
 	if (info.lockEyes) {
@@ -380,24 +419,28 @@ function syncLockedBasePonyInfo<T>(
 	} else if (info.earsRight === info.ears) {
 		info.earsRight = copySpriteSet(undefined, info.ears);
 	}
+	unlockFirstFill(info.earsRight);
 
 	if (!info.unlockWings) {
 		info.wingsRight = copySpriteSet(info.wingsRight, info.wings);
 	} else if (info.wingsRight === info.wings) {
 		info.wingsRight = copySpriteSet(undefined, info.wings);
 	}
+	unlockFirstFill(info.wingsRight);
 
 	if (!info.unlockWaistAccessory) {
 		info.waistAccessoryRight = copySpriteSet(info.waistAccessoryRight, info.waistAccessory);
 	} else if (info.waistAccessoryRight === info.waistAccessory) {
 		info.waistAccessoryRight = copySpriteSet(undefined, info.waistAccessory);
 	}
+	unlockFirstFill(info.waistAccessoryRight);
 
 	if (!info.unlockSleeveAccessory) {
 		info.sleeveAccessoryRight = copySpriteSet(info.sleeveAccessoryRight, info.sleeveAccessory);
 	} else if (info.sleeveAccessoryRight === info.sleeveAccessory) {
 		info.sleeveAccessoryRight = copySpriteSet(undefined, info.sleeveAccessory);
 	}
+	unlockFirstFill(info.sleeveAccessoryRight);
 
 	syncLockedSpriteSet<T>(info.head, customOutlines, fillToOutline, info.coatFill, info.coatOutline);
 	syncLockedSpriteSet<T>(info.body, customOutlines, fillToOutline, info.coatFill, info.coatOutline);

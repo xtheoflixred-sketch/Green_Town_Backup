@@ -4,6 +4,7 @@ import * as allIcons from '../../../client/icons';
 import {
 	// Social
 	faPatreon, faDeviantart, faTwitter, faTumblr, faFacebook, faGithub, faVk, faGoogle, faDiscord, faMusic, faPaperPlane,
+	faTelegram, faBoosty, faCircleUserCirclePlus, faTiktok, faTwitch, faSteam, faCommentQuestion, faMasks, faNote, faBlush, faDroplet, faRaindrops, faSnooze, faSparkles,
 	// UI Navigation
 	faHome, faArrowLeft, faArrowRight, faArrowUp, faArrowDown, faChevronUp, faChevronDown, faChevronLeft, faChevronRight,
 	faAngleDoubleUp, faAngleDoubleDown, faAngleDoubleLeft, faAngleDoubleRight,
@@ -39,9 +40,15 @@ import {
 	faUserCircle, faHandPaper, faBullhorn, faPencilAlt, faSlash, faThumbtack, faUserCheck, faUserSlash
 } from '../../../client/icons';
 
+interface IconGalleryItem {
+	name: string;
+	icon: any;
+	copied?: boolean;
+}
+
 export interface IconCategory {
 	name: string;
-	icons: { name: string; icon: any; }[];
+	icons: IconGalleryItem[];
 }
 
 const brandIconNames = new Set([
@@ -75,7 +82,11 @@ export class IconGallery {
 		return this.categories
 			.map(category => ({
 				name: category.name,
-				icons: category.icons.filter(icon => icon.name.toLowerCase().includes(q)),
+				icons: category.icons.filter(icon => {
+					const name = icon.name.toLowerCase();
+					const categoryName = category.name.toLowerCase();
+					return name.includes(q) || categoryName.includes(q);
+				}),
 			}))
 			.filter(category => category.icons.length > 0);
 	}
@@ -258,8 +269,23 @@ export class IconGallery {
 			]
 		},
 		{
-			name: 'All Solid Icons',
-			icons: allSolidIcons,
+			name: 'New / Updated Icons',
+			icons: [
+				{ name: 'faTelegram', icon: faTelegram },
+				{ name: 'faBoosty', icon: faBoosty },
+				{ name: 'faCircleUserCirclePlus', icon: faCircleUserCirclePlus },
+				{ name: 'faTiktok', icon: faTiktok },
+				{ name: 'faTwitch', icon: faTwitch },
+				{ name: 'faSteam', icon: faSteam },
+				{ name: 'faCommentQuestion', icon: faCommentQuestion },
+				{ name: 'faMasks', icon: faMasks },
+				{ name: 'faNote', icon: faNote },
+				{ name: 'faBlush', icon: faBlush },
+				{ name: 'faDroplet', icon: faDroplet },
+				{ name: 'faRaindrops', icon: faRaindrops },
+				{ name: 'faSnooze', icon: faSnooze },
+				{ name: 'faSparkles', icon: faSparkles },
+			],
 		},
 		{
 			name: 'Extra Icons',
@@ -310,12 +336,27 @@ export class IconGallery {
 				{ name: 'faHashtag', icon: faHashtag },
 				{ name: 'faLaughBeam', icon: faLaughBeam },
 			]
+		},
+		{
+			name: 'All Solid Icons',
+			icons: allSolidIcons,
 		}
 	];
 
 	copyToClipboard(name: string) {
+		const item = this.categories
+			.reduce<IconGalleryItem[]>((items, category) => items.concat(category.icons), [])
+			.find((icon: IconGalleryItem) => icon.name === name);
+
+		if (!item) {
+			return;
+		}
+
 		navigator.clipboard.writeText(name).then(() => {
-			// Feedback could be added here
+			item.copied = true;
+			setTimeout(() => {
+				item.copied = false;
+			}, 1200);
 		});
 	}
 }

@@ -44,6 +44,17 @@
 			cursor: pointer;
 			min-height: 85px;
 			user-select: none;
+			transition: border-color 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+
+			&:hover {
+				border-color: $primary;
+				transform: translateY(-1px);
+			}
+
+			&[data-copied='true'] {
+				background: rgba($primary, 0.12);
+				border-color: $primary;
+			}
 
 			.icon-display {
 				font-size: 28px;

@@ -1,5 +1,7 @@
 /// <reference path="../../typings/my.d.ts" />
 
+import * as crypto from 'crypto';
+import * as querystring from 'querystring';
 import { Request } from 'express';
 import { isString } from 'lodash';
 import { Strategy as GoogleStrategy } from '@passport-next/passport-google-oauth2';
@@ -46,10 +48,60 @@ export interface OAuthProviderInfo {
 	id: string;
 	name: string;
 	color: string;
-	strategy: Strategy;
+	strategy?: Strategy;
 	auth?: any;
 	connectOnly?: boolean;
 	additionalOptions?: any;
+}
+
+export function createTelegramAuthRedirectUrl(host: string, auth: any) {
+	const normalizedHost = host && host.endsWith('/') ? host.slice(0, -1) : (host || '');
+	const redirectUri = `${normalizedHost}/auth/telegram/callback`;
+	let origin = normalizedHost;
+	try {
+		origin = normalizedHost ? new URL(normalizedHost).origin : normalizedHost;
+	} catch (_e) {
+		origin = normalizedHost;
+	}
+
+	const params: any = {
+		bot_id: auth && auth.botId,
+		redirect_uri: redirectUri,
+		request_access: 'write',
+	};
+
+	if (origin) {
+		params.origin = origin;
+	}
+
+	return `https://oauth.telegram.org/auth?${querystring.stringify(params)}`;
+}
+
+export function verifyTelegramAuthData(data: any, botToken: string) {
+	if (!data || !botToken || !data.hash) {
+		return false;
+	}
+
+	const checkString = Object.keys(data)
+		.filter(key => key !== 'hash')
+		.sort()
+		.map(key => `${key}=${data[key]}`)
+		.join('\n');
+	const secretKey = crypto.createHash('sha256').update(botToken).digest();
+	const expectedHash = crypto.createHmac('sha256', secretKey).update(checkString).digest('hex');
+	return expectedHash === data.hash;
+}
+
+function isProviderConfigured(provider: OAuthProviderInfo) {
+	if (!provider.auth) {
+		return false;
+	}
+
+	if (provider.id === 'telegram') {
+		return !!provider.auth.botId && !!provider.auth.botToken;
+	}
+
+	return true;
 }
 
 const providerList: OAuthProviderInfo[] = [
@@ -95,12 +147,17 @@ const providerList: OAuthProviderInfo[] = [
 		color: '#7289DA',
 		strategy: DiscordStrategy,
 	},
+	{
+		id: 'telegram',
+		name: 'Telegram',
+		color: '#2CA5E0',
+	},
 ];
 
 providerList.forEach(p => p.auth = config.oauth[p.id]);
 providerList.filter(p => p.auth && p.auth.connectOnly).forEach(p => p.connectOnly = true);
 
-export const providers = providerList.filter(p => !!p.auth);
+export const providers = providerList.filter(isProviderConfigured);
 
 export function getProfileUrl(profile: OAuthProfile): string | undefined {
 	if (profile.provider === 'twitter') {
@@ -111,6 +168,8 @@ export function getProfileUrl(profile: OAuthProfile): string | undefined {
 		return `http://www.facebook.com/${profile.id}`;
 	} else if (profile.provider === 'discord') {
 		return undefined;
+	} else if (profile.provider === 'telegram') {
+		return profile.profileUrl;
 	} else if (profile._json.attributes && profile._json.attributes.url) { // patreon
 		return profile._json.attributes.url;
 	} else {

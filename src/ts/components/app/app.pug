@@ -53,7 +53,8 @@ div
 		(signOut)="signOut()"
 		(openSettings)="openSettings()"
 	)
-		menu-item(route="/" name="Home" [icon]="homeIcon")
+		menu-item(route="/welcome" name="Welcome" [icon]="welcomeIcon" *ngIf="!account")
+		menu-item(route="/" name="Home" [icon]="homeIcon" *ngIf="account")
 		menu-item(route="/character" name="Characters" [icon]="charactersIcon" *ngIf="account")
 		menu-item(route="/help" name="Help" [icon]="helpIcon")
 		menu-item(route="/about" name="About" [icon]="aboutIcon")

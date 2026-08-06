@@ -20,8 +20,8 @@
 	border-bottom: 2px solid rgba(200, 200, 200, 0.2);
 
 	.help-logo-icon {
-		width: 60px;
-		height: 80px;
+		width: 70px;
+		height: auto;
 		flex-shrink: 0;
 		opacity: 0.75;
 		transition: opacity 0.3s ease;
@@ -57,8 +57,8 @@
 		padding: 20px 0;
 
 		.help-logo-icon {
-			width: 37px;
-			height: 65px;
+			width: auto;
+			height: 70px;
 		}
 
 		.header-text h1 {

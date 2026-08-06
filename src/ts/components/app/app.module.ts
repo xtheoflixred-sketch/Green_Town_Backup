@@ -12,6 +12,7 @@ import { SharedModule } from '../shared/shared.module';
 
 import { App } from './app';
 import { Home } from './home/home';
+import { Welcome } from './welcome/welcome';
 import { Help } from './help/help';
 import { About } from './about/about';
 import { Account } from './account/account';
@@ -21,12 +22,14 @@ import { GameCharacterModal } from '../shared/game-character/game-character';
 import { GameCharacterModalPreview } from '../shared/game-character/game-character-modal-preview';
 
 import { AuthGuard } from '../services/authGuard';
+import { GuestGuard } from '../services/guestGuard';
 import { RollbarService, rollbarFactory, RollbarErrorHandler } from '../services/rollbarErrorHandler';
 import { ErrorReporter } from '../services/errorReporter';
 import { RollbarErrorReporter } from '../services/rollbarErrorReporter';
 
 export const routes: Routes = [
-	{ path: '', component: Home },
+	{ path: '', component: Home, canActivate: [AuthGuard] },
+	{ path: 'welcome', component: Welcome, canActivate: [GuestGuard] },
 	{ path: 'help', component: Help },
 	{ path: 'about', component: About },
 	{ path: 'account', component: Account, canActivate: [AuthGuard] },
@@ -45,12 +48,12 @@ export const routes: Routes = [
 		TooltipModule.forRoot(),
 		// TypeaheadModule.forRoot(),
 		SharedModule,
-		RouterModule.forRoot(routes),
 		FontAwesomeModule,
 	],
 	declarations: [
 		App,
 		Home,
+		Welcome,
 		Help,
 		About,
 		Account,

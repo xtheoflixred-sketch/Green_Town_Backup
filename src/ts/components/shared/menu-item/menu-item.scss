@@ -41,15 +41,48 @@
 
 	// ссылка внутри
 	> a {
-		display: block;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.45rem;
 		padding: 10px 14px;
 		color: $nav-tabs-link-active-color;
 		text-decoration: none;
 		transition: color $nav-link-transition;
 
-		@media (max-width: 360px) {
+		@media (max-width: 575.98px) {
+			gap: 0;
 			padding-left: 10px;
 			padding-right: 10px;
+		}
+	}
+
+	.menu-icon {
+		display: none;
+		font-size: 1rem;
+	}
+
+	.menu-text {
+		display: inline;
+	}
+
+	@media (max-width: 575.98px) {
+		.menu-icon {
+			display: inline-flex;
+		}
+
+		.menu-text {
+			display: none;
+		}
+	}
+
+	@media (min-width: 992px) {
+		.menu-icon {
+			display: inline-flex;
+		}
+
+		.menu-text {
+			display: inline;
 		}
 	}
 

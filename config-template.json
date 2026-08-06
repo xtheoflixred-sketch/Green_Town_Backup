@@ -19,6 +19,10 @@
 		"google": {
 			"clientID": "<CLIENT_ID_HERE>",
 			"clientSecret": "<CLIENT_SECRET_HERE>"
+		},
+		"telegram": {
+			"botId": "<BOT_ID_HERE>",
+			"botToken": "<BOT_TOKEN_HERE>"
 		}
 	},
 	"assetsPath": "assets-source",

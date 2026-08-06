@@ -4,7 +4,6 @@ import {
 	AdminState, eventFields, BaseValues, UpdateOrigin, UserCountStats, AccountDetails, SupporterInvite,
 	InternalGameServerState, InternalLoginServerState, OtherStats, Settings, GameServerSettings
 } from '../../common/adminInterfaces';
-import { execAsync } from '../serverUtils';
 import {
 	IAccount, Account, Origin, Event, iterate, ISession, Session, SupporterInvite as DBSupporterInvite,
 	findAccount, ISupporterInvite, ID
@@ -108,52 +107,56 @@ export async function reloadSettingsOnAllServers() {
 	]);
 }
 
-export async function getChat(search: string, date: string, caseInsensitive: boolean) {
-	const query = search
+function escapeSearchPattern(search: string) {
+	return search
 		.replace(/\\/g, '\\\\')
 		.replace(/"/g, '\\"')
 		.replace(/\./g, '\\.')
 		.replace(/\*/g, '\\*')
 		.replace(/\$/g, '\\*')
 		.replace(/\^/g, '\\*');
-	const flags = caseInsensitive ? '-i -E ' : '-E ';
-	const options = { maxBuffer: 1 * 1024 * 1024 }; // 1MB
+}
 
-	async function fetchChatlog(lines: number) {
-		const logFile = paths.pathTo('logs', `info.${moment(date).format('YYYYMMDD')}.log`);
-		const { stdout } = await execAsync(`grep ${flags}"${query}" "${logFile}" | tail -n ${lines}`, options);
-		return stdout;
+async function readChatLogFile(filePath: string, search: string, caseInsensitive: boolean, maxLines = 8192) {
+	try {
+		const content = await fs.readFileAsync(filePath, 'utf8');
+		const lines = content.split(/\r?\n/);
+		const query = escapeSearchPattern(search);
+		const regex = new RegExp(query, caseInsensitive ? 'i' : '');
+		const matchingLines = lines.filter(line => regex.test(line));
+
+		if (matchingLines.length > maxLines) {
+			return `... more lines ...\n${matchingLines.slice(-maxLines).join('\n')}`;
+		}
+
+		return matchingLines.join('\n');
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+			return '';
+		}
+
+		throw error;
 	}
+}
 
+export async function getChat(search: string, date: string, caseInsensitive: boolean) {
 	try {
 		if (!search) {
 			return '';
-		} else if (date === 'all') {
-			const { stdout } = await execAsync(`for f in ${paths.pathTo('logs')}/*.log; do `
-				+ `echo "$f" | grep -o '[0-9]*';`
-				+ `cat "$f" | grep ${flags}"${query}";`
-				+ `done`, options);
-			return stdout;
-		} else {
-			let lines = 8192;
-			let more = '';
-
-			do {
-				try {
-					const log = await fetchChatlog(lines);
-					return more + log;
-				} catch (e) {
-					if (e.message !== 'stdout maxBuffer exceeded') {
-						throw e;
-					}
-				}
-
-				lines /= 2;
-				more = '... more lines ...\n';
-			} while (lines > 1);
-
-			return '<error size exceeded>';
 		}
+
+		if (date === 'all') {
+			const logsDir = paths.pathTo('logs');
+			const files = (await fs.readdirAsync(logsDir))
+				.filter((file: string) => /^info\.[0-9]{8}\.log$/.test(file))
+				.sort()
+				.map((file: string) => paths.pathTo('logs', file));
+			const chunks = await Promise.all(files.map(file => readChatLogFile(file, search, caseInsensitive)));
+			return chunks.filter(Boolean).join('\n');
+		}
+
+		const logFile = paths.pathTo('logs', `info.${moment(date).format('YYYYMMDD')}.log`);
+		return readChatLogFile(logFile, search, caseInsensitive);
 	} catch (e) {
 		console.error('Failed to fetch chatlog: ', e);
 		return '<error>';

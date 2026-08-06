@@ -492,7 +492,7 @@ export function createBunny(waypoints: Point[]) {
 	}
 }
 
-export function createFollowerBunny(targetEntity: ServerEntity, offsetX: number = 0, offsetY: number = 0, mode: 'circle' | 'stay' | 'free' = 'circle', radius: number = 1.0, shape: 'none' | 'circle' | 'triangle' | 'square' | 'diamond' | 'heart' = 'none', initialPhase: number = 0, forceStartMoving: boolean = false, map?: ServerMap) {
+export function createFollowerBunny(targetEntity: ServerEntity, offsetX: number = 0, offsetY: number = 0, mode: 'circle' | 'stay' | 'free' = 'circle', radius: number = 1.0, shape: 'none' | 'circle' | 'triangle' | 'square' | 'diamond' | 'heart' = 'none', initialPhase: number = 0, forceStartMoving: boolean = false, map?: ServerMap, preserveOffsets: boolean = false) {
 	const entity = entities.bunny(targetEntity.x + offsetX, targetEntity.y + offsetY) as ServerEntity;
 	const baseBunnySpeed = 6;
 	const bunnySpeed = baseBunnySpeed + random(-2, 2, true); // Варьировать скорость для реализма
@@ -546,7 +546,7 @@ export function createFollowerBunny(targetEntity: ServerEntity, offsetX: number 
 
 		if (playerMoved && !playerStartedMoving) {
 			playerStartedMoving = true;
-			if ((shape === 'none' && entity.bunnyMode === 'stay') || (entity.bunnyMode === 'circle')) {
+			if (!preserveOffsets && ((shape === 'none' && entity.bunnyMode === 'stay') || (entity.bunnyMode === 'circle'))) {
 				// Рандомизировать позицию только при начале движения игрока
 				const randomAngle = Math.random() * Math.PI * 2;
 				const randomDist = Math.random() * radius;

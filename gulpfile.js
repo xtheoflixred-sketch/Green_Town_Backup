@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const gulp = require('gulp');
 const _ = require('lodash');
+const vm = require('vm');
 const gulpif = require('gulp-if');
 const rev = require('gulp-rev');
 const sass = require('gulp-sass');
@@ -151,19 +152,103 @@ const icons = cb => {
     const root2 = path.join('node_modules', '@fortawesome', 'free-brands-svg-icons');
     const root3 = path.join('node_modules', '@fortawesome', 'free-regular-svg-icons'); // Добавили regular
 
-    const getIconCode = src => JSON.stringify(require(`./${src}`).definition);
-    const iconsTs = readFile('src/ts/client/icons.ts');
-    const matched = _.uniq(iconsTs.match(/\bfa[A-Z]\S*\b/g));
+	const getIconCode = src => {
+		// try direct require first
+		try {
+			const mod = require(src);
+			if (mod && mod.definition) return JSON.stringify(mod.definition);
+			if (mod && mod.exports && mod.exports.definition) return JSON.stringify(mod.exports.definition);
+		} catch (e) {
+			// fallthrough to file parsing
+		}
+
+		const candidates = [];
+		if (src.endsWith('.js')) candidates.push(src, src.replace(/\.js$/, '.d.ts'));
+		else candidates.push(src);
+
+		for (const filePath of candidates) {
+			if (!fs.existsSync(filePath)) continue;
+			let text = fs.readFileSync(filePath, 'utf8');
+
+			// remove TypeScript import lines which break vm execution
+			text = text.split('\n').filter(l => !l.trim().match(/^import\s+/)).join('\n');
+
+			// If the file already contains exports.definition, try to evaluate safely in a VM
+			if (text.indexOf('exports.definition') !== -1 || text.indexOf('exports.fa') !== -1) {
+				const wrapper = `(function(require){ var exports = {}; var module = { exports: exports }; ${text}; return module.exports; })`;
+				try {
+					const fn = vm.runInThisContext(wrapper, { filename: filePath });
+					const exported = fn(require);
+					if (exported && exported.definition) return JSON.stringify(exported.definition);
+				} catch (err) {
+					// ignore and continue
+				}
+			}
+
+			// Fallback: try to extract the object literal after "exports.definition ="
+			const idx = text.indexOf('exports.definition');
+			if (idx !== -1) {
+				const assignIdx = text.indexOf('=', idx);
+				if (assignIdx !== -1) {
+					// find opening brace
+					const openIdx = text.indexOf('{', assignIdx);
+					if (openIdx !== -1) {
+						// basic brace matching to find end
+						let depth = 0;
+						let endIdx = -1;
+						for (let i = openIdx; i < text.length; i++) {
+							const ch = text[i];
+							if (ch === '{') depth++;
+							else if (ch === '}') {
+								depth--;
+								if (depth === 0) { endIdx = i; break; }
+							}
+						}
+						if (endIdx !== -1) {
+							const objText = text.slice(openIdx, endIdx + 1);
+							try {
+								// attempt to convert JS object to JSON by removing identifiers (prefix references)
+								// replace single quotes with double quotes for JSON parsing where safe
+								const jsonLike = objText.replace(/(['"])\s*\+\s*(['"])*/g, '$1');
+								// crude but often works: replace unquoted property names with quoted ones
+								const quoted = jsonLike.replace(/(\b[a-zA-Z0-9_]+\b)\s*:/g, '"$1":');
+								const parsed = JSON.parse(quoted);
+								if (parsed && parsed.icon) return JSON.stringify(parsed);
+							} catch (err) {
+								// ignore parse errors
+							}
+						}
+					}
+				}
+			}
+		}
+
+		throw new Error(`Cannot load icon from ${src}`);
+	};
+	const iconsTs = readFile('src/ts/client/icons.ts');
+	const matched = _.uniq(iconsTs.match(/\bfa[A-Z]\S*\b/g));
+
+	const normalizeIconName = name => name.replace(/^fa/, '').replace(/[-_]/g, '').toLowerCase();
+
+	const findIconPath = name => {
+		const normalizedName = normalizeIconName(name);
+		const roots = [root1, root2, root3];
+
+		for (const root of roots) {
+			const files = fs.readdirSync(root);
+			const matches = files.filter(file => (file.endsWith('.js') || file.endsWith('.d.ts')) && normalizeIconName(file.replace(/\.d\.ts$|\.js$/, '')) === normalizedName);
+			if (matches.length > 0) {
+				// prefer .js over .d.ts
+				const pick = matches.find(f => f.endsWith('.js')) || matches.find(f => f.endsWith('.d.ts'));
+				if (pick) return path.join(root, pick);
+			}
+		}
+
+		return '';
+	};
 
     const icons = matched.map(m => {
-        let iconPath = '';
-        if (fs.existsSync(path.join(root1, `${m}.js`))) {
-            iconPath = path.join(root1, `${m}.js`);
-        } else if (fs.existsSync(path.join(root2, `${m}.js`))) {
-            iconPath = path.join(root2, `${m}.js`);
-        } else if (fs.existsSync(path.join(root3, `${m}.js`))) {
-            iconPath = path.join(root3, `${m}.js`); // Проверяем regular, если в первых двух не нашли
-        }
+        const iconPath = findIconPath(m);
 
         if (!iconPath) {
             throw new Error(`Иконка ${m} не найдена ни в одном пакете Font Awesome! Проверь правильность названия.`);

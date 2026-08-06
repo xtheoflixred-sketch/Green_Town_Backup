@@ -7,9 +7,8 @@ import { Subscription } from 'rxjs';
 import { GameService } from '../services/gameService';
 import { Model, Friend } from '../services/model';
 import { version, host, contactEmail, discordLink, copyrightName, contactDiscord, telegramLink, tiktokLink } from '../../client/data';
-import { delay } from '../../common/utils';
 import { PonyTownGame } from '../../client/game';
-import { faPatreon, faDiscord, faEnvelope, faCog, faHome, faInfoCircle, faHorseHead, faQuestionCircle, faMusic, faPaperPlane, faSuitcaseRolling } from '../../client/icons';
+import { faPatreon, faDiscord, faEnvelope, faCog, faHome, faInfoCircle, faHorseHead, faQuestionCircle, faTiktok, faPaperPlane, faSuitcaseRolling, faSignInAlt } from '../../client/icons';
 import { OAuthProvider, Entity, FakeEntity, Pony, Action } from '../../common/interfaces';
 import { registerServiceWorker, isBrowserOutdated, checkIframeKey, initLoader } from '../../client/clientUtils';
 import { ErrorReporter } from '../services/errorReporter';
@@ -76,8 +75,9 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	readonly helpIcon = faQuestionCircle;
 	readonly aboutIcon = faInfoCircle;
 	readonly charactersIcon = faHorseHead;
+	readonly welcomeIcon = faSignInAlt;
 	readonly telegramIcon = faPaperPlane;
-	readonly tiktokIcon = faMusic;
+	readonly tiktokIcon = faTiktok;
 	readonly inventoryIcon = faSuitcaseRolling;
 	readonly contactEmail = contactEmail;
 	readonly contactDiscord = contactDiscord;
@@ -375,8 +375,8 @@ export class App implements OnInit, OnDestroy, DoCheck {
 				error: error && error.message ? error.message : 'Connection lost',
 			}));
 
-		Promise.all([signOutPromise, delay(5000)])
-			.then(([result]) => {
+		signOutPromise
+			.then(result => {
 				if (!result.success) {
 					this.signOutError = result.error || 'Connection lost';
 				}

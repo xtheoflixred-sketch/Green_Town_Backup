@@ -28,7 +28,8 @@
   height: 560px;
   max-height: 95vh;
   background: rgba(26, 26, 26, 0.98);
-  color: #fff;
+  /* softer, less 'white' text color */
+  color: rgba(255, 255, 255, 0.9);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -80,15 +81,21 @@
 .accounts-list li {
   display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 6px; cursor: pointer;
   border: 1px solid transparent;
+  transition: background 160ms ease-in-out, border-color 160ms ease-in-out, box-shadow 160ms ease-in-out;
 }
-.accounts-list li:hover { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.03); }
-.accounts-list li.selected { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03); }
+.accounts-list li:hover { background: rgba(148,163,184,0.03); border-color: rgba(148,163,184,0.04); }
+.accounts-list li.selected {
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,0.04);
+  /* keep visual similar to hover even when not hovered */
+  background: rgba(148,163,184,0.03);
+  border-color: rgba(148,163,184,0.04);
+}
 
 .account-info { flex: 1; min-width: 0; }
-.account-name { font-weight: 600; font-size: 1rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.account-id, .account-last-visit { font-size: 0.75rem; color: rgba(255,255,255,0.6); font-family: monospace; }
+.account-name { font-weight: 600; font-size: 1rem; color: rgba(230,235,240,0.95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-id, .account-last-visit { font-size: 0.75rem; color: rgba(148,163,184,0.7); font-family: monospace; }
 
-.selection-indicator { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; }
+.selection-indicator { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(148,163,184,0.18); flex-shrink: 0; }
 .accounts-list li.selected .selection-indicator { background: #4a5568; border-color: #4a5568; }
 
 .error { color: #f86c6b; font-size: 0.95rem; }
@@ -100,16 +107,16 @@
 /* Modern, minimal scrollbar: thin thumb, no arrows */
 .accounts-list {
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: rgba(255,255,255,0.06) transparent;
+  scrollbar-color: rgba(148,163,184,0.06) transparent;
 }
 .accounts-list::-webkit-scrollbar { width: 8px; }
 .accounts-list::-webkit-scrollbar-track { background: transparent; }
 .accounts-list::-webkit-scrollbar-thumb {
-  background-color: rgba(255,255,255,0.06);
+  background-color: rgba(148,163,184,0.06);
   border-radius: 6px;
   border: 1px solid rgba(0,0,0,0.18);
 }
-.accounts-list::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.10); }
+.accounts-list::-webkit-scrollbar-thumb:hover { background-color: rgba(148,163,184,0.10); }
 .accounts-list::-webkit-scrollbar-button { display: none; }
 
 /* Slightly larger portraits for readability */
@@ -161,7 +168,7 @@
 .modal-footer .flex-grow-1 { flex: 1; }
 
 /* Primary button aligned with game accent */
-.modal-footer .btn-primary { background: #d9884a; border-color: rgba(0,0,0,0.12); color: #fff; }
+.modal-footer .btn-primary { background: #d9884a; border-color: rgba(0,0,0,0.12); color: #ffffff6c; }
 
 @media (max-width: 480px) {
   .mock-login-modal { width: 95vw; }
@@ -189,7 +196,7 @@
   width: 460px;
   max-width: 95vw;
   background: rgba(26, 26, 26, 0.98);
-  color: #fff;
+  color: rgba(230,235,240,0.95);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -218,23 +225,24 @@
   margin-bottom: 14px;
 }
 
+
 .create-account-modal label {
   display: block;
   margin-bottom: 8px;
-  color: rgba(255,255,255,0.85);
+  color: rgba(148,163,184,0.85);
 }
 
 .create-account-modal .form-control {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #fff;
+  background: rgba(148,163,184,0.03);
+  border: 1px solid rgba(148,163,184,0.06);
+  color: rgba(230,235,240,0.95);
 }
 
 .create-account-modal .pony-preview-card {
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(148,163,184,0.06);
   border-radius: 10px;
   padding: 14px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(148,163,184,0.02);
 }
 
 .create-account-modal .preview-wrapper {
@@ -247,7 +255,7 @@
 
 .create-account-modal .pony-preview-name {
   font-size: 0.95rem;
-  color: rgba(255,255,255,0.75);
+  color: rgba(148,163,184,0.75);
   text-align: center;
 }
 

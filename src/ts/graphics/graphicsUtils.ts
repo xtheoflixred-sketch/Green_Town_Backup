@@ -620,6 +620,7 @@ function getVisibleBubbles(entity: Entity, hidePublic: boolean) {
 	function drawChatBaloon(
 		batch: PaletteSpriteBatch, entity: Entity, camera: Camera, palettes: CommonPalettes,
 		player: Pony | undefined, partyBubbles: boolean, hidePublic: boolean, hover: Point, screenHover?: Point,
+		canHighlightBubble?: (entity: Entity) => boolean,
 	) {
 		const bubbles = getVisibleBubbles(entity, hidePublic);
 
@@ -640,7 +641,8 @@ function getVisibleBubbles(entity: Entity, hidePublic: boolean) {
 
 			if (party === partyBubbles) {
 				const hovered = !!screenHover && containsScreenPoint(getBaloonBodyRect(says, x, yy, camera), screenHover);
-				drawBaloon(batch, says, x, yy, camera, palettes, showPointer, hovered ? CHAT_HOVER_BUBBLE_COLOR : BLACK);
+				const shouldHighlight = hovered && (!canHighlightBubble || canHighlightBubble(entity));
+				drawBaloon(batch, says, x, yy, camera, palettes, showPointer, shouldHighlight ? CHAT_HOVER_BUBBLE_COLOR : BLACK);
 			}
 		}
 	}
@@ -666,19 +668,19 @@ function getVisibleBubbles(entity: Entity, hidePublic: boolean) {
 
 	export function drawChat(
 		batch: PaletteSpriteBatch, entities: Entity[], player: Pony | undefined, camera: Camera, drawHidden: boolean, palettes: CommonPalettes,
-		hidePublic: boolean, hover: Point, screenHover?: Point,
+		hidePublic: boolean, hover: Point, screenHover?: Point, canHighlightBubble?: (entity: Entity) => boolean,
 	) {
 		sortEntities(entities);
 
 		for (const entity of entities) {
 			if (!isHidden(entity) || drawHidden) {
-				drawChatBaloon(batch, entity, camera, palettes, player, false, hidePublic, hover, screenHover);
+				drawChatBaloon(batch, entity, camera, palettes, player, false, hidePublic, hover, screenHover, canHighlightBubble);
 			}
 		}
 
 		for (const entity of entities) {
 			if (!isHidden(entity) || drawHidden) {
-				drawChatBaloon(batch, entity, camera, palettes, player, true, hidePublic, hover, screenHover);
+				drawChatBaloon(batch, entity, camera, palettes, player, true, hidePublic, hover, screenHover, canHighlightBubble);
 			}
 		}
 

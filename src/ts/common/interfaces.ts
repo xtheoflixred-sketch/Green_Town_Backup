@@ -724,6 +724,9 @@ export interface AccountSettings {
 	seeThroughObjects?: boolean;
 	disableUI?: boolean;
 	chatlogRange?: number;
+	chatBubbleLimit?: number;
+	showChatBubbleProfiles?: boolean;
+	showOwnChatBubbleProfile?: boolean;
 	actions?: string;
 	hidden?: boolean;
 	showAsOfflineFor?: string[];

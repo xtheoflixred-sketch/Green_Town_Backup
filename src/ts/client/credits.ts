@@ -1,4 +1,4 @@
-import { partyLeaderIcon, faStar, faUserCog, faCode, faPaintBrush, faDesktop, faIdBadge, faVolumeUp, faMusic, faTerminal, faHammer } from './icons';
+import { partyLeaderIcon, faStar, faUserCog, faCode, faPaintBrush, faDesktop, faIdBadge, faTiktok, faMusic, faTerminal, faHammer } from './icons';
 
 export interface Badge {
 	id: string;
@@ -80,7 +80,7 @@ const BADGES = {
 		id: 'devMusic',
 		label: 'Dev Musician',
 		color: '#bd3e91',
-		icon: faVolumeUp,
+		icon: faMusic,
 	},
 	dev: {
 		id: 'dev',
@@ -152,7 +152,7 @@ const BADGES = {
 		id: 'tiktoker',
 		label: 'Tiktoker',
 		color: '#212121',
-		icon: faMusic,
+		icon: faTiktok,
 	},
 	trialMember: {
 		id: 'trialMember',
@@ -165,33 +165,19 @@ const BADGES = {
 // Credits
 export const CREDITS: Credit[] = [
 	{
-		name: 'Loreine',
+		name: 'KOKOSIK',
 		badges: [BADGES.owner, BADGES.tiktoker],
 		avatarSkin: 'loreine-pony',
 		avatarBgColor: 'rgb(134, 118, 98)',
-		links: ['https://www.tiktok.com/@loreine_forever01?_r=1&_t=ZS-96i7CBKSzdX'],
+		links: ['https://www.tiktok.com/@pupirka_67a6?_r=1&_t=ZS-98bHK9s6LTT'],
 	},
 	{
-		name: 'Kreyser',
+		name: 'Del',
 		badges: [BADGES.dev, BADGES.gameDesigner, BADGES.wibecoder],
 		avatarSkin: 'kreyser-pony',
 		avatarBgColor: 'rgb(43, 46, 53)',
 		links: [],
 	},
-	{
-		name: 'A-X-L',
-		badges: [BADGES.builder, BADGES.artist, BADGES.anim],
-		avatarSkin: 'axl-pony',
-		avatarBgColor: '#735f5f',
-		links: [],
-	},
-	{
-		name: 'Fieramore',
-		badges: [BADGES.artist],
-		avatarSkin: 'fieramore-pony',
-		avatarBgColor: 'rgb(95 130 149)',
-		links: ['https://t.me/HGandJY']
-	}
 ];
 
 

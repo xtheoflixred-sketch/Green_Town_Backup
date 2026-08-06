@@ -1236,8 +1236,16 @@ export class PonyTownGame implements Game {
 			updateScreenHover,
 		);
 
+		const canHoverChatBubbleProfile = (entity: Pony) => {
+			const isOwnBubble = entity.id === (this.player ? this.player.id : undefined);
+			return isOwnBubble
+				? !!this.settings.account.showOwnChatBubbleProfile
+				: !!this.settings.account.showChatBubbleProfiles;
+		};
+
 		// Update hover state only if entity actually changed
-		if (hoveredChatEntity && hoveredChatEntity.type === PONY_TYPE) {
+		const shouldHighlightChatBubble = hoveredChatEntity && hoveredChatEntity.type === PONY_TYPE && canHoverChatBubbleProfile(hoveredChatEntity as Pony);
+		if (shouldHighlightChatBubble) {
 			const newHoveredPony = hoveredChatEntity as Pony;
 			// Reset old hovered pony if it changed
 			if (this._hoveredChatPony && this._hoveredChatPony !== newHoveredPony) {
@@ -1250,6 +1258,10 @@ export class PonyTownGame implements Game {
 			this._hoveredChatPony.chatHoverColor = HOVER_OUTLINE_COLOR;
 		} else if (hoveredChatEntity === undefined && this._hoveredChatPony) {
 			// Only clear hover if no entity is hovered (not just different entity)
+			this._hoveredChatPony.chatHovered = false;
+			this._hoveredChatPony.chatHoverColor = undefined;
+			this._hoveredChatPony = undefined;
+		} else if (this._hoveredChatPony && (!hoveredChatEntity || hoveredChatEntity.type !== PONY_TYPE || !canHoverChatBubbleProfile(hoveredChatEntity as Pony))) {
 			this._hoveredChatPony.chatHovered = false;
 			this._hoveredChatPony.chatHoverColor = undefined;
 			this._hoveredChatPony = undefined;
@@ -1425,7 +1437,57 @@ export class PonyTownGame implements Game {
 					   if (BETA && this.editor.selectingEntities) {
 						   editorSelectEntities(this, hover, shift);
 					   } else if (chatEntity && chatEntity.type === PONY_TYPE) {
-						   this.select(chatEntity as Pony);
+						   const playerId = this.player ? this.player.id : undefined;
+								   const isOwnBubble = chatEntity.id === playerId;
+						   const canOpenBubbleProfile = isOwnBubble
+							   ? !!this.settings.account.showOwnChatBubbleProfile
+							   : !!this.settings.account.showChatBubbleProfiles;
+						   if (canOpenBubbleProfile) {
+							   this.select(chatEntity as Pony);
+						   } else if (pickedEntity && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
+							   if (pickedEntity.type === PONY_TYPE) {
+								   this.select(pickedEntity as Pony);
+							   } else if (entityInRange(pickedEntity, player)) {
+								   server.interact(pickedEntity.id, hover.x, hover.y);
+							   }
+						   } else if (this.selected && distanceXY(player.x, player.y, hover.x, hover.y) >= TILE_CHANGE_RANGE) {
+							   if (nowClick >= this.ignoreSelectionClearUntil) {
+								   this.select(undefined);
+							   }
+						   } else if (handleBuildingActionClick(
+							   this,
+							   player,
+							   hover,
+							   server,
+							   holdingRemoveTool,
+							   holdingPlaceTool,
+							   editableMap,
+						   )) {
+						   } else if (clickNearSelf && isDouble) {
+							   // Взгляд только если не выбран инструмент дома
+							   const { x: headX, y: headY } = this.getHeadLookAnchor(player);
+							   const iris = this.getLookIrisFromHeadDelta(hover.x - headX, hover.y - headY);
+							   this.setIris(iris);
+							   this.lastEyeClickTime = 0;
+						   } else if (clickNearSelf && !isDouble) {
+							   this.lastEyeClickTime = nowClick;
+							   if (this.selected) {
+								   if (nowClick >= this.ignoreSelectionClearUntil) {
+									   this.select(undefined);
+								   }
+							   } else if (hasFlag(this.map.flags, MapFlags.EdibleGrass)) {
+								   const tile = getTile(this.map, hover.x, hover.y);
+								   if (isValidTile(tile) && distanceXY(player.x, player.y, hover.x, hover.y) < TILE_CHANGE_RANGE) {
+									   const x = hover.x | 0;
+									   const y = hover.y | 0;
+									   let type = tile === TileType.Grass ? TileType.Dirt : TileType.Grass;
+									   server.changeTile(x, y, type);
+								   }
+							   } else if (DEVELOPMENT && this.engine === Engine.LayeredTiles && this.editor.elevation) {
+								   const value = getElevation(this.map, hover.x, hover.y);
+								   setElevation(this.map, hover.x, hover.y, clamp(this.editor.elevation === 'up' ? value + 1 : value - 1, 0, 10));
+							   }
+						   }
 					   } else if (pickedEntity && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
 						   if (pickedEntity.type === PONY_TYPE) {
 							   this.select(pickedEntity as Pony);
@@ -1879,6 +1941,15 @@ export class PonyTownGame implements Game {
 			drawNames(
 				paletteBatch, nameEntities, this.player, this.party, this.camera, this.hover, this.mod, palettes,
 				!!this.settings.account.alwaysShowTags);
+			const canHighlightBubble = (entity: Entity) => {
+				if (entity.type !== PONY_TYPE) {
+					return false;
+				}
+				const isOwnBubble = entity.id === (this.player ? this.player.id : undefined);
+				return isOwnBubble
+					? !!this.settings.account.showOwnChatBubbleProfile
+					: !!this.settings.account.showChatBubbleProfiles;
+			};
 			drawChat(
 					paletteBatch,
 					this.map.entitiesWithChat,
@@ -1888,7 +1959,8 @@ export class PonyTownGame implements Game {
 					palettes,
 					this.hidePublicChat,
 					this.hover,
-					point(this.input.pointerX / textScale, this.input.pointerY / textScale));
+					point(this.input.pointerX / textScale, this.input.pointerY / textScale),
+					canHighlightBubble);
 		} else if (!this.loaded) {
 			if (this.placeInQueue) {
 				this.drawMessage(this.webgl, `Waiting in queue (${this.placeInQueue})`);

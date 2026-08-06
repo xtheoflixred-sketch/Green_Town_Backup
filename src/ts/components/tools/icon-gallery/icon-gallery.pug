@@ -5,7 +5,7 @@
 		.category(*ngFor="let category of filteredCategories")
 			h4.category-title {{ category.name }}
 			.icons-grid
-				.icon-item(*ngFor="let item of category.icons" (click)="copyToClipboard(item.name)" title="Click to copy")
+				.icon-item(*ngFor="let item of category.icons" (click)="copyToClipboard(item.name)" [tooltip]="item.copied ? 'copied' : 'copy name'" placement="top" [attr.data-copied]="item.copied ? 'true' : null")
 					.icon-display
 						fa-icon([icon]="item.icon")
 					.icon-name {{ item.name }}

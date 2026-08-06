@@ -10,7 +10,7 @@ import { toScreenX, toScreenY } from './positionUtils';
 import { releasePalette } from '../graphics/paletteManager';
 import { rect } from './rect';
 import { addOrRemoveFromEntityList } from './worldMap';
-import { PONY_TYPE, CHAT_BUBBLES_LIMIT } from './constants';
+import { PONY_TYPE, CHAT_BUBBLES_LIMIT, DEFAULT_CHAT_BUBBLES_LIMIT } from './constants';
 import { isStaticCollision } from './collision';
 
 export function releaseEntity(entity: Entity) {
@@ -45,11 +45,15 @@ function syncChatBubbles(entity: Entity, bubbles: Says[]) {
 	}
 }
 
-export function addChatBubble(map: WorldMap, entity: Entity, says: Says) {
+export function addChatBubble(map: WorldMap, entity: Entity, says: Says, limit = CHAT_BUBBLES_LIMIT) {
 	const bubbles = getChatBubbles(entity).filter(bubble => !isTypingIndicatorMessage(bubble.message));
 	bubbles.unshift(says);
-	syncChatBubbles(entity, bubbles.slice(0, CHAT_BUBBLES_LIMIT));
+	syncChatBubbles(entity, bubbles.slice(0, limit));
 	pushUniq(map.entitiesWithChat, entity);
+}
+
+export function getChatBubbleLimit(limit: number | undefined) {
+	return Math.max(1, Math.min(6, limit || DEFAULT_CHAT_BUBBLES_LIMIT));
 }
 
 export function updateEntityVelocity(map: WorldMap, entity: Entity, vx: number, vy: number) {

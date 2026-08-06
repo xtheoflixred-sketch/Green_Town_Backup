@@ -1,4 +1,4 @@
-import { range, compact, escapeRegExp } from 'lodash';
+import { range, compact, escapeRegExp, random } from 'lodash';
 // Speed and time command fixes
 import {
 	MessageType, ChatType, Expression, Eye, Muzzle, Action, Weather, toAnnouncementMessageType, EntityState, TileType,
@@ -17,7 +17,7 @@ import {
 	getCounter, holdToy, getCollectedToysCount, getCollectedToysList, holdItem, rareHoldTypeNames, playerSleep, playerBlush, playerLove, playerCry,
 	setEntityExpression, execAction, teleportTo, openGift
 } from './playerUtils';
-import { updateEntityOptions, setEntityAnimation } from './entityUtils';
+import { updateEntityOptions, setEntityAnimation, updateEntityVelocity } from './entityUtils';
 import { ServerLiveSettings, GameServerSettings } from '../common/adminInterfaces';
 import { isCommand, processCommand, clamp, flatten, includes, randomPoint, parseSeason, parseHoliday, toInt, formatPlaytime, formatISODate, hasFlag } from '../common/utils';
 import { formatHourMinutes } from '../common/timeUtils';
@@ -61,6 +61,7 @@ const maxBunnyRadius = 15.0;
 const summonedBunnies = new WeakMap<IClient, ServerEntity[]>();
 const freeBunnies = new WeakMap<IClient, ServerEntity[]>();
 const bunnyOptions = new WeakMap<IClient, { count: number; radius: number; mode: 'circle' | 'stay' | 'free'; shape: 'none' | 'circle' | 'triangle' | 'square' | 'diamond' | 'heart' }>();
+const armyBattleStates = new WeakMap<IClient, { attacker: IClient; defender: IClient; attackerBunnies: ServerEntity[]; defenderBunnies: ServerEntity[]; settings: GameServerSettings; completed: boolean; outcome: 'attacker' | 'defender' | 'draw'; }>();
 
 function getBunnyOptions(client: IClient) {
 	let options = bunnyOptions.get(client);
@@ -71,6 +72,64 @@ function getBunnyOptions(client: IClient) {
 	}
 
 	return options;
+}
+
+function findArmyTargetClient(world: World, query: string, excludeClient?: IClient) {
+	const normalized = query.trim().toLowerCase();
+	if (!normalized) {
+		return undefined;
+	}
+
+	return world.clients.find(client => {
+		if (excludeClient && client === excludeClient) {
+			return false;
+		}
+
+		const accountName = (client.accountName || '').toLowerCase();
+		const ponyName = (client.pony.name || '').toLowerCase();
+		return accountName === normalized || ponyName === normalized || accountName.includes(normalized) || ponyName.includes(normalized);
+	});
+}
+
+function transferArmyToClient(fromClient: IClient, toClient: IClient) {
+	const summoned = summonedBunnies.get(fromClient) || [];
+	const free = freeBunnies.get(fromClient) || [];
+	const allBunnies = [...summoned, ...free];
+
+	if (!allBunnies.length) {
+		return false;
+	}
+
+	if (summonedBunnies.get(toClient) || freeBunnies.get(toClient)) {
+		return false;
+	}
+
+	summonedBunnies.delete(fromClient);
+	freeBunnies.delete(fromClient);
+
+	if (summoned.length) {
+		summonedBunnies.set(toClient, summoned);
+	}
+
+	if (free.length) {
+		freeBunnies.set(toClient, free);
+	}
+
+	for (const bunny of allBunnies) {
+		const entityState = bunny as any;
+		entityState.bunnyArmyOwner = toClient;
+		entityState.bunnyCaptainOwner = toClient;
+		entityState.bunnyArmyFollowMode = true;
+		entityState.bunnyArmyWanderUntil = 0;
+		entityState.bunnyArmyWanderTargetX = entityState.bunnyArmyWanderTargetX || bunny.x;
+		entityState.bunnyArmyWanderTargetY = entityState.bunnyArmyWanderTargetY || bunny.y;
+		entityState.bunnyArmyForwardX = entityState.bunnyArmyForwardX || 1;
+		entityState.bunnyArmyForwardY = entityState.bunnyArmyForwardY || 0;
+		entityState.bunnyArmyCaptain = false;
+		entityState.bunnyCaptainMessageShown = true;
+	}
+
+	return true;
 }
 
 function clearSummonedBunnies(client: IClient, world: World) {
@@ -167,8 +226,351 @@ function getFormationOffsets(count: number, radius: number, shape: 'none' | 'cir
 	return offsets;
 }
 
+function getArmyFormationOffsets(count: number, spacing: number = 0.25, offsetX: number = 0, offsetY: number = 0) {
+	const side = Math.max(1, Math.ceil(Math.sqrt(Math.max(1, count))));
+	const offsets: { x: number; y: number }[] = [];
+	const halfSide = (side - 1) / 2;
+
+	for (let i = 0; i < count; i++) {
+		const row = Math.floor(i / side);
+		const col = i % side;
+		const x = (col - halfSide) * spacing + offsetX;
+		const y = (row - halfSide) * spacing + offsetY;
+		offsets.push({ x, y });
+	}
+
+	return offsets;
+}
+
+function getArmyLineFormationOffsets(count: number, spacing: number = 0.25, offsetX: number = 0, offsetY: number = 0) {
+	const offsets: { x: number; y: number }[] = [];
+	const halfCount = (count - 1) / 2;
+
+	for (let i = 0; i < count; i++) {
+		const x = (i - halfCount) * spacing + offsetX;
+		offsets.push({ x, y: offsetY });
+	}
+
+	return offsets;
+}
+
+function applyArmyState(bunnies: ServerEntity[], mode: 'stay' | 'free') {
+	for (const bunny of bunnies) {
+		const entityState = bunny as any;
+		entityState.bunnyMode = mode;
+		entityState.bunnyArmyMode = mode;
+		entityState.bunnyArmyFollowMode = true;
+		entityState.bunnyArmyWanderUntil = 0;
+	}
+	return bunnies;
+}
+
+function assignArmyCaptain(client: IClient, bunnies: ServerEntity[], settings: GameServerSettings) {
+	if (!bunnies.length) {
+		return undefined;
+	}
+
+	const captain = bunnies[Math.floor(Math.random() * bunnies.length)];
+	const side = Math.max(1, Math.ceil(Math.sqrt(Math.max(1, bunnies.length))));
+	const halfSide = (side - 1) / 2;
+	const spacing = 0.35;
+	const captainMessages = [
+		'Вперёд, за мной!',
+		'Собираю строй!'
+	];
+	const followerMessages = [
+		'Пух-пух, рядом!',
+		'За командира!'
+	];
+
+	for (let index = 0; index < bunnies.length; index++) {
+		const bunny = bunnies[index];
+		const entityState = bunny as any;
+		entityState.bunnyArmyCaptain = bunny === captain;
+		entityState.bunnyCaptainOwner = client;
+		entityState.bunnyArmyOwner = client;
+		entityState.bunnyArmyLeader = captain;
+		entityState.bunnyArmyFollowMode = true;
+		entityState.bunnyArmyMode = entityState.bunnyArmyMode || 'stay';
+		entityState.bunnyCaptainMessageShown = true;
+		entityState.bunnyArmyWanderUntil = 0;
+		entityState.bunnyArmyAnchorX = entityState.bunnyArmyAnchorX !== undefined ? entityState.bunnyArmyAnchorX : bunny.x;
+		entityState.bunnyArmyAnchorY = entityState.bunnyArmyAnchorY !== undefined ? entityState.bunnyArmyAnchorY : bunny.y;
+		entityState.bunnyArmyWanderTargetX = bunny.x;
+		entityState.bunnyArmyWanderTargetY = bunny.y;
+		entityState.bunnyArmyForwardX = entityState.bunnyArmyForwardX !== undefined ? entityState.bunnyArmyForwardX : 1;
+		entityState.bunnyArmyForwardY = entityState.bunnyArmyForwardY !== undefined ? entityState.bunnyArmyForwardY : 0;
+		entityState.bunnyAiNextMessageAt = entityState.bunnyAiNextMessageAt || (Date.now() / 1000 + random(30, 45, true));
+
+		const row = Math.floor(index / side);
+		const col = index % side;
+		entityState.bunnyArmyOffsetX = (col - halfSide) * spacing;
+		entityState.bunnyArmyOffsetY = (row - halfSide) * spacing;
+
+		const originalUpdate = bunny.serverUpdate;
+		bunny.serverUpdate = (_delta: number, now: number) => {
+			if (entityState.bunnyAiNextMessageAt && now >= entityState.bunnyAiNextMessageAt) {
+				entityState.bunnyAiNextMessageAt = now + random(35, 55, true);
+				if (Math.random() < 0.04) {
+					const phrases = bunny === captain ? captainMessages : followerMessages;
+					const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+					sayToAll(bunny, phrase, phrase, MessageType.Chat, settings);
+				}
+			}
+
+			if (bunny === captain) {
+				let targetX = captain.x + 1.4;
+				let targetY = captain.y;
+
+				if (entityState.bunnyArmyMode === 'free') {
+					if (!entityState.bunnyArmyWanderUntil || now >= entityState.bunnyArmyWanderUntil) {
+						const forwardX = entityState.bunnyArmyForwardX !== undefined ? entityState.bunnyArmyForwardX : 1;
+						const forwardY = entityState.bunnyArmyForwardY !== undefined ? entityState.bunnyArmyForwardY : 0;
+						const length = Math.sqrt(forwardX * forwardX + forwardY * forwardY) || 1;
+						const dirX = forwardX / length;
+						const dirY = forwardY / length;
+						const lateral = (Math.random() - 0.5) * 0.35;
+						const distance = 1.2 + Math.random() * 0.7;
+						entityState.bunnyArmyWanderTargetX = captain.x + dirX * distance + 1.2 + lateral;
+						entityState.bunnyArmyWanderTargetY = captain.y + dirY * distance * 0.6 + (Math.random() - 0.5) * 0.2;
+						entityState.bunnyArmyWanderUntil = now + random(4.2, 7.0, true);
+						entityState.bunnyArmyForwardX = dirX;
+						entityState.bunnyArmyForwardY = dirY;
+					}
+					targetX = entityState.bunnyArmyWanderTargetX;
+					targetY = entityState.bunnyArmyWanderTargetY;
+				}
+
+				const dx2 = targetX - captain.x;
+				const dy2 = targetY - captain.y;
+				const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+				if (dist2 > 0.2) {
+					const speed = entityState.bunnyArmyMode === 'free' ? 2.4 : 2.0;
+					updateEntityVelocity(captain, (dx2 / dist2) * speed, (dy2 / dist2) * speed, now);
+					setEntityAnimation(captain, BunnyAnimation.Walk, dx2 > 0);
+				} else {
+					updateEntityVelocity(captain, 0, 0, now);
+					setEntityAnimation(captain, BunnyAnimation.Sit);
+				}
+				return;
+			}
+
+			const leader = entityState.bunnyArmyLeader as ServerEntity | undefined;
+			if (!leader || !entityState.bunnyArmyFollowMode || leader === bunny) {
+				if (originalUpdate) {
+					originalUpdate(_delta, now);
+				}
+				return;
+			}
+
+			if (!entityState.bunnyArmyWanderUntil || now >= entityState.bunnyArmyWanderUntil) {
+				const leaderState = leader as any;
+				const forwardX = leaderState && leaderState.bunnyArmyForwardX !== undefined ? leaderState.bunnyArmyForwardX : (entityState.bunnyArmyForwardX !== undefined ? entityState.bunnyArmyForwardX : 1);
+				const forwardY = leaderState && leaderState.bunnyArmyForwardY !== undefined ? leaderState.bunnyArmyForwardY : (entityState.bunnyArmyForwardY !== undefined ? entityState.bunnyArmyForwardY : 0);
+				const length = Math.sqrt(forwardX * forwardX + forwardY * forwardY) || 1;
+				const dirX = forwardX / length;
+				const dirY = forwardY / length;
+				const driftX = (Math.random() - 0.5) * 0.2;
+				const driftY = (Math.random() - 0.5) * 0.1;
+				entityState.bunnyArmyWanderTargetX = leader.x + entityState.bunnyArmyOffsetX * 1.4 + dirX * 0.55 + driftX;
+				entityState.bunnyArmyWanderTargetY = leader.y + entityState.bunnyArmyOffsetY * 1.4 + dirY * 0.35 + driftY;
+				entityState.bunnyArmyForwardX = dirX;
+				entityState.bunnyArmyForwardY = dirY;
+				entityState.bunnyArmyWanderUntil = now + random(4.5, 7.5, true);
+			}
+
+			const targetX = entityState.bunnyArmyWanderTargetX;
+			const targetY = entityState.bunnyArmyWanderTargetY;
+			const dx2 = targetX - bunny.x;
+			const dy2 = targetY - bunny.y;
+			const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+
+			if (dist2 > 0.25) {
+				const speed = entityState.bunnyArmyMode === 'free' ? 2.9 : 2.6;
+				updateEntityVelocity(bunny, (dx2 / dist2) * speed, (dy2 / dist2) * speed, now);
+				setEntityAnimation(bunny, BunnyAnimation.Walk, dx2 > 0);
+			} else {
+				updateEntityVelocity(bunny, 0, 0, now);
+				setEntityAnimation(bunny, BunnyAnimation.Sit);
+			}
+		};
+	}
+
+	return captain;
+}
+
+function createFormationBunnies(
+	client: IClient,
+	world: World,
+	map: ServerMap,
+	player: IClient['pony'],
+	offsets: { x: number; y: number }[],
+	mode: 'circle' | 'stay' | 'free',
+	radius: number,
+	shape: 'none' | 'circle' | 'triangle' | 'square' | 'diamond' | 'heart',
+	preserveOffsets: boolean,
+) {
+	const created: ServerEntity[] = [];
+
+	for (let i = 0; i < offsets.length; i++) {
+		const offset = offsets[i];
+		const initialPhase = offsets.length > 1 ? (i / offsets.length) * Math.PI * 2 : 0;
+		const bunnyEntities = createFollowerBunny(player, offset.x, offset.y, mode, radius, shape, initialPhase, false, client.map, preserveOffsets);
+
+		for (const bunny of bunnyEntities) {
+			world.addEntity(bunny, map);
+			created.push(bunny);
+		}
+	}
+
+	return created;
+}
+
 function getSummonedBunnies(client: IClient): ServerEntity[] {
 	return summonedBunnies.get(client) || [];
+}
+
+function resolveArmyOutcome(attackerCount: number, defenderCount: number) {
+	const total = attackerCount + defenderCount;
+	const strengthDiff = (attackerCount - defenderCount) / Math.max(1, total);
+	const randomBias = random(-0.16, 0.16, true);
+	const score = strengthDiff + randomBias;
+
+	if (score > 0.06) {
+		return 'attacker' as const;
+	}
+
+	if (score < -0.06) {
+		return 'defender' as const;
+	}
+
+	return 'draw' as const;
+}
+
+function getNearbyArmyTargets(client: IClient, world: World): IClient[] {
+	const myBunnies = getSummonedBunnies(client);
+	if (!myBunnies.length) {
+		return [];
+	}
+
+	const { x, y } = client.pony;
+	return world.clients.filter(other => {
+		if (other === client || other.map !== client.map) {
+			return false;
+		}
+
+		const otherBunnies = getSummonedBunnies(other);
+		if (!otherBunnies.length) {
+			return false;
+		}
+
+		const dx = other.pony.x - x;
+		const dy = other.pony.y - y;
+		const dist = Math.sqrt(dx * dx + dy * dy);
+		return dist <= 12;
+	});
+}
+
+function attachBattleBehavior(entity: ServerEntity, side: 'attacker' | 'defender', battleState: { attacker: IClient; defender: IClient; attackerBunnies: ServerEntity[]; defenderBunnies: ServerEntity[]; settings: GameServerSettings; completed: boolean; outcome: 'attacker' | 'defender' | 'draw'; }, world: World) {
+	const entityState = entity as any;
+	let lastAnimationAt = 0;
+
+	entityState.battleSession = battleState;
+	entity.serverUpdate = (_delta, now) => {
+		if (battleState.completed) {
+			return;
+		}
+
+		const targetClient = side === 'attacker' ? battleState.defender : battleState.attacker;
+		const target = targetClient.pony;
+		const midpointX = (target.x + (side === 'attacker' ? battleState.attacker.pony.x : battleState.defender.pony.x)) / 2;
+		const midpointY = (target.y + (side === 'attacker' ? battleState.attacker.pony.y : battleState.defender.pony.y)) / 2;
+		const dx = midpointX - entity.x;
+		const dy = midpointY - entity.y;
+		const dist = Math.sqrt(dx * dx + dy * dy);
+
+		if (now >= lastAnimationAt) {
+			lastAnimationAt = now + random(0.3, 1.2, true);
+			const animations = [BunnyAnimation.Blink, BunnyAnimation.Look, BunnyAnimation.Clean, BunnyAnimation.Sit, BunnyAnimation.Walk];
+			const animation = animations[Math.floor(Math.random() * animations.length)];
+			setEntityAnimation(entity, animation);
+		}
+
+		if (dist < 0.8) {
+			world.removeEntityFromSomeMap(entity);
+			entityState.battleDead = true;
+			entity.serverUpdate = undefined;
+
+			const list = side === 'attacker' ? battleState.attackerBunnies : battleState.defenderBunnies;
+			const index = list.indexOf(entity);
+			if (index !== -1) {
+				list.splice(index, 1);
+			}
+
+			const attackerRemaining = battleState.attackerBunnies.length;
+			const defenderRemaining = battleState.defenderBunnies.length;
+			if (attackerRemaining === 0 || defenderRemaining === 0) {
+				battleState.completed = true;
+				const attackerName = battleState.attacker.pony.name || 'Армия A';
+				const defenderName = battleState.defender.pony.name || 'Армия B';
+				const outcome = battleState.outcome;
+				if (outcome === 'draw') {
+					const message = `Ничья между ${attackerName} и ${defenderName}!`;
+					sayToOthers(battleState.attacker, message, MessageType.Announcement, undefined, battleState.settings);
+					sayToOthers(battleState.defender, message, MessageType.Announcement, undefined, battleState.settings);
+				} else if (outcome === 'attacker') {
+					const message = `${attackerName} победили!`;
+					sayToOthers(battleState.attacker, message, MessageType.Announcement, undefined, battleState.settings);
+					sayToOthers(battleState.defender, `${defenderName} проиграли.`, MessageType.Announcement, undefined, battleState.settings);
+				} else {
+					const message = `${defenderName} победили!`;
+					sayToOthers(battleState.defender, message, MessageType.Announcement, undefined, battleState.settings);
+					sayToOthers(battleState.attacker, `${attackerName} проиграли.`, MessageType.Announcement, undefined, battleState.settings);
+				}
+			}
+			return;
+		}
+
+		const speed = 4.5 + random(0.2, 0.9, true);
+		const vx = (dx / dist) * speed;
+		const vy = (dy / dist) * speed;
+		updateEntityVelocity(entity, vx, vy, now);
+	};
+}
+
+function startArmyBattle(client: IClient, world: World, opponent: IClient, settings: GameServerSettings) {
+	const attackerBunnies = getSummonedBunnies(client).slice();
+	const defenderBunnies = getSummonedBunnies(opponent).slice();
+	if (!attackerBunnies.length || !defenderBunnies.length) {
+		return false;
+	}
+
+	const battleState = {
+		attacker: client,
+		defender: opponent,
+		attackerBunnies,
+		defenderBunnies,
+		settings,
+		completed: false,
+		outcome: resolveArmyOutcome(attackerBunnies.length, defenderBunnies.length),
+	};
+
+	summonedBunnies.delete(client);
+	freeBunnies.delete(client);
+	summonedBunnies.delete(opponent);
+	freeBunnies.delete(opponent);
+	armyBattleStates.set(client, battleState as any);
+	armyBattleStates.set(opponent, battleState as any);
+
+	for (const bunny of attackerBunnies) {
+		attachBattleBehavior(bunny, 'attacker', battleState as any, world);
+	}
+
+	for (const bunny of defenderBunnies) {
+		attachBattleBehavior(bunny, 'defender', battleState as any, world);
+	}
+
+	return true;
 }
 
 function setSummonedBunnyAnimation(client: IClient, animation: BunnyAnimation) {
@@ -1661,7 +2063,7 @@ export function createCommands(world: World): Command[] {
 		}, false, 'Owner'),
 
 		// Bunny summon command - manages follower bunnies around the player
-		command(['bunnies', 'summonbunnies'], '/bunnies - вызов управления кроликами; подробности через help или ?', '', ({ world }, client, message) => {
+		command(['bunnies', 'summonbunnies'], '/bunnies - вызов управления кроликами; подробности через help или ?', '', ({ world }, client, message, _, __, settings) => {
 			const map = client.map;
 			const player = client.pony;
 			const options = getBunnyOptions(client);
@@ -1691,7 +2093,7 @@ export function createCommands(world: World): Command[] {
 			}
 
 			if (subcommand === '?' || subcommand === 'help') {
-				saySystem(client, '/bunnies ? - управление кроликами:\ncount <n> - число кроликов\nshow - статус\nclear - убрать кроликов\nfree - освободить кроликов\nrecall - призвать свободных кроликов\nsize <0.1..15> - радиус разброса\nshape <none|circle|triangle|square|diamond|heart> - фигура\nmode <circle|stay|free> - поведение\naction <sit|look|blink|clean> - действие\ndefault: count 5, size 1, shape none, mode stay');
+				saySystem(client, '/bunnies ? - управление кроликами:\ncount <n> - число кроликов\nshow - статус\nclear - убрать кроликов\nfree - освободить кроликов\nrecall - призвать свободных кроликов\nsize <0.1..15> - радиус разброса\nshape <none|circle|triangle|square|diamond|heart> - фигура\nmode <circle|stay|free> - поведение\naction <sit|look|blink|clean> - действие\narmy [count] - квадратная армия вокруг игрока\narmyfront [count] - квадратная армия перед игроком\narmy line [count] - шеренга\narmy captain - назначить командира\narmy transfer <player> - передать армию другому игроку\narmy stop - остановить взвод\narmy roam - дать взводу свободно гулять\narmy attack - бой между ближайшими армиями\nбольше команд в "/bunnies army ?"\ndefault: count 5, size 1, shape none, mode stay');
 				return;
 			}
 
@@ -1705,6 +2107,135 @@ export function createCommands(world: World): Command[] {
 				clearSummonedBunnies(client, world);
 				clearFreeBunnies(client, world);
 				saySystem(client, 'Кролики сняты');
+				return;
+			}
+
+			if (subcommand === 'army' || subcommand === 'armyfront') {
+				if (args[1] && (args[1].toLowerCase() === '?' || args[1].toLowerCase() === 'help')) {
+					saySystem(client, '/bunnies army ? - управление армией:\narmy [count] - квадратная армия вокруг игрока\narmyfront [count] - квадратная армия перед игроком\narmy line [count] - шеренга\narmy captain - назначить командира\narmy transfer <player> - передать армию другому игроку\narmy stop - остановить взвод\narmy roam - дать взводу свободно гулять\narmy attack - бой между ближайшими армиями');
+					return;
+				}
+
+				const action = args[1] ? args[1].toLowerCase() : '';
+				const armyCountArg = args[2] ? parseInt(args[2], 10) : undefined;
+
+				if (action === 'attack') {
+					const targets = getNearbyArmyTargets(client, world);
+					if (!targets.length) {
+						saySystem(client, 'Рядом нет другой армии для атаки');
+						return;
+					}
+
+					const opponent = targets[0];
+					const isStarted = startArmyBattle(client, world, opponent, settings);
+					if (!isStarted) {
+						saySystem(client, 'Нельзя начать бой без армий');
+						return;
+					}
+
+					saySystem(client, 'Армии вступили в бой!');
+					return;
+				}
+
+				if (action === 'line') {
+					const requestedCount = armyCountArg !== undefined ? armyCountArg : options.count;
+					if (isNaN(requestedCount) || requestedCount <= 0) {
+						throw new UserError('Usage: /bunnies army line [count]');
+					}
+
+					options.count = Math.min(requestedCount, maxBunnyCount);
+					clearSummonedBunnies(client, world);
+					clearFreeBunnies(client, world);
+					const offsets = getArmyLineFormationOffsets(options.count, 0.25, subcommand === 'armyfront' ? 1.0 : 0, 0);
+					const created = createFormationBunnies(client, world, map, player, offsets, 'stay', options.radius, 'none', true);
+					summonedBunnies.set(client, created);
+					applyArmyState(created, 'stay');
+					saySystem(client, `Шеренга:${created.length}`);
+					return;
+				}
+
+				if (action === 'captain') {
+					const created = getSummonedBunnies(client);
+					if (!created.length) {
+						saySystem(client, 'Сначала сформируйте армию');
+						return;
+					}
+
+					assignArmyCaptain(client, created, settings);
+					saySystem(client, 'Командир назначен');
+					return;
+				}
+
+				if (action === 'transfer' || action === 'give') {
+					const created = getSummonedBunnies(client);
+					const free = freeBunnies.get(client) || [];
+					if (!created.length && !free.length) {
+						saySystem(client, 'Сначала сформируйте армию');
+						return;
+					}
+
+					const targetName = args.slice(2).join(' ').trim();
+					if (!targetName) {
+						throw new UserError('Usage: /bunnies army transfer <player>');
+					}
+
+					const targetClient = findArmyTargetClient(world, targetName, client);
+					if (!targetClient) {
+						saySystem(client, 'Игрок не найден');
+						return;
+					}
+
+					const transferred = transferArmyToClient(client, targetClient);
+					if (!transferred) {
+						saySystem(client, 'Не удалось передать армию');
+						return;
+					}
+
+					assignArmyCaptain(targetClient, getSummonedBunnies(targetClient), settings);
+					saySystem(client, `Армия передана ${targetClient.pony.name || targetClient.accountName}`);
+					saySystem(targetClient, 'Армия передана вам');
+					return;
+				}
+
+				if (action === 'stop' || action === 'follow') {
+					const created = getSummonedBunnies(client);
+					if (!created.length) {
+						saySystem(client, 'Сначала сформируйте армию');
+						return;
+					}
+					applyArmyState(created, 'stay');
+					saySystem(client, 'Взвод остановлен');
+					return;
+				}
+				if (action === 'roam' || action === 'free') {
+					const created = getSummonedBunnies(client);
+					if (!created.length) {
+						saySystem(client, 'Сначала сформируйте армию');
+						return;
+					}
+					applyArmyState(created, 'free');
+					saySystem(client, 'Взвод пошёл в свободный режим');
+					return;
+				}
+
+				const requestedCount = action && !isNaN(parseInt(action, 10)) ? parseInt(action, 10) : options.count;
+				if (isNaN(requestedCount) || requestedCount <= 0) {
+					throw new UserError('Usage: /bunnies army [count] | /bunnies armyfront [count] | /bunnies army line [count] | /bunnies army captain | /bunnies army transfer <player> | /bunnies army stop | /bunnies army roam | /bunnies army attack');
+				}
+
+				options.count = Math.min(requestedCount, maxBunnyCount);
+				options.mode = 'stay';
+				options.shape = 'none';
+				clearSummonedBunnies(client, world);
+				clearFreeBunnies(client, world);
+
+				const frontOffset = subcommand === 'armyfront' ? { x: 2.5, y: 0 } : { x: 0, y: 0 };
+				const offsets = getArmyFormationOffsets(options.count, 0.25, frontOffset.x, frontOffset.y);
+				const created = createFormationBunnies(client, world, map, player, offsets, options.mode, options.radius, options.shape, true);
+
+				summonedBunnies.set(client, created);
+				const targets = getNearbyArmyTargets(client, world);
+				saySystem(client, `Армия:${created.length} ${subcommand === 'armyfront' ? 'front' : 'square'}${targets.length ? ' attack-ready' : ''}`);
 				return;
 			}
 
@@ -1908,7 +2439,7 @@ export function createCommands(world: World): Command[] {
 				return;
 			}
 
-			throw new UserError('Usage: /bunnies [count] | /bunnies show | /bunnies clear | /bunnies free | /bunnies recall | /bunnies size <radius> | /bunnies shape <none|circle|triangle|square|diamond|heart> | /bunnies mode <circle|stay|free> | /bunnies action <sit|look|blink|clean>');
+			throw new UserError('Usage: /bunnies [count] | /bunnies show | /bunnies clear | /bunnies free | /bunnies recall | /bunnies size <radius> | /bunnies shape <none|circle|triangle|square|diamond|heart> | /bunnies mode <circle|stay|free> | /bunnies action <sit|look|blink|clean> | /bunnies army [count] | /bunnies armyfront [count] | /bunnies army line [count] | /bunnies army captain | /bunnies army stop | /bunnies army roam | /bunnies army attack');
 		}, false, 'mod'),
 	]);
 

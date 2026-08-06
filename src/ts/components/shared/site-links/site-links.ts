@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, Input } from '@angular/core';
-import { faPaperPlane, faMusic, faVk, faGoogle, faDiscord, faGithub, faFacebook, faPatreon, faDeviantart, faTwitter } from '../../../client/icons';
+import { faPaperPlane, faTiktok, faVk, faGoogle, faDiscord, faGithub, faFacebook, faPatreon, faDeviantart, faTwitter } from '../../../client/icons';
 
 @Component({
 	selector: 'site-links',
@@ -12,7 +12,7 @@ export class SiteLinks {
 	getLinkIcon(link: string) {
 		const url = String(link).toLowerCase();
 		if (/(?:telegram\.me|t\.me|telegram\.org|telegram\.chat)/.test(url)) return faPaperPlane;
-		if (/(?:tiktok\.com|vm\.tiktok\.com|t\.iktok\.com)/.test(url)) return faMusic;
+		if (/(?:tiktok\.com|vm\.tiktok\.com|t\.iktok\.com)/.test(url)) return faTiktok;
 		if (/(?:vk\.com|vkontakte\.ru|vkontakte\.com)/.test(url)) return faVk;
 		if (/google\.com/.test(url)) return faGoogle;
 		if (/(?:discord\.gg|discordapp\.com|discord\.com)/.test(url)) return faDiscord;

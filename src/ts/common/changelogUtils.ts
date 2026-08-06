@@ -89,9 +89,17 @@ export function buildSeasonGroups(entries: ChangelogRawEntry[]): ChangelogSeason
 
 	let hiddenCounter = 0;
 
+	// Only show the latest patch per season by default. Older patches are hidden
+	// and revealed with the "show previous" control. Also hide patches that
+	// have no changes (empty list) to avoid rendering empty headings.
+	const VISIBLE_PER_SEASON = 1;
+
 	for (const season of Array.from(resultMap.values())) {
 		for (let i = 0; i < season.length; i++) {
-			if (i >= 2) {
+			const patch = season[i];
+			const hasChanges = !!(patch.changes && patch.changes.length > 0);
+
+			if (i >= VISIBLE_PER_SEASON || !hasChanges) {
 				season[i].hiddenIndex = hiddenCounter++;
 			}
 		}

@@ -11,12 +11,17 @@
 .modal-body.changelog-body
 	.update-about
 		.image-box
-			img.update-image(src='/assets/images/update_previews/season1.png' alt='Update preview')
+			img.update-image(src="/assets/images/update_previews/season1.png" alt="Changelog Image")
 		.about-text
 			p Welcome to a new update!
 
 	.changelog-container
-		changelog-view(*ngIf="changelogResponse" [changelogResponse]="changelogResponse")
+		changelog-view(*ngIf="changelogResponse" [rawEntries]="changelogResponse.public")
+
+		//- Show dev changelog separately for privileged accounts
+		div.mt-3(*ngIf="changelogResponse && changelogResponse.dev && changelogResponse.dev.length > 0 && isPrivileged")
+			h5.text-muted Dev changelog
+			changelog-view([rawEntries]="changelogResponse.dev")
 
 	//- Debug option: always show after loading
 	.mt-4(*ngIf="debug")

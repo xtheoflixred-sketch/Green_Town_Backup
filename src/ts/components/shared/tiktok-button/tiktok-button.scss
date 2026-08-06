@@ -1,0 +1,293 @@
+@import '../../../../styles/partials/variables';
+
+:host {
+	display: block;
+
+	.btn {
+		position: relative;
+
+		@media (max-width: 320px) {
+			white-space: normal;
+		}
+	}
+
+	.btn-tiktok {
+		padding: 1.0rem;
+		font-weight: 500;
+		color: #fff;
+		border-color: #06060666;
+		background: linear-gradient(to right, rgba(0, 0, 0, 0.25), transparent);
+		transition: all 0.3s ease;
+
+		.tiktok-logo fa-icon {
+			color: #ebebeb;
+			transform-origin: 50% 50%;
+			will-change: transform, opacity;
+			transition: color 0.3s ease;
+			// Многослойный эффект для иконки
+			filter: 
+				drop-shadow(-2px -2px 0 #25F4EE)
+				drop-shadow(2px 2px 0 #FE2C55);
+		}
+
+		&:hover .tiktok-logo fa-icon,
+		&:focus .tiktok-logo fa-icon {
+			animation: tiktok-glitch 0.6s ease-in-out 1;
+		}
+
+		&:hover,
+		&:focus,
+		&:active {
+			color: #000;
+			background: linear-gradient(to right, #fff, transparent);
+			border-color: #fff;
+			animation: tiktok-bg-glitch 0.6s ease-in-out 1 forwards;
+
+			.tiktok-logo fa-icon {
+				color: #000;
+			}
+		}
+
+		&.nudging .tiktok-logo fa-icon {
+			animation: tiktok-nudge 0.7s ease-in-out;
+		}
+
+		&.nudging {
+			animation: tiktok-button-glow 0.95s ease-in-out;
+		}
+	}
+
+	.tiktok-logo {
+		position: absolute;
+		left: 8px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 60px;
+		height: 60px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		fa-icon {
+			font-size: 2.5rem;
+		}
+	}
+
+	.tiktok-pony {
+		position: absolute;
+		right: 0;
+		bottom: 0;
+		height: 80px;
+		width: 100px;
+		overflow: hidden;
+		border-radius: $border-radius-lg - 2px;
+
+		> tiktok-pony {
+			position: absolute;
+			bottom: -80px;
+			left: -20px;
+		}
+
+		@media (max-width: 280px) {
+			display: none;
+		}
+	}
+
+	.btn-tiktok:hover .tiktok-pony,
+	.btn-tiktok:focus .tiktok-pony,
+	.btn-tiktok:active .tiktok-pony {
+		animation: tiktok-pony-glitch 0.6s ease-in-out 1;
+
+		> tiktok-pony {
+			animation: tiktok-pony-shake 0.6s ease-in-out 1;
+		}
+	}
+
+	// ====== ANIMATIONS - ALL INSIDE :host ======
+
+	@keyframes tiktok-spin {
+		0% {
+			transform: rotate(0deg) scale(1);
+			opacity: 1;
+		}
+		35% {
+			transform: rotate(10deg) scale(1.1);
+			opacity: 0.95;
+		}
+		65% {
+			transform: rotate(-10deg) scale(0.95);
+			opacity: 0.95;
+		}
+		100% {
+			transform: rotate(0deg) scale(1);
+			opacity: 1;
+		}
+	}
+
+	@keyframes tiktok-glitch {
+		0% {
+			clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+			transform: translate(0, 0);
+		}
+		10% {
+			clip-path: polygon(0% 20%, 60% 20%, 60% 40%, 0% 40%);
+			transform: translate(-3px, 2px);
+		}
+		20% {
+			clip-path: polygon(30% 0%, 100% 0%, 100% 15%, 30% 15%);
+			transform: translate(2px, -1px);
+		}
+		30% {
+			clip-path: polygon(0% 60%, 50% 60%, 50% 85%, 0% 85%);
+			transform: translate(1px, 3px);
+		}
+		40% {
+			clip-path: polygon(60% 30%, 100% 30%, 100% 55%, 60% 55%);
+			transform: translate(-2px, -2px);
+		}
+		50% {
+			clip-path: polygon(10% 10%, 45% 10%, 45% 35%, 10% 35%);
+			transform: translate(3px, 1px);
+		}
+		60% {
+			clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+			transform: translate(-1px, -3px);
+		}
+		70% {
+			clip-path: polygon(20% 45%, 70% 45%, 70% 75%, 20% 75%);
+			transform: translate(2px, 2px);
+		}
+		85% {
+			clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+			transform: translate(-2px, 1px);
+		}
+		100% {
+			clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+			transform: translate(0, 0);
+		}
+	}
+
+	@keyframes tiktok-nudge {
+		0%   { transform: rotate(0deg) scale(1); }
+		20%  { transform: rotate(-5deg) scale(1.1); }
+		40%  { transform: rotate(5deg) scale(0.9); }
+		60%  { transform: rotate(-5deg) scale(1.05); }
+		80%  { transform: rotate(2deg) scale(1.02); }
+		100% { transform: rotate(0deg) scale(1); }
+	}
+
+	@keyframes tiktok-button-glow {
+		0% {
+			box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0);
+		}
+		45% {
+			box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.3);
+		}
+		100% {
+			box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0);
+		}
+	}
+
+	@keyframes tiktok-bg-glitch {
+		0% {
+			background: linear-gradient(to right, rgba(0, 0, 0, 0.25), transparent);
+			transform: translate(0, 0);
+		}
+		15% {
+			background: linear-gradient(to right, #3d3d3d, rgba(61, 61, 61, 0.3));
+			transform: translate(-1px, 1px);
+		}
+		30% {
+			background: linear-gradient(to right, #5a5a5a, rgba(90, 90, 90, 0.3));
+			transform: translate(1px, -1px);
+		}
+		45% {
+			background: linear-gradient(to right, #808080, rgba(128, 128, 128, 0.3));
+			transform: translate(-1px, -1px);
+		}
+		60% {
+			background: linear-gradient(to right, #c0c0c0, rgba(192, 192, 192, 0.3));
+			transform: translate(1px, 1px);
+		}
+		75% {
+			background: linear-gradient(to right, #e8e8e8, rgba(232, 232, 232, 0.3));
+			transform: translate(-1px, 0);
+		}
+		90% {
+			background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.3));
+			transform: translate(0, -1px);
+		}
+		100% {
+			background: linear-gradient(to right, #fff, transparent);
+			transform: translate(0, 0);
+		}
+	}
+
+	@keyframes tiktok-pony-glitch {
+		0% {
+			filter: brightness(1) contrast(1);
+			transform: scaleX(1);
+		}
+		15% {
+			filter: brightness(1.2) contrast(1.1) hue-rotate(-15deg);
+			transform: scaleX(0.98);
+		}
+		30% {
+			filter: brightness(0.9) contrast(1.3) hue-rotate(25deg);
+			transform: scaleX(1.02);
+		}
+		45% {
+			filter: brightness(1.1) contrast(0.9) hue-rotate(-10deg);
+			transform: scaleX(0.97);
+		}
+		60% {
+			filter: brightness(0.95) contrast(1.2) hue-rotate(20deg);
+			transform: scaleX(1.03);
+		}
+		75% {
+			filter: brightness(1.15) contrast(1.05);
+			transform: scaleX(0.99);
+		}
+		90% {
+			filter: brightness(1) contrast(1) hue-rotate(0deg);
+			transform: scaleX(1.01);
+		}
+		100% {
+			filter: brightness(1) contrast(1) hue-rotate(0deg);
+			transform: scaleX(1);
+		}
+	}
+
+	@keyframes tiktok-pony-shake {
+		0% {
+			transform: translate(0, 0);
+		}
+		10% {
+			transform: translate(-2px, 1px);
+		}
+		20% {
+			transform: translate(2px, -2px);
+		}
+		30% {
+			transform: translate(-1px, 2px);
+		}
+		40% {
+			transform: translate(2px, -1px);
+		}
+		50% {
+			transform: translate(-2px, -2px);
+		}
+		60% {
+			transform: translate(1px, 2px);
+		}
+		70% {
+			transform: translate(-1px, -1px);
+		}
+		85% {
+			transform: translate(1px, 0px);
+		}
+		100% {
+			transform: translate(0, 0);
+		}
+	}
+}

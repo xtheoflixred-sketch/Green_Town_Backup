@@ -11,7 +11,7 @@ import { bitmask, setFlag, findById, distance, hasFlag, distanceXY, invalidEnum,
 import { isChatVisible } from '../common/camera';
 import { createRegion, worldToRegionX, worldToRegionY } from '../common/region';
 import { createAnEntity, poof, poof2, getEntityType } from '../common/entities';
-import { getPonyState, setPonyState, isPonyFlying, addChatBubble, isHidden } from '../common/entityUtils';
+import { getPonyState, setPonyState, isPonyFlying, addChatBubble, isHidden, getChatBubbleLimit } from '../common/entityUtils';
 import {
 	isPony, createPony, setPonyExpression, updatePonyInfo, updatePonyHold, doPonyAction, hasHeadAnimation,
 	setHeadAnimation,
@@ -716,7 +716,7 @@ export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, messa
 
 		if (bubbleEntity && !bubbleEntity.fake && game.map.entitiesById.has(bubbleEntity.id)) {
 			const total = typingIndicatorDuration;
-			addChatBubble(game.map, bubbleEntity, { message, type, total, timer: total, created: Date.now() });
+			addChatBubble(game.map, bubbleEntity, { message, type, total, timer: total, created: Date.now() }, getChatBubbleLimit(game.settings.account.chatBubbleLimit));
 		}
 	} else if (type === MessageType.Dismiss || message === '.') {
 		if (!entity.fake && entity.says) {
@@ -727,7 +727,7 @@ export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, messa
 
 		if (bubbleEntity && !bubbleEntity.fake && game.map.entitiesById.has(bubbleEntity.id)) {
 			const total = getSaysTime(message);
-			addChatBubble(game.map, bubbleEntity, { message, type, total, timer: total, created: Date.now() });
+			addChatBubble(game.map, bubbleEntity, { message, type, total, timer: total, created: Date.now() }, getChatBubbleLimit(game.settings.account.chatBubbleLimit));
 		}
 
 		if (isWhisper(type)) {

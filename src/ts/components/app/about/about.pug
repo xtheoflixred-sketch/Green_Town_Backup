@@ -8,12 +8,14 @@
 .row.text-large
 	.col-lg-7
 		section
-			h2 Project Description
-			.text-muted.text-center.mb-3 Server Information:
-			p This is a personal project focused on improving the visual side of the game and making it more comfortable for players. The server is based on an older Pony Town build (version 0.55.2 from 2019), enhanced with useful additions that make gameplay more convenient.
+			h2.text-center Project Description
+			.text-muted.mb-3 Server Information:
+			p.text-center Green Town is a cozy rolleplaying where ponies enjoi adventuries and relax in the modern forest camp! 
+			p 
+			p.text-muted This is a personal project focused on improving the visual side of the game and making it more comfortable for players. The server is based on an older Pony Town build (version 0.55.2 from 2019), enhanced with useful additions that make gameplay more convenient. 
 			hr
 
-		p This game is a derivative work based on #[a(href="https://pony.town") Pony Town]. The developers of Pony Town are not responsible for it in any way.
+		p.text-muted This game is a derivative work based on #[a(href="https://pony.town") Pony Town]. The developers of Pony Town are not responsible for it in any way and do not support it. This project is not affiliated with the original Pony Town team. All rights to the original game belong to its creators. You can find more details on the Pony Town Wiki, which is a community-driven resource for information about the game. The wiki contains a wealth of information about the game's mechanics, features, and lore, and is a great place to learn more about the world of Pony Town.
 
 		h2.text-center#socials Contacts and Community
 
@@ -23,6 +25,12 @@
 			telegram-button.mb-3
 			hr
 
+		section 
+			h4.mb-2#tiktok TikTok
+			p Our #[b TikTok channel] is the main place for #[i short updates], spoilers, concepts, and internal development news. TikTok is also where we communicate directly with players.
+			tiktok-button.mb-3
+			hr
+
 		section
 			h4.mb-2#PT Original Pony Town Server
 			p This project is based on the original #[b Pony Town] build. We recommend checking out the official server as well, since it is the foundation of our world.
@@ -30,16 +38,9 @@
 			visit-pt-button.mb-3
 			hr
 
-		h2 Contact
-		p
-			| For all inquiries please send an email to
-			b {{contactEmail}}
-			span(*ngIf="contactDiscord")
-				|  or message
-				b {{contactDiscord}}
-				|  on Discord
-			| .
 
+		p.text-muted For questions, suggestions, or inquiries, please reach out to us through our Telegram channel or TikTok. We value your feedback and are always happy to hear from our community.
+		
 		h2 Technology
 
 		p.
@@ -50,8 +51,8 @@
 			User interface is built using #[a(href="https://angular.io/") Angular]
 			framework and the game itself is using WebGL for rendering graphics.
 
-		strong Game Version:
-			| {{ shortVersion || version }}
+		strong Game Version: 
+			| {{  version }}
 
 		div(*ngIf="credits.length")
 			h2 The Team
@@ -104,10 +105,10 @@
 
 		changelog-view(*ngIf="changelogResponse" [rawEntries]="changelogResponse.public")
 
-		hr
+			hr
 
-		h2 Dev Changelog
-		changelog-view(*ngIf="changelogResponse" [rawEntries]="changelogResponse.dev")
+			h2 Dev Changelog
+			changelog-view(*ngIf="changelogResponse && changelogResponse.dev && changelogResponse.dev.length > 0 && isPrivileged" [rawEntries]="changelogResponse.dev")
 
 .text-center.text-muted
-	.tinyface
+	.tinyface#tinyFaceAbout((mouseenter)="onTinyFaceEnter()" (mouseleave)="onTinyFaceLeave()")

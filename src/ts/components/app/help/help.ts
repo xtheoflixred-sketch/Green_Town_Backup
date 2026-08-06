@@ -11,6 +11,7 @@ import { ActivatedRoute } from '@angular/router';
 	styleUrls: ['help.scss'],
 })
 export class Help {
+	private tinyFaceVariants = ['tinyface--alt', 'tinyface--alt2', 'tinyface--alt3', 'tinyface--alt4', 'tinyface--logo'];
 	readonly leftIcon = faArrowLeft;
 	readonly rightIcon = faArrowRight;
 	readonly upIcon = faArrowUp;
@@ -42,6 +43,28 @@ export class Help {
 	get isOwner() {
 		const a = this.model.account;
 		return !!(a && a.roles && a.roles.indexOf('owner') !== -1);
+	}
+
+	private setTinyFaceVariant(elementId: string, force?: boolean) {
+		const element = document.getElementById(elementId);
+		if (!element) return;
+
+		for (const className of this.tinyFaceVariants) {
+			element.classList.remove(className);
+		}
+
+		if (!force) {
+			const variant = this.tinyFaceVariants[Math.floor(Math.random() * this.tinyFaceVariants.length)];
+			element.classList.add(variant);
+		}
+	}
+
+	onTinyFaceEnter() {
+		this.setTinyFaceVariant('tinyFaceHelp');
+	}
+
+	onTinyFaceLeave() {
+		this.setTinyFaceVariant('tinyFaceHelp', true);
 	}
 
 	ngAfterViewInit() {

@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Output, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
-import { toPalette, createDefaultPony, mockPaletteManager } from '../../../common/ponyInfo';
+import { toPalette, createServerDefaultPony, mockPaletteManager } from '../../../common/ponyInfo';
 import { decodePonyInfo } from '../../../common/compressPony';
 import { faUserPlus } from '../../../client/icons';
 
@@ -17,7 +17,7 @@ export interface MockAccount {
 })
 export class MockLoginModal implements OnInit, OnChanges {
   readonly toPalette = toPalette;
-  readonly createDefaultPony = createDefaultPony;
+  readonly createDefaultPony = createServerDefaultPony;
   readonly userPlusIcon = faUserPlus;
   @Input() accounts: MockAccount[] = [];
   @Input() show = false;
@@ -40,7 +40,7 @@ export class MockLoginModal implements OnInit, OnChanges {
     if (ponyInfo) {
       return decodePonyInfo(ponyInfo, mockPaletteManager);
     }
-    return toPalette(createDefaultPony());
+    return toPalette(createServerDefaultPony());
   }
 
   ngOnInit() {

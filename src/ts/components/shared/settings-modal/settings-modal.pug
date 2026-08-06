@@ -232,6 +232,40 @@
 		tab(title="Social" [icon]="friendsIcon")
 			div(*tabContent)
 
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.showChatBubbleProfiles"
+						help="Open a player's profile by clicking their chat bubble")
+						| Open profiles from other players' chat bubbles
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.showOwnChatBubbleProfile"
+						help="Open your own profile by clicking your chat bubble")
+						| Open your profile from your chat bubble
+
+				//.form-group
+					custom-checkbox(
+						[(checked)]="account.chatlogOfflineSave"
+						help="Save your chat log when you disconnect and restore it if you rejoin within 24 hours")
+						| Auto save chat log on disconnect
+
+				.form-group
+					label#chat-bubble-limit-label
+						| Chat bubble limit
+
+					div
+						slider-bar.mr-2.mb-2(
+							[(value)]="chatBubbleLimitValue"
+							[min]="minChatBubbleLimit"
+							[max]="maxChatBubbleLimit"
+							[step]="1"
+							(changed)="setChatBubbleLimit($event)"
+							style="max-width: 300px"
+							labelledBy="chat-bubble-limit-label")
+
+						| {{chatBubbleLimitValue}} bubbles
+
 				.form-group.unselectable.ms-4
 				label.me-2 Item interactions
 					.btn-group.dropdown(dropdown)
@@ -439,7 +473,6 @@
 						[(checked)]="account.visibleTestingMessages"
 						help="Show development testing messages from debugData in chat log")
 						| Visible testing messages
-
 		// =========================
 		// FILTERS
 		// =========================

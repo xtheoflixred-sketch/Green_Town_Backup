@@ -7,7 +7,7 @@ import { HASH } from '../../generated/hash';
 import {
 	AccountData, UpdateAccountData, AccountSettings, GameStatus, SocialSiteInfo, PonyObject, JoinResponse,
 	OAuthProvider, EntitiesEditorInfo, FriendData, PalettePonyInfo, HiddenPlayer
-} from '../../common/interfaces'; import { ChangelogResponse } from '../../common/changelogUtils'; import { createDefaultPony, syncLockedPonyInfo, mockPaletteManager } from '../../common/ponyInfo';
+} from '../../common/interfaces'; import { ChangelogResponse } from '../../common/changelogUtils'; import { createServerDefaultPony, syncLockedPonyInfo, mockPaletteManager } from '../../common/ponyInfo';
 import * as entities from '../../common/entities';
 import { removeById, observableToPromise, delay, computeFriendsCRC } from '../../common/utils';
 import { isMod, getSupporterInviteLimit, getCharacterLimit } from '../../common/accountUtils';
@@ -72,7 +72,7 @@ export function createDefaultPonyObject(): PonyObject {
 		id: '',
 		name: '',
 		info: '',
-		ponyInfo: createDefaultPony(),
+		ponyInfo: createServerDefaultPony(),
 	};
 }
 

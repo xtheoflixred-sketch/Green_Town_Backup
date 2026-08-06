@@ -1,0 +1,171 @@
+//- .welcome-page
+.container
+	.row.justify-content-center
+		.col-xl-8
+
+			.info-alert.mb-4
+				.alert.alert-warning(role="alert")
+
+					.header-content
+						img.pixelart.server-logo-icon.center(
+							revSrc="images/logo-120.png"
+							alt="Green Town")
+
+						.header-text
+							h1(focusTitle) Welcome to Game!
+							p.header-subtitle
+								| Play on the custom Green Town server by signing in or creating an account.
+
+					hr.my-3
+
+					fa-icon.mr-1(
+						[icon]="warningIcon"
+						size="lg")
+
+					strong Development Notice
+
+					p.mt-2.mb-2
+						| Green Town is currently under active development.
+
+					ul.mb-2
+						li New features are being tested regularly
+						li Bugs and unexpected issues may appear
+						li Server restarts may happen during updates
+						li Progress may be reset during development
+
+					p.mb-0
+						| By continuing, you agree that this is a testing environment.
+
+
+
+			.account-info-block
+
+				section.mb-4
+					h2 Account access
+
+					p.text-muted.mb-3
+						| Select one of the supported providers below to register or log in.
+
+
+
+				.row
+
+
+					.col-12.mb-4
+						.provider-panel
+
+							h3 Registration
+
+							p.text-muted.mb-3
+								| Choose a provider to create an account.
+
+
+
+							.sign-in-box-providers.text-center
+
+
+								button.btn.btn-lg.btn-dark.provider-button(
+									*ngFor="let p of signUpProviders"
+									type="button"
+									(click)="signIn(p)"
+									[class.disabled]="p.disabled"
+									[style.border-bottom-color]="p.color"
+									title="Sign in using {{p.name}}"
+								)
+
+									span.provider-icon-box(
+										[style.background]="p.color"
+									)
+
+										fa-icon(
+											[icon]="icon(p.id)"
+											[fixedWidth]="true"
+											size="lg"
+										)
+
+
+									span.provider-text
+										| {{p.name}}
+
+
+
+
+
+					.col-12.mb-4(*ngIf="signInProviders.length")
+
+						.provider-panel
+
+
+							h3 Log In
+
+
+							p.text-muted.mb-3
+								| These providers only work for existing accounts.
+
+
+
+							.sign-in-box-providers.sign-in-only.text-center
+
+
+
+								button.btn.btn-lg.btn-dark.provider-button(
+									*ngFor="let p of signInProviders"
+									type="button"
+									(click)="signIn(p)"
+									[class.disabled]="p.disabled"
+									[style.border-bottom-color]="p.color"
+									title="Sign in using {{p.name}}"
+								)
+
+
+									span.provider-icon-box(
+										[style.background]="p.color"
+									)
+
+										fa-icon(
+											[icon]="icon(p.id)"
+											[fixedWidth]="true"
+											size="lg"
+										)
+
+
+
+									span.provider-text
+										| {{p.name}}
+
+
+
+
+
+				section.text-center.mt-4
+
+					.provider-panel
+
+
+						h3 Development Tools
+
+
+						p.text-muted.mb-3
+							| Use a test account to enter the server.
+
+
+
+						.sign-in-box-providers
+
+
+							button.btn.btn-lg.btn-dark(
+								type="button"
+								(click)="onMockLogin()"
+							)
+
+								| Mock Login
+
+
+
+						mock-login-modal(
+							[accounts]="mockAccounts"
+							[show]="showMockLogin"
+							(close)="onMockLoginClose()"
+							(login)="onMockLoginSubmit($event)"
+							(create)="onMockCreateAccount($event)"
+						)

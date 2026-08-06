@@ -1,6 +1,10 @@
 # зависимости
 node_modules/
 
+# allow committing Font Awesome packages inside node_modules
+!node_modules/@fortawesome/
+!node_modules/@fortawesome/**
+
 # результаты сборки (генерируются из src/ts и assets)
 /build/
 /build-copy/

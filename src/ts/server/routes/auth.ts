@@ -10,7 +10,7 @@ import { limit, auth as authRequest, wrap } from '../requestUtils';
 import { CreateAccountOptions, findOrCreateAccount, SuspiciousCheckers, getAccountAlertMessage } from '../accountUtils';
 import { create, createFromRequest } from '../reporter';
 import { logger, logServer, system } from '../logger';
-import { providers, getProfile } from '../oauth';
+import { providers, getProfile, createTelegramAuthRedirectUrl, verifyTelegramAuthData } from '../oauth';
 import { accountChanged, RemovedDocument } from '../internal';
 import { UserError, isUserError, reportUserError } from '../userError';
 import { kickFromAllServers } from '../api/admin';
@@ -240,7 +240,65 @@ export function authRoutes(
 		isSuspiciousAuth: createIsSuspiciousAuth(settings),
 	};
 
-	providers.filter(p => !!p.auth).forEach(({ id, strategy, auth, connectOnly, additionalOptions = {} }) => {
+	const telegramAuth = providers.find(p => p.id === 'telegram');
+
+	if (telegramAuth && telegramAuth.auth) {
+		app.get('/telegram', limit(120, 3600), (_req, res) => {
+			res.redirect(createTelegramAuthRedirectUrl(host, telegramAuth.auth));
+		});
+		app.get('/telegram/callback', limit(120, 3600), async (req, res) => {
+			const user = req.user as IAccount | undefined;
+			const merge = isMerge(user && user.id);
+			const query = req.query as any;
+
+			try {
+				if (!verifyTelegramAuthData(query, telegramAuth.auth.botToken)) {
+					throw new UserError('Telegram authentication failed');
+				}
+
+				const firstName = typeof query.first_name === 'string' ? query.first_name : undefined;
+				const lastName = typeof query.last_name === 'string' ? query.last_name : undefined;
+				const username = typeof query.username === 'string' ? query.username : undefined;
+				const displayName = [firstName, lastName].filter(Boolean).join(' ').trim() || username;
+				const profile: Profile = {
+					id: `${query.id || username || displayName || ''}`,
+					provider: 'telegram',
+					username,
+					name: displayName,
+					emails: [],
+					url: typeof query.photo_url === 'string' ? query.photo_url : undefined,
+					createdAt: undefined,
+					suspended: undefined,
+				};
+				const userId = user && user._id.toString();
+				const mergeAccount = (userId && isMerge(userId)) ? userId : undefined;
+				const createAccountOptions = createOptions(req, false, server, settings, checkers);
+				const auth = await findOrCreateAuth(profile, mergeAccount, createAccountOptions);
+				const account = await findOrCreateAccount(auth, profile, createAccountOptions);
+				const { ip, userAgent } = createAccountOptions;
+				system(account._id, `signed-in with "${auth.name}" [${auth._id}] [${ip}] [${userAgent}]`);
+
+				if (merge && !hasFlag(account.flags, AccountFlags.BlockMerging)) {
+					if (live.shutdown) {
+						throw new Error('Cannot merge while server is shutdown');
+					}
+					await mergeUser(req, res, account, removedDocument);
+				} else {
+					await loginUser(server, req, res, account);
+				}
+			} catch (e) {
+				const message = merge ? 'Account merge error' : 'Authentication error';
+				handleErrorAndRedirect(server, merge ? '/account' : '/', message, e as Error, req, res);
+			}
+		});
+		app.get('/telegram/merge', limit(120, 3600), authRequest, (req, res) => {
+			const accountId = (req.user as IAccount)._id.toString();
+			mergeRequests.push({ accountId, time: Date.now() });
+			res.redirect('/auth/telegram');
+		});
+	}
+
+	providers.filter(p => !!p.auth && p.id !== 'telegram').forEach(({ id, strategy, auth, connectOnly, additionalOptions = {} }) => {
 		const callbackURL = `${host}auth/${id}/callback`;
 		const scope = id === 'patreon' ? ['users'] : id === 'discord' ? ['identify', 'email'] : ['email'];
 		const options = {
@@ -262,6 +320,10 @@ export function authRoutes(
 			const { ip, userAgent } = createAccountOptions;
 			system(account._id, `signed-in with "${auth.name}" [${auth._id}] [${ip}] [${userAgent}]`);
 			return account;
+		}
+
+		if (!strategy) {
+			throw new Error(`Missing strategy for oauth provider "${id}"`);
 		}
 
 		use(id, new strategy(options, (req, _accessToken, _refreshToken, oauthProfile, callback) => {
