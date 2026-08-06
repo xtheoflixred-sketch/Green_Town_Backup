@@ -180,6 +180,102 @@ function handleErrorAndRedirect(
 	res.redirect(url);
 }
 
+function renderTelegramCallbackRedirectPage(res: Response) {
+	res.setHeader('Content-Type', 'text/html; charset=utf-8');
+	res.send(`<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Telegram authentication</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#111;color:#eee;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:20px}p{max-width:32rem;margin:0 auto}</style>
+</head>
+<body>
+	<p>Processing Telegram authentication data...<br>Please wait.</p>
+	<script>
+		function parseSearchParams(params) {
+			const result = {};
+			params.forEach((value, key) => {
+				result[key] = value;
+			});
+			return result;
+		}
+
+		function parseTgAuthResult(value) {
+			try {
+				const decoded = decodeURIComponent(value);
+				if (/^\s*\{/.test(decoded)) {
+					return JSON.parse(decoded);
+				}
+				return parseSearchParams(new URLSearchParams(decoded));
+			} catch (_e) {
+				return {};
+			}
+		}
+
+		function parseFragment(fragment) {
+			const params = {};
+			const hash = fragment.replace(/^#/, '');
+			const searchParams = new URLSearchParams(hash);
+
+			for (const [key, value] of searchParams.entries()) {
+				if (key === 'tgAuthResult') {
+					Object.assign(params, parseTgAuthResult(value));
+				} else {
+					params[key] = value;
+				}
+			}
+
+			return params;
+		}
+
+		const params = parseFragment(window.location.hash);
+
+		if (Object.keys(params).length === 0) {
+			document.body.innerHTML = '<p>Telegram authentication data was not found. Please close this page and try again from the welcome page.</p>';
+		} else {
+			const search = new URLSearchParams();
+			for (const [key, value] of Object.entries(params)) {
+				search.set(key, String(value));
+			}
+
+			window.location.replace(window.location.pathname + '?' + search.toString());
+		}
+	</script>
+</body>
+</html>`);
+}
+
+function parseSearchParams(params: URLSearchParams) {
+	const result: any = {};
+	params.forEach((value, key) => {
+		result[key] = value;
+	});
+	return result;
+}
+
+function parseTelegramAuthQuery(rawQuery: any) {
+	const query: any = { ...rawQuery };
+
+	if (typeof query.tgAuthResult === 'string') {
+		try {
+			const decoded = decodeURIComponent(query.tgAuthResult);
+			const parsed = /^\s*\{/.test(decoded)
+				? JSON.parse(decoded)
+				: parseSearchParams(new URLSearchParams(decoded));
+
+			Object.keys(parsed).forEach(key => {
+				query[key] = parsed[key];
+			});
+			delete query.tgAuthResult;
+		} catch (_e) {
+			// ignore invalid payload
+		}
+	}
+
+	return query;
+}
+
 async function handleAuth(
 	server: ServerConfig, live: ServerLiveSettings, removedDocument: RemovedDocument,
 	req: Request, res: Response, error: Error | null, account: IAccount | null,
@@ -249,7 +345,14 @@ export function authRoutes(
 		app.get('/telegram/callback', limit(120, 3600), async (req, res) => {
 			const user = req.user as IAccount | undefined;
 			const merge = isMerge(user && user.id);
-			const query = req.query as any;
+			const originalQuery = req.query as any;
+
+			if (!originalQuery || Object.keys(originalQuery).length === 0) {
+				renderTelegramCallbackRedirectPage(res);
+				return;
+			}
+
+			const query = parseTelegramAuthQuery(originalQuery);
 
 			try {
 				if (!verifyTelegramAuthData(query, telegramAuth.auth.botToken)) {
