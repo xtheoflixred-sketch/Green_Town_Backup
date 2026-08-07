@@ -951,6 +951,7 @@ export const enum ModAction {
 export const enum LeaveReason {
 	None,
 	Swearing,
+	Afk,
 }
 
 export interface TileUpdate {

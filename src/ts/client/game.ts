@@ -538,6 +538,7 @@ export class PonyTownGame implements Game {
 	private lastLookBaseRight?: Eye;
 	private lastIsKeyboardOpen = false;
 	private element?: HTMLElement;
+	private lastKeepAlive = 0;
 	private showWallPlaceholder = false;
 	private highlightEntity?: Entity;
 	private _hoveredChatPony?: Pony;
@@ -957,16 +958,10 @@ export class PonyTownGame implements Game {
 			});
 
 			this.initialized = true;
-
-			const stats = document.getElementById('stats') as HTMLElement;
-			this.statsText = document.createTextNode('');
-			stats.appendChild(this.statsText);
-
-			this.input.onReleased(Key.KEY_O, () => this.zoomOut());
-			this.input.onReleased(Key.KEY_P, () => this.zoomIn());
-			this.input.onReleased(Key.GAMEPAD_BUTTON_Y, () => this.changeScale());
-
+			this.input.onAnyInput(() => this.resetAfk());
 			this.input.onPressed(Key.ENTER, () => this.onChat.next());
+			this.input.onPressed(Key.KEY_O, () => this.zoomOut());
+			this.input.onPressed(Key.KEY_P, () => this.zoomIn());
 			this.input.onPressed(Key.ESCAPE, () => this.escape());
 			this.input.onPressed(Key.GAMEPAD_BUTTON_X, () => this.onToggleChat.next());
 			// this.input.onPressed(Key.BACKSPACE, () => this.backspace());
@@ -1035,6 +1030,14 @@ export class PonyTownGame implements Game {
 					this.zone.run(() => useAction(this, this.actions[index].action));
 				}
 			}));
+
+			// also bind numpad 0 to the same action as top-row 0 (index 9)
+			this.input.onPressed(Key.NUMPAD_0, () => {
+				const index = 9;
+				if (this.actions[index]) {
+					this.zone.run(() => useAction(this, this.actions[index].action));
+				}
+			});
 
 			this.debugShortcuts.length = 0;
 
@@ -1156,7 +1159,6 @@ export class PonyTownGame implements Game {
 			this.socket.disconnect();
 			this.socket = undefined;
 		}
-
 		this.audio.stop();
 		this.input.release();
 		this.releaseWebGL();
@@ -1192,6 +1194,19 @@ export class PonyTownGame implements Game {
 		if (DEVELOPMENT && LOG_POSITION) {
 			this.positions.length = 0;
 		}
+	}
+	private resetAfk() {
+		if (!this.socket || !this.socket.isConnected) {
+			return;
+		}
+
+		const now = performance.now();
+		if (now - this.lastKeepAlive < 1000) {
+			return;
+		}
+
+		this.lastKeepAlive = now;
+		this.send(server => server.action(Action.KeepAlive));
 	}
 	private getPixelScale() {
 		return this.scale * (integerPixelRatio() / pixelRatio());

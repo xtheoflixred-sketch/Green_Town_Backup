@@ -45,6 +45,7 @@ export class GameService {
 	servers: ServerInfo[] = [];
 	error?: string;
 	leftMessage?: string;
+	leftReason: LeaveReason = LeaveReason.None;
 	private safelyLeft = false;
 	private gameLoop?: GameLoop;
 	private disconnectedTimeout?: any;
@@ -106,6 +107,7 @@ export class GameService {
 
 		this.joining = true;
 		this.leftMessage = undefined;
+		this.leftReason = LeaveReason.None;
 		this.safelyLeft = false;
 
 		return this.model.join(server.id, ponyId)
@@ -183,9 +185,13 @@ export class GameService {
 		this.errorReporter.captureEvent({ name: 'Left', from, reason });
 		this.storage.setBoolean('playing', false);
 		this.safelyLeft = true;
+		this.leftReason = reason;
 
 		if (reason === LeaveReason.Swearing) {
 			this.leftMessage = 'Kicked for swearing or inappropriate language';
+			this.locked = true;
+		} else if (reason === LeaveReason.Afk) {
+			this.leftMessage = 'Выход из игры был связан с долгой неактивностью игрока.';
 			this.locked = true;
 		} else {
 			this.leftMessage = undefined;

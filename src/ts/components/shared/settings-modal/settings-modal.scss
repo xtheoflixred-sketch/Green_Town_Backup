@@ -35,7 +35,17 @@
 }
 
 .dropdown-item-radio {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-right: 1rem;
+
 	&.checked {
 		font-weight: 600;
+	}
+
+	> fa-icon:first-child,
+	> i:first-child {
+		margin-right: 0.5rem;
 	}
 }

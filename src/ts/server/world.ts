@@ -627,7 +627,7 @@ timingStart('updateCamera + updateSubscriptions');
 			}
 
 			if (thresholds.kickMs > 0 && inactiveFor > thresholds.kickMs) {
-				this.kick(client, 'afk');
+				this.kick(client, 'afk', LeaveReason.Afk);
 			}
 		}
 		timingEnd();

@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
-import { PonyObject, ServerInfo, AccountDataFlags } from '../../../common/interfaces';
+import { PonyObject, ServerInfo, AccountDataFlags, LeaveReason } from '../../../common/interfaces';
 import { RequestError, delay, includes, hasFlag, parseAccountAlert, AlertType } from '../../../common/utils';
 import { GlobalAlertsService } from '../../services/global-alerts.service';
 import { combineLatest } from 'rxjs';
@@ -129,6 +129,11 @@ export class PlayBox implements OnInit {
 	get leftMessage() {
 		return this.gameService.leftMessage;
 	}
+
+	get leftAlertClass() {
+		return this.gameService.leftReason === LeaveReason.Afk ? 'alert-info' : 'alert-warning';
+	}
+
 	// accountAlertEntries устарел, используйте globalAlertsEntries$
 
 	alertClass(type: AlertType) {

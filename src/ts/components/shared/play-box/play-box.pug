@@ -14,7 +14,7 @@
 		span.flex-grow-1 {{entry.message}}
 
 .form-group(*ngIf="leftMessage")
-	.alert.alert-warning(role="alert")
+	.alert([ngClass]="leftAlertClass" role="alert")
 		| {{leftMessage}}
 
 .form-group(*ngIf="isAndroidBrowser")
