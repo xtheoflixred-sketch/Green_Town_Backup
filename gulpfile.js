@@ -247,18 +247,34 @@ const icons = cb => {
 		return '';
 	};
 
+    let existingIcons = {};
+    try {
+        const existingCode = fs.readFileSync('src/ts/generated/fa-icons.ts', 'utf8');
+        const existingMatches = existingCode.match(/export const (fa\w+) = (\{[^;]+\});/g);
+        if (existingMatches) {
+            for (const match of existingMatches) {
+                const m2 = match.match(/export const (fa\w+) = (\{[^;]+\});/);
+                if (m2) existingIcons[m2[1]] = m2[2];
+            }
+        }
+    } catch (e) {}
+
     const icons = matched.map(m => {
         const iconPath = findIconPath(m);
 
         if (!iconPath) {
-            throw new Error(`Иконка ${m} не найдена ни в одном пакете Font Awesome! Проверь правильность названия.`);
+            if (existingIcons[m]) {
+                return { name: m, code: existingIcons[m] };
+            }
+            console.warn(`[icons] Иконка ${m} не найдена ни в одном пакете Font Awesome, пропускаю.`);
+            return null;
         }
 
         return {
             name: m,
             code: getIconCode(iconPath),
         };
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    }).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
 
     const code = `/* tslint:disable */\n\n${icons.map(({ name, code }) => `export const ${name} = ${code};`).join('\n')}`;
     fs.writeFile('src/ts/generated/fa-icons.ts', lintCode(code), 'utf8', cb);
