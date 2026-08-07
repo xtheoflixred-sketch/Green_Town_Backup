@@ -15,6 +15,7 @@ import { invalidEnumReturn } from '../../../common/utils';
 import { isAdmin, isMod } from '../../../common/accountUtils';
 import { findMatchingEntityNames, findEntityOrMockByAnyMeans, findBestEntityByName } from '../../../client/handlers';
 import { sample } from 'lodash';
+import { CLIENT_COMMANDS, ClientCommand } from '../../../client/commands';
 
 const chatTypeNames: string[] = [];
 const chatTypeClasses: string[] = [];
@@ -76,6 +77,18 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	private pendingTypingEntityId = 0;
 	private typingShowTimeout: any;
 	private typingHideTimeout: any;
+	showCommandDropdown = false;
+	commandQuery = '';
+	get filteredCommands(): ClientCommand[] {
+		const query = this.commandQuery.toLowerCase();
+		return CLIENT_COMMANDS.filter(c => c.name.toLowerCase().startsWith(query));
+	}
+	selectCommand(cmd: ClientCommand) {
+		this.showCommandDropdown = false;
+		this.commandQuery = '';
+		this.message = `/${cmd.name} `;
+		this.input.focus();
+	}
 	constructor(private game: PonyTownGame, zone: NgZone) {
 		this.subscriptions = [
 			this.game.onChat.subscribe(() => zone.run(() => this.chat(undefined))),
@@ -103,6 +116,8 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	get input() {
 		return this.inputElement.nativeElement as HTMLInputElement;
 	}
+
+    
 	get currentChatMode(): ChatModeId {
 		return this.chatModeOverride || this.chatType;
 	}
@@ -152,6 +167,15 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	}
 	onMessageChange() {
 		this.updateTypingIndicator();
+
+		const msg = this.message || '';
+		if (msg.startsWith('/')) {
+			this.commandQuery = msg.substring(1);
+			this.showCommandDropdown = true;
+		} else {
+			this.commandQuery = '';
+			this.showCommandDropdown = false;
+		}
 	}
 	send(_event: Event | undefined) {
 		const { chatType, message, entityId } = this.getMessageState();
@@ -185,7 +209,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		}
 
 		if (e.keyCode === Key.TAB) {
-			if (this.message) {
+			if (this.showCommandDropdown && this.filteredCommands.length > 0) {
+				this.selectCommand(this.filteredCommands[0]);
+				e.preventDefault();
+			} else if (this.message) {
 				if (/^\/(w|whisper) .+$/i.test(this.message)) {
 					const space = this.message.indexOf(' ');
 					const names = findMatchingEntityNames(this.game, this.message.substr(space + 1));
@@ -202,7 +229,12 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		} else if (e.keyCode === Key.ENTER && this.isOpen) {
 			this.send(e);
 		} else if (e.keyCode === Key.ESCAPE) {
-			this.close();
+			if (this.showCommandDropdown) {
+				this.showCommandDropdown = false;
+				this.commandQuery = '';
+			} else {
+				this.close();
+			}
 			e.preventDefault();
 		} else if (e.keyCode === Key.SPACE) {
 			const modeSwitch = this.getModeSwitchFromCommand();
@@ -558,6 +590,8 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		if (this.isOpen) {
 			this.stopTypingIndicator();
 			this.emojiBoxState = 'none';
+			this.showCommandDropdown = false;
+			this.commandQuery = '';
 			this.input.blur();
 			this.isOpen = false;
 			this.chatBox.nativeElement.hidden = true;

@@ -91,6 +91,28 @@ function findArmyTargetClient(world: World, query: string, excludeClient?: IClie
 	});
 }
 
+const MAX_REPEAT_COUNT = 10;
+
+function parseRepeatCount(args: string): { count: number; rest: string } {
+	const match = args.trim().match(/^(\d+)\s*(.*)/);
+	if (match) {
+		const count = clamp(parseInt(match[1], 10), 1, MAX_REPEAT_COUNT);
+		return { count, rest: match[2] };
+	}
+	return { count: 1, rest: args };
+}
+
+function repeatAction(client: IClient, action: Action, settings: GameServerSettings, count: number) {
+	if (count <= 1) {
+		execAction(client, action, settings);
+	} else {
+		execAction(client, action, settings);
+		for (let i = 1; i < count; i++) {
+			setTimeout(() => execAction(client, action, settings), i * 800);
+		}
+	}
+}
+
 function transferArmyToClient(fromClient: IClient, toClient: IClient) {
 	const summoned = summonedBunnies.get(fromClient) || [];
 	const free = freeBunnies.get(fromClient) || [];
@@ -863,14 +885,15 @@ export function createCommands(world: World): Command[] {
 		command(['turn'], '/turn - turn head', '', ({ }, client, _, __, ___, settings) => {
 			execAction(client, Action.TurnHead, settings);
 		}, false, 'Actions'),
-		command(['boop', ')'], '/boop or /) - a boop', '', ({ }, client, message, _, __, settings) => {
-			const expression = parseExpression(message, true);
+		command(['boop', ')'], '/boop [count] or /) [count] - a boop (repeat up to 10x)', '', ({ }, client, message, _, __, settings) => {
+			const { count, rest } = parseRepeatCount(message);
+			const expression = parseExpression(rest);
 
 			if (expression) {
 				setEntityExpression(client.pony, expression, 800);
 			}
 
-			execAction(client, Action.Boop, settings);
+			repeatAction(client, Action.Boop, settings, count);
 		}, false, 'Actions'),
 		command(['drop'], '/drop - drop held item', '', ({ }, client, _, __, ___, settings) => {
 			execAction(client, Action.Drop, settings);
@@ -1371,6 +1394,26 @@ export function createCommands(world: World): Command[] {
 		}, false, 'Mod'),
 		command(['rareitems', 'rare'], '/rareitems - show rare hold items', 'mod', ({ }, client) => {
 			saySystem(client, `Rare items: ${rareHoldTypeNames.join(', ')}`);
+		}, false, 'Mod'),
+		command(['msgcolor'], '/msgcolor <#hex|reset> - set custom chat message color', '', ({ }, client, message) => {
+			const color = message.trim().toLowerCase();
+
+			if (!color || color === 'reset' || color === 'off' || color === 'clear') {
+				(client.pony as any).messageColor = undefined;
+				updateEntityOptions(client.pony, { messageColor: undefined } as any);
+				saySystem(client, 'Message color reset to default');
+				return;
+			}
+
+			const hex = color.startsWith('#') ? color.substring(1) : color;
+
+			if (!/^[0-9a-f]{6}$/.test(hex)) {
+				throw new UserError('Invalid color format. Use: /msgcolor #ff0000 or /msgcolor ff0000');
+			}
+
+			(client.pony as any).messageColor = hex;
+			updateEntityOptions(client.pony, { messageColor: hex } as any);
+			saySystem(client, `Message color set to #${hex}`);
 		}, false, 'Mod'),
 		command(['goto'], '/goto <map_id> [instance] - teleport to map spawn', 'mod', ({ world }, client, message) => {
 			const parts = message.trim().split(/\s+/);
@@ -2021,7 +2064,7 @@ export function createCommands(world: World): Command[] {
 			findEntities(client.map, e => !!e.options && e.name === 'debug 2')
 				.forEach(e => sayToAll(e, 'Hello there!', 'Hello there!', MessageType.Chat, settings));
 		}, false, 'Owner'),
-		BETA && command(['hold'], '/hold <name> - hold item', 'owner', ({ }, client, message) => {
+		BETA && command(['hold'], '/hold <name> - hold item', 'staff', ({ }, client, message) => {
 			holdItem(client.pony, getEntityType(message));
 		}, false, 'Owner'),
 		BETA && command(['toy'], '/toy <number> - hold toy', 'owner', ({ }, client, message) => {

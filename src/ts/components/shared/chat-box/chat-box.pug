@@ -1,5 +1,11 @@
 .chat-box(#chatBox)
 	div(#chatBoxInput)
+		.command-dropdown(*ngIf="showCommandDropdown")
+			ul.command-dropdown-menu
+				li.command-dropdown-item(*ngFor="let cmd of filteredCommands" (click)="selectCommand(cmd)")
+					| /{{cmd.name}}
+					span.command-help(*ngIf="cmd.help") {{cmd.help}}
+
 		input.chat-input#chat-input(
 			#inputElement
 			[(ngModel)]="message"
@@ -8,6 +14,7 @@
 			[maxlength]="maxSayLength"
 			aria-label="Chat message"
 		)
+
 		.chat-box-type(#typeBox (click)="toggleChatType($event)")
 			| #[span(#typePrefix)][#[span.chat-box-type-name(#typeName)]]:
 		.chat-char-count(*ngIf="showRemainingCharacters" [class.danger]="remainingCharactersDanger") {{ remainingCharacters }}

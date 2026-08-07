@@ -163,3 +163,41 @@
 	bottom: auto;
 	z-index: 300;
 }
+
+.command-dropdown {
+	position: absolute;
+	left: 42px;
+	bottom: 100%;
+	z-index: 1000;
+}
+
+.command-dropdown-menu {
+	max-height: 200px;
+	overflow-y: auto;
+	width: 300px;
+	background: #1a1a1a;
+	border: 1px solid #333;
+	padding: 4px 0;
+	list-style: none;
+	margin: 0;
+}
+
+.command-dropdown-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 4px 12px;
+	color: #fff;
+	cursor: pointer;
+	font-size: 13px;
+
+	&:hover {
+		background-color: #2a2a2a;
+	}
+}
+
+.command-help {
+	color: #aaa;
+	font-size: 11px;
+	margin-left: 8px;
+}
