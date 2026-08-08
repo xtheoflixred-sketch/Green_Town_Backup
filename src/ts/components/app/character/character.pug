@@ -932,14 +932,7 @@ page-loader(*ngIf="!playing")
 				.row.form-group
 					label.col-sm-4.col-form-label Profile background
 					.col-sm-8
-						color-picker(
-							type="text"
-							id="profile-background"
-							[(color)]="bgColor"
-							(colorChangeStart)="beginColorChange()"
-							(colorChange)="onBgColorChange($event)"
-							(colorChangeEnd)="colorChangeDone()"
-						)
+						color-picker(type="text" id="profile-background" [(color)]="bgColor" (colorChangeStart)="beginColorChange()" (colorChange)="onBgColorChange($event)" (colorChangeEnd)="colorChangeDone()")
 
 					.row.form-group
 						label.col-sm-4.col-form-label(for="description")
