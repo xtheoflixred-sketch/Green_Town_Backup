@@ -697,7 +697,11 @@ export const table3 = doodad(n('table-3'), sprites.table_3, 24, 21, 0,
 	mixColliderRect(-23, -14, 45, 14),
 	mixItemTrigger(-23, -14, 45, 14, itemTriggerArea.type));
 
-export const couch = doodad(n('couch'), sprites.couch, 37, 20, 0, mixColliderRect(-37, -3, 75, 8));
+export const couch = doodad(n('couch'), sprites.couch_red, 37, 20, 0, mixColliders(
+	collider(-29, -20, 96, 20),
+	collider(-37, -20, 18, 58),
+	collider(55, -20, 20, 58),
+));
 
 export const wallMap = doodad(n('wall-map'), sprites.wall_map, 20, 51, 0, mixFlags(EntityFlags.StaticY));
 

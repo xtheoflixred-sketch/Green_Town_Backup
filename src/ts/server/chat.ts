@@ -2,7 +2,7 @@ import { repeat } from 'lodash';
 import { isForbiddenMessage, createIsSuspiciousMessage } from '../common/security';
 import {
 	ChatType, MessageType, Action, LeaveReason, isPublicChat, isPartyChat, isPublicMessage, isPartyMessage,
-	toMessageType, isWhisper, isWhisperTo, isTypingIndicatorMessage
+	toMessageType, isWhisper, isWhisperTo, typingIndicatorMessage
 } from '../common/interfaces';
 import { trimRepeatedLetters, urlRegexTexts, ipRegexText, urlExceptionRegex } from '../common/filterUtils';
 import { parseExpression } from '../common/expressionUtils';
@@ -108,6 +108,10 @@ export const createSay =
 
 		if (!command && args === '.') {
 			sayTransientMessage(client, args, type, target, settings);
+			return;
+		}
+
+		if (!command && args === '...') {
 			return;
 		}
 

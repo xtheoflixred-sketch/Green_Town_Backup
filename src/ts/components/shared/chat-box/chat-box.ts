@@ -42,7 +42,7 @@ function isActionCommand(message: string) {
 }
 
 const typingIndicatorShowDelay = 300;
-const typingIndicatorHideDelay = 500;
+const typingIndicatorHideDelay = 1000;
 @Component({
 	selector: 'chat-box',
 	templateUrl: 'chat-box.pug',
