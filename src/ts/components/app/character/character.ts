@@ -86,7 +86,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	private _bgColor = localStorage.getItem('editor-bgColor') || '#444';
 
 	get bgColor() {
-		return this.pony.bgColor || this._bgColor;
+		return (this.pony && this.pony.bgColor) || this._bgColor;
 	}
 
 	set bgColor(value: string) {

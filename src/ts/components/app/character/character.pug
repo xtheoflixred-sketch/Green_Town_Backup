@@ -935,7 +935,6 @@ page-loader(*ngIf="!playing")
 						.d-flex.align-items-center
 							color-picker(
 								[(color)]="bgColor"
-								(showAlpha)="true"
 								(colorChange)="onBgColorChange($event)"
 							)
 							button.btn.btn-sm.btn-default.ml-2((click)="onBgColorReset()") Default
