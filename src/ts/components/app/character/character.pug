@@ -932,12 +932,14 @@ page-loader(*ngIf="!playing")
 				.row.form-group
 					label.col-sm-4.col-form-label Profile background
 					.col-sm-8
-						.d-flex.align-items-center
-							color-picker(
-								[(color)]="bgColor"
-								(colorChange)="onBgColorChange($event)"
-							)
-							button.btn.btn-sm.btn-default.ml-2((click)="onBgColorReset()") Default
+						color-picker(
+							type="text"
+							id="profile-background"
+							[(color)]="bgColor"
+							(colorChangeStart)="beginColorChange()"
+							(colorChange)="onBgColorChange($event)"
+							(colorChangeEnd)="colorChangeDone()"
+						)
 
 					.row.form-group
 						label.col-sm-4.col-form-label(for="description")
