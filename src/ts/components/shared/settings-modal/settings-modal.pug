@@ -225,6 +225,12 @@
 					.alert.alert-info.mt-2.mb-0
 						| New background may stutter and is not optimized for weaker devices.
 
+				.form-group
+					custom-checkbox(
+						[(checked)]="browser.disableGrassClick"
+						help="Disables toggling grass by clicking on the ground")
+						| Disable grass click
+
 		// =========================
 		// SOCIAL
 		// =========================
@@ -243,12 +249,6 @@
 						[(checked)]="account.showOwnChatBubbleProfile"
 						help="Open your own profile by clicking your chat bubble")
 						| Open your profile from your chat bubble
-
-				.form-group
-					custom-checkbox(
-						[(checked)]="browser.disableGrassClick"
-						help="Disables toggling grass by clicking on the ground")
-						| Disable grass click
 
 				//.form-group
 					custom-checkbox(
