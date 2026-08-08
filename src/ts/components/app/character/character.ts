@@ -83,31 +83,6 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	hidePreviewName = false;
 	hidePreviewTag = false;
 
-	private _bgColor = localStorage.getItem('editor-bgColor') || '#444';
-
-	get bgColor() {
-		return (this.pony && this.pony.bgColor) || this._bgColor;
-	}
-
-	set bgColor(value: string) {
-		this._bgColor = value;
-		if (this.pony) {
-			this.pony.bgColor = value;
-		}
-	}
-
-	onBgColorChange(color: string) {
-		this.bgColor = color;
-		localStorage.setItem('editor-bgColor', color);
-		this.changed();
-	}
-
-	onBgColorReset() {
-		this.bgColor = '#444';
-		localStorage.removeItem('editor-bgColor');
-		this.changed();
-	}
-
 	readonly playIcon = faPlay;
 	readonly resetIcon = faRedo;
 	readonly undoIcon = faUndo;

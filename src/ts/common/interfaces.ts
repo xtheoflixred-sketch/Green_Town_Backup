@@ -584,7 +584,6 @@ export interface Entity extends EntityPart {
 
 	// noclip
 	noclip?: boolean;
-	bgColor?: string;
 }
 
 export interface FakeEntity {
@@ -919,7 +918,6 @@ export interface PonyOptions {
 	lightSpriteY?: number;
 	lightSpriteColor?: number;
 	batForm?: boolean;
-	bgColor?: string;
 }
 
 // id, options, name, info, playerState, badName
@@ -1429,7 +1427,6 @@ export interface PonyObject {
 	site?: string;
 	lastUsed?: string;
 	creator?: string;
-	bgColor?: string;
 }
 
 export interface SpriteSetBase {

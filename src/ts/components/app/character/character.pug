@@ -927,14 +927,9 @@ page-loader(*ngIf="!playing")
 								label="Reset background"
 								title="Reset background")
 						.col-sm-8
-							color-picker(type="text" id="preview-background" [(color)]="info.previewBackground" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()")
+						color-picker(type="text" id="preview-background" [(color)]="info.previewBackground" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()")
 
 				.row.form-group
-					label.col-sm-4.col-form-label Profile background
-					.col-sm-8
-						color-picker(type="text" id="profile-background" [(color)]="bgColor" (colorChangeStart)="beginColorChange()" (colorChange)="onBgColorChange($event)" (colorChangeEnd)="colorChangeDone()")
-
-					.row.form-group
 						label.col-sm-4.col-form-label(for="description")
 							| Description
 							fa-icon.text-muted.ml-2([icon]="infoIcon" [tooltip]="descriptionTooltip" containerClass="tooltip-desc")
