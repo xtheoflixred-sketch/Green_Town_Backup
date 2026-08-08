@@ -2512,7 +2512,7 @@ export const tools = [
 	{ type: pickaxe.type,
 	   text: 'Pickaxe: drag & clone objects', textMobile: undefined },
 	{ type: scrap.type,
-	   text: 'Scrap: align & move objects\nuse [mouse wheel] to switch alignment mode', textMobile: undefined },
+	   text: 'Scrap: mirror objects', textMobile: undefined },
 ];
 
 export const candies1Types = [candyCane1, candyCane2, cookie, cookiePony].map(e => e.type);

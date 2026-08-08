@@ -1333,6 +1333,11 @@ export interface EditorSetLightScaleAction {
 	scale: number;
 }
 
+export interface EditorMirrorAction {
+	type: 'mirror';
+	entities: number[];
+}
+
 export interface EditorOtherAction {
 	type: 'undo' | 'clear' | 'list';
 }
@@ -1360,6 +1365,7 @@ export type EditorAction =
 	EditorSetLightSpriteXAction |
 	EditorSetLightSpriteYAction |
 	EditorSetLightScaleAction |
+	EditorMirrorAction |
 	EditorOtherAction |
 	EditorTileAction |
 	EditorPartyAction;

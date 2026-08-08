@@ -120,6 +120,30 @@ export class CharacterList implements OnInit {
 	getCharacterTagTooltip(pony: PonyObject) {
 		return getTagTooltip(this.getCharacterTag(pony));
 	}
+	getSupporterTag(pony: PonyObject): string | undefined {
+		if (pony.hideSupport || pony.supportTag === 'hidden') {
+			return 'hidden';
+		}
+		if (pony.supportTag && /^sup[1-4]$/.test(pony.supportTag)) {
+			return pony.supportTag.toUpperCase();
+		}
+		return undefined;
+	}
+	getSupporterTagLevel(tag: string | undefined): number | undefined {
+		if (!tag || tag === 'hidden') {
+			return undefined;
+		}
+		const match = /^sup([1-4])$/i.exec(tag);
+		return match ? Number(match[1]) : undefined;
+	}
+	getSupporterTagColor(tag: string | undefined): string | undefined {
+		const level = this.getSupporterTagLevel(tag || '');
+		if (level === 1) return '#f96955';
+		if (level === 2) return '#d98a2a';
+		if (level === 3) return '#ffcf00';
+		if (level === 4) return '#2ecc71';
+		return '#b0b7bd';
+	}
 	getSupporterLevel(): number {
 		return (this.model && this.model.supporter) || 0;
 	}

@@ -1,9 +1,35 @@
 import '../lib';
 import { expect } from 'chai';
 import { entity } from '../mocks';
-import { compareEntities, isNpcEntity, canOpenProfile } from '../../common/entityUtils';
+import { compareEntities, isNpcEntity, canOpenProfile, mirrorEntity } from '../../common/entityUtils';
 
 describe('entityUtils [common]', () => {
+	describe('mirrorEntity()', () => {
+		it('mirrors collider bounds and facing state for an entity', () => {
+			const obj: any = {
+				state: 2,
+				bounds: { x: -12, y: -6, w: 24, h: 12 },
+				colliders: [{ x: -4, y: -2, w: 8, h: 4, tall: true, exact: false }],
+				collidersBounds: { x: -4, y: -2, w: 8, h: 4 },
+				interactBounds: { x: -5, y: -5, w: 10, h: 10 },
+				pickableX: 6,
+				pickableY: 3,
+				options: { xOffset: 4, mirror: false } as any,
+			};
+
+			mirrorEntity(obj);
+
+			expect(obj.state & 2).equal(0);
+			expect(obj.bounds.x).equal(-12);
+			expect(obj.bounds.w).equal(24);
+			expect(obj.colliders[0].x).equal(-4);
+			expect(obj.interactBounds.x).equal(-5);
+			expect(obj.pickableX).equal(-6);
+			expect(obj.options.xOffset).equal(-4);
+			expect(obj.options.mirror).equal(true);
+		});
+	});
+
 	describe('isNpcEntity()', () => {
 		it('detects NPC entities from the tag option', () => {
 			const entityObject = { options: { tag: 'npc' } } as any;

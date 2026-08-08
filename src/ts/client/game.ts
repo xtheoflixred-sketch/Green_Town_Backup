@@ -131,7 +131,7 @@ import {
 	pickEntities, updateEntitiesTriggers, getElevation, setElevation, createWorldMap
 } from '../common/worldMap';
 import { updateCamera, centerCameraOn, screenToWorld, createCamera } from '../common/camera';
-import { WHITE, BLACK, SHADOW_COLOR, getTileColor, RED, CAVE_LIGHT, CAVE_SHADOW, HOVER_OUTLINE_COLOR, CYAN } from '../common/colors';
+import { WHITE, BLACK, SHADOW_COLOR, getTileColor, RED, CAVE_LIGHT, CAVE_SHADOW, HOVER_OUTLINE_COLOR, CYAN, GREEN } from '../common/colors';
 import { formatHourMinutes, getLightColor, getShadowColor, createLightData } from '../common/timeUtils';
 import { toggleWalls } from '../common/mixins';
 import { getEntityTypeName, woodenWalls, stoneWalls } from '../common/entities';
@@ -169,7 +169,7 @@ import {
 import {
 	updateWallPlaceholder, updateBuildingPreviews, handleDragTool, handleBuildingActionClick, handleEditorBroomClick,
 	handleBuildingRightClick, handleBuildingWheel, changePlaceEntity as changePlaceEntityTool, changePlaceTile as changePlaceTileTool,
-	removeEntitiesTool, placeEntitiesTool, changeTileTool, toggleWallsTool, dragEntityTool, cloneEntityTool,
+	removeEntitiesTool, placeEntitiesTool, changeTileTool, toggleWallsTool, dragEntityTool, cloneEntityTool, scrapAlignTool,
 	handleTilePaintDrag, handleWallPaintDrag, getTilePaintPreviewState, getWallPaintPreviewState, getBuildingDragVisualState, getSelectedWallMaterial, isSelectedWallTall, isEditorSawActive
 } from './BuildingUtils';
 import { fontSmallPal, fontSmall, font, fontMono } from './fonts';
@@ -1432,9 +1432,9 @@ export class PonyTownGame implements Game {
 					   const pickedEntity = pickedEntities[(pickedEntities.indexOf(this.selected!) + 1) % pickedEntities.length];
 					   const holdingRemoveTool = player.hold === removeEntitiesTool.type;
 					   const holdingPlaceTool = player.hold === placeEntitiesTool.type;
-					   const editableMap = hasFlag(this.map.flags, MapFlags.EditableEntities);
-					   const holdingTool = holdingRemoveTool || holdingPlaceTool;
-
+						   const holdingScrapTool = player.hold === scrapAlignTool.type;
+						   const editableMap = hasFlag(this.map.flags, MapFlags.EditableEntities);
+						   const holdingTool = holdingRemoveTool || holdingPlaceTool || holdingScrapTool;
 					   const nowClick = performance.now();
 					   const isDouble = this.lastEyeClickTime > 0 && (nowClick - this.lastEyeClickTime) < 350;
 					   const clickNearSelf = distanceXY(player.x, player.y, hover.x, hover.y) < TILE_CHANGE_RANGE;
@@ -2320,6 +2320,7 @@ export class PonyTownGame implements Game {
 			}
 			const brooomHighlight = (showHoverOutline && hoverTool === removeEntitiesTool.type) ? this.highlightEntity : undefined;
 			const editorBroomHighlight = (showHoverOutline && this.editor.useEditorBroom) ? this.highlightEntity : undefined;
+			const scrapHighlight = (showHoverOutline && hoverTool === scrapAlignTool.type) ? this.highlightEntity : undefined;
 			const ropeHighlight = (showHoverOutline && hoverTool === dragEntityTool.type && !ropeMultiMode) ? this.highlightEntity : undefined;
 			const ropeShiftHighlight = (showHoverOutline && hoverTool === dragEntityTool.type && ropeMultiMode) ? this.highlightEntity : undefined;
 			const editorRopeHighlight = (showHoverOutline && this.editor.useEditorRope && !ropeMultiMode) ? this.highlightEntity : undefined;
@@ -2335,6 +2336,9 @@ export class PonyTownGame implements Game {
 			}
 			if (editorBroomHighlight) {
 				editorBroomHighlight.outlineColor = 0xff3b30ff;
+			}
+			if (scrapHighlight) {
+				scrapHighlight.outlineColor = GREEN;
 			}
 			if (ropeHighlight) {
 				ropeHighlight.outlineColor = 0xffcc00ff;
@@ -2382,6 +2386,9 @@ export class PonyTownGame implements Game {
 			}
 			if (editorBroomHighlight) {
 				editorBroomHighlight.outlineColor = undefined;
+			}
+			if (scrapHighlight) {
+				scrapHighlight.outlineColor = undefined;
 			}
 			if (ropeHighlight) {
 				ropeHighlight.outlineColor = undefined;

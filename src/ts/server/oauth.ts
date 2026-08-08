@@ -54,15 +54,23 @@ export interface OAuthProviderInfo {
 	additionalOptions?: any;
 }
 
-export function createTelegramAuthRedirectUrl(host: string, auth: any) {
-	const normalizedHost = host && host.endsWith('/') ? host.slice(0, -1) : (host || '');
-	const redirectUri = `${normalizedHost}/auth/telegram/callback`;
-	let origin = normalizedHost;
-	try {
-		origin = normalizedHost ? new URL(normalizedHost).origin : normalizedHost;
-	} catch (_e) {
-		origin = normalizedHost;
+function normalizeTelegramHost(host: string): string {
+	const trimmedHost = (host || '').trim();
+	if (!trimmedHost) {
+		return '';
 	}
+
+	const normalizedHost = trimmedHost.endsWith('/') ? trimmedHost : `${trimmedHost}/`;
+	try {
+		return new URL(normalizedHost).origin;
+	} catch (_e) {
+		return trimmedHost.replace(/\/+$/, '').replace(/:(80|443)$/, '');
+	}
+}
+
+export function createTelegramAuthRedirectUrl(host: string, auth: any) {
+	const baseUrl = normalizeTelegramHost(host);
+	const redirectUri = `${baseUrl}/auth/telegram/callback`;
 
 	const params: any = {
 		bot_id: auth && auth.botId,
@@ -70,8 +78,8 @@ export function createTelegramAuthRedirectUrl(host: string, auth: any) {
 		request_access: 'write',
 	};
 
-	if (origin) {
-		params.origin = origin;
+	if (baseUrl) {
+		params.origin = baseUrl;
 	}
 
 	return `https://oauth.telegram.org/auth?${querystring.stringify(params)}`;

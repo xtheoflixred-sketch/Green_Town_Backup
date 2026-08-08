@@ -8,7 +8,6 @@ import { isOutsideMap } from '../common/collision';
 import { Key } from './input/input';
 import { toggleWall, editorMoveEntities } from './playerActions';
 import { addChatBubble } from '../common/entityUtils';
-import { addEntity, removeEntityDirectly } from '../common/worldMap';
 import { PONY_TYPE } from '../common/constants';
 import { getSaysTime } from './clientUtils';
 
@@ -33,8 +32,6 @@ let multiDragPendingToggleEntityId: number | undefined;
 let multiMoveModeEnabled = false;
 let multiCloneModeEnabled = false;
 let lastMultiDragEmptyClickTime = 0;
-let scrapAlignMode: 'vertical' | 'horizontal' | 'diagonal' = 'vertical';
-let scrapAlignAnnounced = false;
 let tilePaintDragActive = false;
 let tilePaintStart: { x: number; y: number; } | undefined;
 let tilePaintCurrent: { x: number; y: number; } | undefined;
@@ -47,7 +44,6 @@ let selectedWallHeight: WallHeight = 'low';
 let selectedWallHeightMap: any | undefined;
 const MULTI_DRAG_START_DISTANCE = 0.05;
 const MULTI_DRAG_CLEAR_DOUBLE_CLICK_MS = 350;
-const SCRAP_SNAP_DISTANCE = 0.85;
 type EditorMode = 'tile' | 'wall';
 let editorMode: EditorMode = 'tile';
 
@@ -106,54 +102,6 @@ function resolveEditorPreviewType(game: any): number {
 	}
 
 	return 0;
-}
-
-function announceScrapMode(game: any) {
-	const modeDisplay = scrapAlignMode === 'vertical' ? '|' : (scrapAlignMode === 'horizontal' ? '---' : '/');
-	const message = `Alignment mode: ${modeDisplay} (${scrapAlignMode})`;
-	const total = getSaysTime(message);
-	addChatBubble(game.map, game.player, { message, type: MessageType.System, total, timer: total, created: Date.now() });
-	scrapAlignAnnounced = true;
-}
-
-function cycleScrapAlignMode(reverse: boolean) {
-	const modes: Array<'vertical' | 'horizontal' | 'diagonal'> = ['vertical', 'horizontal', 'diagonal'];
-	const currentIndex = modes.indexOf(scrapAlignMode);
-	const nextIndex = reverse
-		? (currentIndex === 0 ? 2 : currentIndex - 1)
-		: ((currentIndex + 1) % 3);
-	scrapAlignMode = modes[nextIndex];
-	scrapAlignAnnounced = false;
-}
-
-function getScrapAlignedPoint(x: number, y: number, anchorX: number, anchorY: number) {
-	const dx = x - anchorX;
-	const dy = y - anchorY;
-
-	if (scrapAlignMode === 'vertical') {
-		return point(anchorX, y);
-	} else if (scrapAlignMode === 'horizontal') {
-		return point(x, anchorY);
-	} else {
-		const absDx = Math.abs(dx);
-		const absDy = Math.abs(dy);
-		if (absDx < SCRAP_SNAP_DISTANCE && absDy < SCRAP_SNAP_DISTANCE) {
-			return point(anchorX, anchorY);
-		}
-
-		const angle = Math.atan2(dy, dx);
-		const diag45 = (Math.PI / 4);
-		const normalizedAngle = ((angle + diag45 / 2) % (diag45 * 2));
-		if (Math.abs(normalizedAngle) < diag45 / 4 || Math.abs(normalizedAngle - diag45) < diag45 / 4) {
-			const mainDist = Math.hypot(dx, dy);
-			const snappedDist = mainDist * Math.cos(diag45);
-			const finalDx = Math.sign(dx) * snappedDist;
-			const finalDy = Math.sign(dy) * snappedDist;
-			return point(anchorX + finalDx, anchorY + finalDy);
-		}
-
-		return point(x, y);
-	}
 }
 
 function getWallMaterialTileType(material: WallMaterial) {
@@ -257,7 +205,7 @@ function getDragModes(player: any, input: any, game?: any) {
 	const isHammer = hold === placeEntitiesTool.type || (!!(BETA && game && game.editor && game.editor.useEditorHammer));
 	const isCloneTool = hold === cloneEntityTool.type || !!(BETA && game && game.editor && game.editor.useEditorPickaxe);
 	return {
-		canDragMove: isRope || isScrap || (isHammer && shift),
+		canDragMove: isRope || (isHammer && shift),
 		canDragClone: isCloneTool || (isHammer && ctrl),
 		allowMultiDrag: (isRope && multiMoveModeEnabled) || (isCloneTool && multiCloneModeEnabled),
 		isRope,
@@ -343,6 +291,8 @@ export function updateBuildingPreviews(game: any, player: any, hover: any, serve
 		const editorDragTool = isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player);
 			   if (player.hold === removeEntitiesTool.type || player.hold === dragEntityTool.type) {
 				   game.highlightEntity = pickEntities(game.map, hover, true, false, true).find(isRemovableEntity);
+			   } else if (player.hold === scrapAlignTool.type) {
+				   game.highlightEntity = pickAnyEntities(game.map, hover).find(entity => entity.type !== PONY_TYPE && isRemovableEntity(entity));
 			   } else if (player.hold === cloneEntityTool.type || editorDragTool) {
 				   game.highlightEntity = pickAnyEntities(game.map, hover).find(entity => entity.type !== PONY_TYPE && isRemovableEntity(entity));
 		} else if (player.hold === placeEntitiesTool.type || isEditorHammerActive(game, player)) {
@@ -513,15 +463,6 @@ export function handleDragTool(game: any, player: any, hover: any, input: any): 
 					let x = hover.x - offset.x;
 					let y = hover.y - offset.y;
 
-					// Apply scrap alignment if using scrap tool
-					if (player.hold === scrapAlignTool.type) {
-						const anchorX = ent.x;
-						const anchorY = ent.y;
-						const aligned = getScrapAlignedPoint(x, y, anchorX, anchorY);
-						x = aligned.x;
-						y = aligned.y;
-					}
-
 					   if (editorHammer) {
 						   const entityName = getEntityTypeName(ent.type);
 						   if (ent.type !== PONY_TYPE && entityName) {
@@ -538,17 +479,8 @@ export function handleDragTool(game: any, player: any, hover: any, input: any): 
 			} else {
 				const entities = draggingEntities.map((ent: any) => {
 					const offset = draggingOffsets.get(ent.id)!;
-					let x = hover.x - offset.x;
-					let y = hover.y - offset.y;
-
-					// Apply scrap alignment if using scrap tool
-					if (player.hold === scrapAlignTool.type) {
-						const anchorX = ent.x;
-						const anchorY = ent.y;
-						const aligned = getScrapAlignedPoint(x, y, anchorX, anchorY);
-						x = aligned.x;
-						y = aligned.y;
-					}
+					const x = hover.x - offset.x;
+					const y = hover.y - offset.y;
 
 					return { id: ent.id, x, y };
 				});
@@ -592,6 +524,7 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		(BETA && game.editor.tile !== -1) ||
 		(player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles)) ||
 		(player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) ||
+		(player.hold === scrapAlignTool.type && hasFlag(game.map.flags, MapFlags.EditableEntities)) ||
 		isEditorSawActive(game, player) ||
 		holdingRemoveTool || holdingPlaceTool
 	)) {
@@ -616,20 +549,17 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		const x = hover.x | 0;
 		const y = hover.y | 0;
 		server.changeTile(x, y, houseTiles[game.placeTile].type);
+	} else if (player.hold === scrapAlignTool.type && game.highlightEntity && editableMap) {
+		const id = game.highlightEntity.id;
+		if (game.highlightEntity.type !== PONY_TYPE && game.highlightEntity.type !== toggleWallsTool.type) {
+			game.send((s: any) => s.editorAction({ type: 'mirror', entities: [id] }));
+		}
 	} else if ((player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) || isEditorSawActive(game, player)) {
 		toggleWall(game, hover, isSelectedWallTall(game));
 	} else if (isEditorSawActive(game, player)) {
 		toggleWall(game, hover, isSelectedWallTall(game));
 	} else if (holdingRemoveTool && game.highlightEntity && editableMap) {
 		const id = game.highlightEntity.id;
-		const target = game.highlightEntity;
-		try {
-			const effect = createAnEntity(poof.type, 0, target.x, target.y, {}, game.paletteManager, game);
-			addEntity(game.map, effect);
-			setTimeout(() => removeEntityDirectly(game.map, effect), 1000);
-		} catch {
-			// ignore effect spawning failures
-		}
 		game.send((s: any) => s.actionParam(Action.RemoveEntity, id));
 	} else if (holdingPlaceTool && editableMap) {
 		if (isEditorHammerActive(game, player)) {
@@ -653,14 +583,6 @@ export function handleEditorBroomClick(game: any, hover: any): boolean {
 		return false;
 	}
 	const id = target.id;
-
-	try {
-		const effect = createAnEntity(poof.type, 0, target.x, target.y, {}, game.paletteManager, game);
-		addEntity(game.map, effect);
-		setTimeout(() => removeEntityDirectly(game.map, effect), 1000);
-	} catch {
-		// ignore effect spawning failures
-	}
 
 	game.send((s: any) => s.editorAction({ type: 'remove', entities: [id] }));
 	void hover;
@@ -847,31 +769,28 @@ export function handleBuildingWheel(game: any, input: any) {
 		return;
 	}
 
-	if (game.player.hold === scrapAlignTool.type && hasFlag(game.map.flags, MapFlags.EditableEntities)) {
-		cycleScrapAlignMode(input.wheelY < 0);
-		if (!scrapAlignAnnounced) {
-			announceScrapMode(game);
-		}
-		return;
-	}
-
 	if (input.isPressed(Key.SHIFT)) {
 		if (hasFlag(game.map.flags, MapFlags.EditableEntities)) {
 			const action = input.wheelY < 0 ? Action.SwitchTool : Action.SwitchToolRev;
 			game.send((server: any) => server.action(action));
 		}
-	} else {
-		if (game.player.hold === placeEntitiesTool.type) {
-			if (isEditorHammerActive(game, game.player)) {
-				changeEditorHammerEntity(game, input.wheelY < 0);
-			} else {
-				changePlaceEntity(game, input.wheelY < 0);
-			}
-		} else if (game.player.hold === changeTileTool.type) {
-			changePlaceTile(game, input.wheelY < 0);
-		} else if ((game.player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) || isEditorSawActive(game, game.player)) {
-			changeWallMaterial(game, input.wheelY < 0);
+		return;
+	}
+
+	if (game.player.hold === scrapAlignTool.type) {
+		return;
+	}
+
+	if (game.player.hold === placeEntitiesTool.type) {
+		if (isEditorHammerActive(game, game.player)) {
+			changeEditorHammerEntity(game, input.wheelY < 0);
+		} else {
+			changePlaceEntity(game, input.wheelY < 0);
 		}
+	} else if (game.player.hold === changeTileTool.type) {
+		changePlaceTile(game, input.wheelY < 0);
+	} else if ((game.player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) || isEditorSawActive(game, game.player)) {
+		changeWallMaterial(game, input.wheelY < 0);
 	}
 }
 

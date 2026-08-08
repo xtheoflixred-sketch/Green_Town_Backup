@@ -6,8 +6,9 @@ import { getWriterBuffer } from 'ag-sockets';
 import { encodeString } from 'ag-sockets/dist/utf8';
 import {
 	ChatType, TileType, Action, PlayerAction, ModAction, Eye, Muzzle, SelectFlags, InfoFlags, MapFlags,
-	typingIndicatorMessage, MessageType
+	typingIndicatorMessage, MessageType, EntityState
 } from '../../common/interfaces';
+import * as entities from '../../common/entities';
 import { CharacterState, ServerConfig, GameServerSettings } from '../../common/adminInterfaces';
 import { IClient, AccountService } from '../../server/serverInterfaces';
 import { ServerActions } from '../../server/serverActions';
@@ -361,6 +362,19 @@ describe('ServerActions', () => {
 			assert.calledTwice(updateEntityPlayerState);
 			assert.calledWithExactly(updateEntityPlayerState.firstCall, client, client.pony);
 			assert.calledWithExactly(updateEntityPlayerState.secondCall, other, client.pony);
+		});
+
+		it('creates a public puff when removing an editable entity with the broom', () => {
+			const entity = serverEntity(42, 10, 20, 123, { state: EntityState.Editable });
+			client.pony.options = { hold: entities.broom.type } as any;
+			world.addEntity(entity, client.map);
+
+			serverActions.actionParam(Action.RemoveEntity, entity.id);
+
+			const puff = (world as any).entityById.values().next().value;
+			expect(puff).to.exist;
+			expect(puff!.x).equal(10);
+			expect(puff!.y).equal(20);
 		});
 	});
 
@@ -1084,6 +1098,31 @@ describe('ServerActions', () => {
 			server.flags.editor = true;
 
 			serverActions.editorAction({ type: 'clear' });
+		});
+
+		it('mirrors as editor mod', () => {
+			client.isMod = true;
+			server.flags.editor = true;
+			const entity = { id: 42, type: 5, x: 1, y: 2, state: 0, coverLifting: 0, selected: false } as any;
+			const worldGetEntityById = stub(world, 'getEntityById').returns(entity);
+
+			serverActions.editorAction({ type: 'mirror', entities: [42] });
+
+			assert.calledOnce(worldGetEntityById);
+			expect(entity.state).to.equal(1);
+		});
+
+		it('mirrors as player with scrap tool', () => {
+			client.isMod = false;
+			client.pony.options = { hold: entities.scrap.type } as any;
+			client.map.flags = MapFlags.EditableEntities;
+			const entity = { id: 42, type: 5, x: 1, y: 2, state: 0, coverLifting: 0, selected: false } as any;
+			const worldGetEntityById = stub(world, 'getEntityById').returns(entity);
+
+			serverActions.editorAction({ type: 'mirror', entities: [42] });
+
+			assert.calledOnce(worldGetEntityById);
+			expect(entity.state).to.equal(1);
 		});
 
 		it('does nothing for non-mod client', () => {

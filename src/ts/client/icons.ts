@@ -9,7 +9,6 @@ import {
 
 export * from '@fortawesome/free-solid-svg-icons';
 export {
-    faTelegram,
     faBoosty,
     faCircleUserCirclePlus,
     faTiktok,
@@ -46,10 +45,9 @@ import {
     faAmilia,
     faYandexInternational,
     faApple,
-    faDiscord
+    faDiscord,
+    faTelegram
 } from '../generated/fa-icons';
-
-import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 
 export {
     faPatreon,
@@ -72,6 +70,7 @@ export {
     faAmilia,
     faYandexInternational,
     faDiscord,
+    faTelegram,
     faApple
 } from '../generated/fa-icons';
 
@@ -93,7 +92,7 @@ export const oauthIcons: { [key: string]: any; } = {
     vkontakte: faVk,
     google: faGoogle,
     discord: faDiscord,
-    telegram: faPaperPlane
+    telegram: faTelegram
 };
 
 export const uaIcons: { [key: string]: any; } = {

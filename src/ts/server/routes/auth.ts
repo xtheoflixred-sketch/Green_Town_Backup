@@ -207,6 +207,15 @@ function renderTelegramCallbackRedirectPage(res: Response) {
 				if (/^\s*\{/.test(decoded)) {
 					return JSON.parse(decoded);
 				}
+
+				const normalized = decoded.replace(/-/g, '+').replace(/_/g, '/');
+				const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+				const raw = typeof atob === 'function' ? atob(padded) : Buffer.from(padded, 'base64').toString('utf8');
+				const parsedJson = JSON.parse(raw);
+				if (parsedJson && typeof parsedJson === 'object') {
+					return parsedJson;
+				}
+
 				return parseSearchParams(new URLSearchParams(decoded));
 			} catch (_e) {
 				return {};
@@ -260,9 +269,19 @@ function parseTelegramAuthQuery(rawQuery: any) {
 	if (typeof query.tgAuthResult === 'string') {
 		try {
 			const decoded = decodeURIComponent(query.tgAuthResult);
-			const parsed = /^\s*\{/.test(decoded)
-				? JSON.parse(decoded)
-				: parseSearchParams(new URLSearchParams(decoded));
+			let parsed: any;
+			if (/^\s*\{/.test(decoded)) {
+				parsed = JSON.parse(decoded);
+			} else {
+				const normalized = decoded.replace(/-/g, '+').replace(/_/g, '/');
+				const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+				try {
+					const raw = typeof atob === 'function' ? atob(padded) : Buffer.from(padded, 'base64').toString('utf8');
+					parsed = JSON.parse(raw);
+				} catch (_inner) {
+					parsed = parseSearchParams(new URLSearchParams(decoded));
+				}
+			}
 
 			Object.keys(parsed).forEach(key => {
 				query[key] = parsed[key];
