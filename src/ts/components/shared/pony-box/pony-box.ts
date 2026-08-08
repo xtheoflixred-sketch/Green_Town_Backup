@@ -124,6 +124,10 @@ export class PonyBox implements AfterViewChecked {
 		const player = this.game.player as any;
 		return !!(player && this.pony && distanceXY(player.x, player.y, this.pony.x, this.pony.y) < TILE_CHANGE_RANGE);
 	}
+	get bgColor() {
+		const c = (this.pony && (this.pony as any).bgColor) || '';
+		return c ? (c.startsWith('#') ? c : `#${c}`) : '#444';
+	}
 	get isShownOfflineForSelectedFriend() {
 		const friend = this.selectedFriendEntry;
 		const hiddenFor = this.model.account && this.model.account.settings && this.model.account.settings.showAsOfflineFor;

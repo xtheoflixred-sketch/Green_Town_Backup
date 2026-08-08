@@ -849,6 +849,7 @@ function updateEntityOptionsInternal(entity: Entity, options: Partial<EntityOrPo
 	if ('lightSpriteX' in options) entity.lightSpriteX = options.lightSpriteX;
 	if ('lightSpriteY' in options) entity.lightSpriteY = options.lightSpriteY;
 	if ('lightScaleAdjust' in options) entity.lightScaleAdjust = options.lightScaleAdjust;
+	if ('bgColor' in options) (entity as any).bgColor = options.bgColor;
 
 	if (isPony(entity) && 'modal' in options && game.selected && game.selected.id === entity.id) {
 		(game.selected as any).modal = (options as any).modal;

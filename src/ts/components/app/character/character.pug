@@ -929,6 +929,17 @@ page-loader(*ngIf="!playing")
 						.col-sm-8
 							color-picker(type="text" id="preview-background" [(color)]="info.previewBackground" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()")
 
+				.row.form-group
+					label.col-sm-4.col-form-label Profile background
+					.col-sm-8
+						.d-flex.align-items-center
+							color-picker(
+								[(color)]="bgColor"
+								(showAlpha)="true"
+								(colorChange)="onBgColorChange($event)"
+							)
+							button.btn.btn-sm.btn-default.ml-2((click)="onBgColorReset()") Default
+
 					.row.form-group
 						label.col-sm-4.col-form-label(for="description")
 							| Description

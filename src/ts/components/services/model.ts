@@ -418,14 +418,14 @@ export class Model {
 					pony.info = compressPonyString(pony.ponyInfo);
 				}
 
-				const { id, name, desc, site, tag, supportTag, info, hideSupport, respawnAtSpawn } = pony;
+				const { id, name, desc, site, tag, supportTag, info, hideSupport, respawnAtSpawn, bgColor } = pony;
 
 				if (!fast) {
 					this.pending = true;
 				}
 
 				return this.post<PonyObject | undefined>('/api/pony/save', {
-					pony: { id, name, desc, site, tag, supportTag, info, hideSupport, respawnAtSpawn }
+					pony: { id, name, desc, site, tag, supportTag, info, hideSupport, respawnAtSpawn, bgColor }
 				});
 			})
 			.catch((e: Error) => {
