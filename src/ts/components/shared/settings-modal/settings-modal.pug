@@ -244,6 +244,12 @@
 						help="Open your own profile by clicking your chat bubble")
 						| Open your profile from your chat bubble
 
+				.form-group
+					custom-checkbox(
+						[(checked)]="browser.disableGrassClick"
+						help="Disables toggling grass by clicking on the ground")
+						| Disable grass click
+
 				//.form-group
 					custom-checkbox(
 						[(checked)]="account.chatlogOfflineSave"

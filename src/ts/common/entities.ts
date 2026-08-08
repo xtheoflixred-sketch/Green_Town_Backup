@@ -698,10 +698,57 @@ export const table3 = doodad(n('table-3'), sprites.table_3, 24, 21, 0,
 	mixItemTrigger(-23, -14, 45, 14, itemTriggerArea.type));
 
 export const couch = doodad(n('couch'), sprites.couch_red, 37, 20, 0, mixColliders(
-	collider(-29, -20, 96, 20),
-	collider(-37, -20, 18, 58),
-	collider(55, -20, 20, 58),
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
 ));
+export const couchBlue = doodad(n('couch-blue'), sprites.couch_blue, 37, 20, 0, mixColliders(
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
+));
+export const couchGray = doodad(n('couch-gray'), sprites.couch_gray, 37, 20, 0, mixColliders(
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
+));
+export const couchGreen = doodad(n('couch-green'), sprites.couch_green, 37, 20, 0, mixColliders(
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
+));
+export const couchOrange = doodad(n('couch-orange'), sprites.couch_orange, 37, 20, 0, mixColliders(
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
+));
+export const couchPink = doodad(n('couch-pink'), sprites.couch_pink, 37, 20, 0, mixColliders(
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
+));
+export const couchPurple = doodad(n('couch-purple'), sprites.couch_purple, 37, 20, 0, mixColliders(
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
+));
+export const couchTurquoise = doodad(n('couch-turquoise'), sprites.couch_turquoise, 37, 20, 0, mixColliders(
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
+));
+export const couchWhite = doodad(n('couch-white'), sprites.couch_white, 37, 20, 0, mixColliders(
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
+));
+export const couchYellow = doodad(n('couch-yellow'), sprites.couch_yellow, 37, 20, 0, mixColliders(
+	collider(-37, 0, 112, 7),
+	collider(-37, 7, 14, 28),
+	collider(61, 7, 14, 28),
+));
+
+export const curvedLog = doodad(n('curved-log'), sprites.curved_log, 14, -5, 0, mixColliderRect(-13, 70, 26, 10), mixFlags(EntityFlags.StaticY));
 
 export const wallMap = doodad(n('wall-map'), sprites.wall_map, 20, 51, 0, mixFlags(EntityFlags.StaticY));
 
@@ -2381,7 +2428,17 @@ export const placeableEntities: { type: number; name: string; }[] = [
 	{ type: table1.type, name: 'Small table' },
 	{ type: table2.type, name: 'Large table' },
 	{ type: table3.type, name: 'Long table' },
-	{ type: couch.type, name: 'Couch' },
+	{ type: couch.type, name: 'Couch (red)' },
+	{ type: couchBlue.type, name: 'Couch (blue)' },
+	{ type: couchGray.type, name: 'Couch (gray)' },
+	{ type: couchGreen.type, name: 'Couch (green)' },
+	{ type: couchOrange.type, name: 'Couch (orange)' },
+	{ type: couchPink.type, name: 'Couch (pink)' },
+	{ type: couchPurple.type, name: 'Couch (purple)' },
+	{ type: couchTurquoise.type, name: 'Couch (turquoise)' },
+	{ type: couchWhite.type, name: 'Couch (white)' },
+	{ type: couchYellow.type, name: 'Couch (yellow)' },
+	{ type: curvedLog.type, name: 'Curved log' },
 	{ type: lanternOn.type, name: 'Lantern' },
 	{ type: pumpkin.type, name: 'Pumpkin' },
 	{ type: jackoOn.type, name: `Jack-o'-lantern (lit)` },
@@ -2519,7 +2576,7 @@ export const tools = [
 	{ type: pickaxe.type,
 	   text: 'Pickaxe: drag & clone objects', textMobile: undefined },
 	{ type: scrap.type,
-	   text: 'Scrap: align & move objects\nuse [mouse wheel] to switch alignment mode', textMobile: undefined },
+	   text: 'Scrap: mirror objects', textMobile: undefined },
 ];
 
 export const candies1Types = [candyCane1, candyCane2, cookie, cookiePony].map(e => e.type);

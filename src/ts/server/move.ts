@@ -52,7 +52,7 @@ export const createMove =
 			pony.x = x;
 			pony.y = y;
 
-			if (isStaticCollision(pony, client.map)) {
+			if (!pony.noclip && isStaticCollision(pony, client.map)) {
 				pony.x = client.safeX;
 				pony.y = client.safeY;
 

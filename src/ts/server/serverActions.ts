@@ -26,6 +26,7 @@ import { allEntities } from './api/account';
 import { CounterService } from './services/counter';
 import { decodeExpression, isCancellableExpression } from '../common/encoders/expressionEncoder';
 import { updateEntity, updateEntityOptions, pushUpdateEntityToClient, pushUpdateTileToClient, sendAction  } from './entityUtils';
+import { mirrorEntity } from '../common/entityUtils';
 import { SupporterInvitesService } from './services/supporterInvites';
 import { Move } from './move';
 import { logger } from './logger';
@@ -84,6 +85,12 @@ function clearToolPreview(client: IClient, world: World, map = client.map) {
 		world.removeEntity(previewEntity, map);
 		client.toolPreviewEntity = undefined;
 	}
+}
+
+function spawnPublicPoof(world: World, map: any, x: number, y: number) {
+	const effect = createAnEntity(entities.poof.type, 0, x, y, {}, mockPaletteManager, world);
+	world.addEntity(effect, map);
+	setTimeout(() => world.removeEntity(effect, map), 1000);
 }
 
 export function clearClientToolVisuals(client: IClient, world: World, map = client.map) {
@@ -539,6 +546,7 @@ export class ServerActions implements IServerActions, SocketServer {
 					if (this.isHouseLocked()) {
 						saySystem(this.client, `House is locked`);
 					} else {
+						spawnPublicPoof(this.world, this.map, entity.x, entity.y);
 						this.world.removeEntity(entity, this.map);
 					}
 				}
@@ -925,8 +933,13 @@ export class ServerActions implements IServerActions, SocketServer {
 			!action.preview &&
 			hasFlag(this.map.flags, MapFlags.EditableEntities) &&
 			(this.pony.options!.hold === entities.rope.type || this.pony.options!.hold === entities.hammer.type);
+		const isPlayerMirror =
+			action.type === 'mirror' &&
+			Array.isArray(action.entities) &&
+			hasFlag(this.map.flags, MapFlags.EditableEntities) &&
+			this.pony.options!.hold === entities.scrap.type;
 
-		if (!isModEditor && !isPlayerRopeMove) {
+		if (!isModEditor && !isPlayerRopeMove && !isPlayerMirror) {
 			return;
 		}
 
@@ -946,6 +959,32 @@ export class ServerActions implements IServerActions, SocketServer {
 				) {
 					entity.x = x;
 					entity.y = y;
+					entity.coverLifting = 0;
+					entity.selected = false;
+					updateEntity(entity, false);
+					updateRegion(entity, this.client.map);
+					getExpectedRegion(entity, this.client.map).colliderDirty = true;
+				}
+			}
+
+			return;
+		}
+
+		if (!isModEditor && action.type === 'mirror') {
+			if (this.isHouseLocked() || !Array.isArray(action.entities)) {
+				return;
+			}
+
+			for (const id of action.entities) {
+				const entity = this.world.getEntityById(id);
+
+				if (
+					entity &&
+					entity.type !== PONY_TYPE &&
+					hasFlag(entity.state, EntityState.Editable) &&
+					this.map.regions.some(r => includes(r.entities, entity))
+				) {
+					mirrorEntity(entity);
 					entity.coverLifting = 0;
 					entity.selected = false;
 					updateEntity(entity, false);
@@ -1046,6 +1085,20 @@ export class ServerActions implements IServerActions, SocketServer {
 					}
 					break;
 				}
+				case 'mirror':
+					for (const id of action.entities) {
+						const entity = this.world.getEntityById(id);
+
+						if (entity && entity.type !== PONY_TYPE && hasFlag(entity.state, EntityState.Editable)) {
+							mirrorEntity(entity);
+							entity.coverLifting = 0;
+							entity.selected = false;
+							updateEntity(entity, false);
+							updateRegion(entity, this.client.map);
+							getExpectedRegion(entity, this.client.map).colliderDirty = true;
+						}
+					}
+					break;
 				case 'undo':
 					const remove = added.pop();
 					remove && remove.entities.forEach(e => this.world.removeEntityFromSomeMap(e));
@@ -1065,6 +1118,7 @@ export class ServerActions implements IServerActions, SocketServer {
 						const entity = this.world.getEntityById(id);
 
 						if (entity && entity.type !== PONY_TYPE) {
+							spawnPublicPoof(this.world, this.map, entity.x, entity.y);
 							this.world.removeEntityFromSomeMap(entity);
 						}
 					}

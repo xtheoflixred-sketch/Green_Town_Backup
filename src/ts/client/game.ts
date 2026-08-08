@@ -131,7 +131,7 @@ import {
 	pickEntities, updateEntitiesTriggers, getElevation, setElevation, createWorldMap
 } from '../common/worldMap';
 import { updateCamera, centerCameraOn, screenToWorld, createCamera } from '../common/camera';
-import { WHITE, BLACK, SHADOW_COLOR, getTileColor, RED, CAVE_LIGHT, CAVE_SHADOW, HOVER_OUTLINE_COLOR, CYAN } from '../common/colors';
+import { WHITE, BLACK, SHADOW_COLOR, getTileColor, RED, CAVE_LIGHT, CAVE_SHADOW, HOVER_OUTLINE_COLOR, CYAN, GREEN } from '../common/colors';
 import { formatHourMinutes, getLightColor, getShadowColor, createLightData } from '../common/timeUtils';
 import { toggleWalls } from '../common/mixins';
 import { getEntityTypeName, woodenWalls, stoneWalls } from '../common/entities';
@@ -169,7 +169,7 @@ import {
 import {
 	updateWallPlaceholder, updateBuildingPreviews, handleDragTool, handleBuildingActionClick, handleEditorBroomClick,
 	handleBuildingRightClick, handleBuildingWheel, changePlaceEntity as changePlaceEntityTool, changePlaceTile as changePlaceTileTool,
-	removeEntitiesTool, placeEntitiesTool, changeTileTool, toggleWallsTool, dragEntityTool, cloneEntityTool,
+	removeEntitiesTool, placeEntitiesTool, changeTileTool, toggleWallsTool, dragEntityTool, cloneEntityTool, scrapAlignTool,
 	handleTilePaintDrag, handleWallPaintDrag, getTilePaintPreviewState, getWallPaintPreviewState, getBuildingDragVisualState, getSelectedWallMaterial, isSelectedWallTall, isEditorSawActive
 } from './BuildingUtils';
 import { fontSmallPal, fontSmall, font, fontMono } from './fonts';
@@ -538,6 +538,7 @@ export class PonyTownGame implements Game {
 	private lastLookBaseRight?: Eye;
 	private lastIsKeyboardOpen = false;
 	private element?: HTMLElement;
+	private lastKeepAlive = 0;
 	private showWallPlaceholder = false;
 	private highlightEntity?: Entity;
 	private _hoveredChatPony?: Pony;
@@ -957,16 +958,10 @@ export class PonyTownGame implements Game {
 			});
 
 			this.initialized = true;
-
-			const stats = document.getElementById('stats') as HTMLElement;
-			this.statsText = document.createTextNode('');
-			stats.appendChild(this.statsText);
-
-			this.input.onReleased(Key.KEY_O, () => this.zoomOut());
-			this.input.onReleased(Key.KEY_P, () => this.zoomIn());
-			this.input.onReleased(Key.GAMEPAD_BUTTON_Y, () => this.changeScale());
-
+			this.input.onAnyInput(() => this.resetAfk());
 			this.input.onPressed(Key.ENTER, () => this.onChat.next());
+			this.input.onPressed(Key.KEY_O, () => this.zoomOut());
+			this.input.onPressed(Key.KEY_P, () => this.zoomIn());
 			this.input.onPressed(Key.ESCAPE, () => this.escape());
 			this.input.onPressed(Key.GAMEPAD_BUTTON_X, () => this.onToggleChat.next());
 			// this.input.onPressed(Key.BACKSPACE, () => this.backspace());
@@ -1035,6 +1030,14 @@ export class PonyTownGame implements Game {
 					this.zone.run(() => useAction(this, this.actions[index].action));
 				}
 			}));
+
+			// also bind numpad 0 to the same action as top-row 0 (index 9)
+			this.input.onPressed(Key.NUMPAD_0, () => {
+				const index = 9;
+				if (this.actions[index]) {
+					this.zone.run(() => useAction(this, this.actions[index].action));
+				}
+			});
 
 			this.debugShortcuts.length = 0;
 
@@ -1156,7 +1159,6 @@ export class PonyTownGame implements Game {
 			this.socket.disconnect();
 			this.socket = undefined;
 		}
-
 		this.audio.stop();
 		this.input.release();
 		this.releaseWebGL();
@@ -1192,6 +1194,19 @@ export class PonyTownGame implements Game {
 		if (DEVELOPMENT && LOG_POSITION) {
 			this.positions.length = 0;
 		}
+	}
+	private resetAfk() {
+		if (!this.socket || !this.socket.isConnected) {
+			return;
+		}
+
+		const now = performance.now();
+		if (now - this.lastKeepAlive < 1000) {
+			return;
+		}
+
+		this.lastKeepAlive = now;
+		this.send(server => server.action(Action.KeepAlive));
 	}
 	private getPixelScale() {
 		return this.scale * (integerPixelRatio() / pixelRatio());
@@ -1410,9 +1425,9 @@ export class PonyTownGame implements Game {
 					   const pickedEntity = pickedEntities[(pickedEntities.indexOf(this.selected!) + 1) % pickedEntities.length];
 					   const holdingRemoveTool = player.hold === removeEntitiesTool.type;
 					   const holdingPlaceTool = player.hold === placeEntitiesTool.type;
-					   const editableMap = hasFlag(this.map.flags, MapFlags.EditableEntities);
-					   const holdingTool = holdingRemoveTool || holdingPlaceTool;
-
+						   const holdingScrapTool = player.hold === scrapAlignTool.type;
+						   const editableMap = hasFlag(this.map.flags, MapFlags.EditableEntities);
+						   const holdingTool = holdingRemoveTool || holdingPlaceTool || holdingScrapTool;
 					   const nowClick = performance.now();
 					   const isDouble = this.lastEyeClickTime > 0 && (nowClick - this.lastEyeClickTime) < 350;
 					   const clickNearSelf = distanceXY(player.x, player.y, hover.x, hover.y) < TILE_CHANGE_RANGE;
@@ -1468,7 +1483,7 @@ export class PonyTownGame implements Game {
 								   if (nowClick >= this.ignoreSelectionClearUntil) {
 									   this.select(undefined);
 								   }
-							   } else if (hasFlag(this.map.flags, MapFlags.EdibleGrass)) {
+							   } else if (hasFlag(this.map.flags, MapFlags.EdibleGrass) && !this.settings.browser.disableGrassClick) {
 								   const tile = getTile(this.map, hover.x, hover.y);
 								   if (isValidTile(tile) && distanceXY(player.x, player.y, hover.x, hover.y) < TILE_CHANGE_RANGE) {
 									   const x = hover.x | 0;
@@ -1512,7 +1527,7 @@ export class PonyTownGame implements Game {
 							   if (nowClick >= this.ignoreSelectionClearUntil) {
 								   this.select(undefined);
 							   }
-						   } else if (hasFlag(this.map.flags, MapFlags.EdibleGrass)) {
+						   } else if (hasFlag(this.map.flags, MapFlags.EdibleGrass) && !this.settings.browser.disableGrassClick) {
 							   const tile = getTile(this.map, hover.x, hover.y);
 							   if (isValidTile(tile) && distanceXY(player.x, player.y, hover.x, hover.y) < TILE_CHANGE_RANGE) {
 								   const x = hover.x | 0;
@@ -1525,7 +1540,7 @@ export class PonyTownGame implements Game {
 							   setElevation(this.map, hover.x, hover.y, clamp(this.editor.elevation === 'up' ? value + 1 : value - 1, 0, 10));
 						   }
 					   }
-					}
+				   }
 				   }
 
 				   // --- Новый обработчик правой кнопки мыши ---
@@ -2298,6 +2313,7 @@ export class PonyTownGame implements Game {
 			}
 			const brooomHighlight = (showHoverOutline && hoverTool === removeEntitiesTool.type) ? this.highlightEntity : undefined;
 			const editorBroomHighlight = (showHoverOutline && this.editor.useEditorBroom) ? this.highlightEntity : undefined;
+			const scrapHighlight = (showHoverOutline && hoverTool === scrapAlignTool.type) ? this.highlightEntity : undefined;
 			const ropeHighlight = (showHoverOutline && hoverTool === dragEntityTool.type && !ropeMultiMode) ? this.highlightEntity : undefined;
 			const ropeShiftHighlight = (showHoverOutline && hoverTool === dragEntityTool.type && ropeMultiMode) ? this.highlightEntity : undefined;
 			const editorRopeHighlight = (showHoverOutline && this.editor.useEditorRope && !ropeMultiMode) ? this.highlightEntity : undefined;
@@ -2313,6 +2329,9 @@ export class PonyTownGame implements Game {
 			}
 			if (editorBroomHighlight) {
 				editorBroomHighlight.outlineColor = 0xff3b30ff;
+			}
+			if (scrapHighlight) {
+				scrapHighlight.outlineColor = GREEN;
 			}
 			if (ropeHighlight) {
 				ropeHighlight.outlineColor = 0xffcc00ff;
@@ -2360,6 +2379,9 @@ export class PonyTownGame implements Game {
 			}
 			if (editorBroomHighlight) {
 				editorBroomHighlight.outlineColor = undefined;
+			}
+			if (scrapHighlight) {
+				scrapHighlight.outlineColor = undefined;
 			}
 			if (ropeHighlight) {
 				ropeHighlight.outlineColor = undefined;

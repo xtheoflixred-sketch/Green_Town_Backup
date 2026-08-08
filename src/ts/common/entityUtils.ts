@@ -230,6 +230,73 @@ export function isFacingRight(entity: Entity) {
 	return (entity.state & EntityState.FacingRight) !== 0;
 }
 
+export function mirrorEntity(entity: Entity) {
+	if (!entity || (!entity.state && !entity.bounds && !entity.colliders && !entity.interactBounds && !entity.pickableX && !entity.pickableY)) {
+		return;
+	}
+
+	const state = entity.state || 0;
+	entity.state = state ^ EntityState.FacingRight;
+
+	const mirrorRect = (rect: { x: number; y: number; w: number; h: number; } | undefined) => {
+		if (!rect) {
+			return;
+		}
+		rect.x = -rect.x - rect.w;
+	};
+
+	mirrorRect(entity.bounds);
+	mirrorRect(entity.collidersBounds);
+	mirrorRect(entity.interactBounds);
+	mirrorRect(entity.triggerBounds);
+	mirrorRect(entity.lightBounds);
+	mirrorRect(entity.lightSpriteBounds);
+	mirrorRect(entity.itemTriggerBounds);
+	mirrorRect(entity.coverBounds);
+
+	if (Array.isArray(entity.colliders)) {
+		for (const collider of entity.colliders) {
+			if (collider) {
+				collider.x = -collider.x - collider.w;
+			}
+		}
+	}
+
+	if (typeof entity.pickableX === 'number') {
+		entity.pickableX = -entity.pickableX;
+	}
+	if (typeof entity.pickableY === 'number') {
+		entity.pickableY = -entity.pickableY;
+	}
+	if (typeof entity.ox === 'number') {
+		entity.ox = -entity.ox;
+	}
+	if (typeof entity.lightSpriteX === 'number') {
+		entity.lightSpriteX = -entity.lightSpriteX;
+	}
+	if (typeof entity.lightSpriteY === 'number') {
+		entity.lightSpriteY = -entity.lightSpriteY;
+	}
+
+	if (entity.options && typeof entity.options === 'object') {
+		const options = entity.options as any;
+		if (typeof options.xOffset === 'number') {
+			options.xOffset = -options.xOffset;
+		}
+		if (typeof options.flip === 'boolean') {
+			options.flip = !options.flip;
+		}
+		if (typeof options.mirror === 'boolean') {
+			options.mirror = !options.mirror;
+		}
+		for (const key of ['offsetX', 'x', 'left', 'right']) {
+			if (typeof options[key] === 'number') {
+				options[key] = -options[key];
+			}
+		}
+	}
+}
+
 export function hasHeadTurned(entity: Entity) {
 	return (entity.state & EntityState.HeadTurned) !== 0;
 }

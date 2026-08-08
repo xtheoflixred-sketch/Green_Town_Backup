@@ -284,6 +284,10 @@ export class World {
 		return this.maxId;
 	}
 	addEntity(entity: ServerEntity, map: ServerMap) {
+		if ((entity as any).noclip) {
+			(entity as any).allowSpawnInWall = true;
+		}
+
 		if (DEVELOPMENT) {
 			if (entity.update) {
 				console.error('Entity update() method is only for client-side use');
@@ -627,7 +631,7 @@ timingStart('updateCamera + updateSubscriptions');
 			}
 
 			if (thresholds.kickMs > 0 && inactiveFor > thresholds.kickMs) {
-				this.kick(client, 'afk');
+				this.kick(client, 'afk', LeaveReason.Afk);
 			}
 		}
 		timingEnd();

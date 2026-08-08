@@ -581,6 +581,9 @@ export interface Entity extends EntityPart {
 	// item trigger (for mixItemTrigger)
 	itemTriggerBounds?: Rect;
 	itemTriggerType?: number;
+
+	// noclip
+	noclip?: boolean;
 }
 
 export interface FakeEntity {
@@ -765,6 +768,7 @@ export interface BrowserSettings {
 	hideChangelogModal?: boolean;
 	enableTestModalHotkey?: boolean;
 	showLookClickZones?: boolean;
+	disableGrassClick?: boolean;
 }
 
 export interface EntityTypeName {
@@ -951,6 +955,7 @@ export const enum ModAction {
 export const enum LeaveReason {
 	None,
 	Swearing,
+	Afk,
 }
 
 export interface TileUpdate {
@@ -1332,6 +1337,11 @@ export interface EditorSetLightScaleAction {
 	scale: number;
 }
 
+export interface EditorMirrorAction {
+	type: 'mirror';
+	entities: number[];
+}
+
 export interface EditorOtherAction {
 	type: 'undo' | 'clear' | 'list';
 }
@@ -1359,6 +1369,7 @@ export type EditorAction =
 	EditorSetLightSpriteXAction |
 	EditorSetLightSpriteYAction |
 	EditorSetLightScaleAction |
+	EditorMirrorAction |
 	EditorOtherAction |
 	EditorTileAction |
 	EditorPartyAction;

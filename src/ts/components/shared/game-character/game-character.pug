@@ -702,271 +702,271 @@
 													| Emerald (tier 4)
 
 
-								.row.form-group
-									label#supporter-chat-label.col-sm-4.col-form-label Select chat
+							.row.form-group
+								label#supporter-chat-label.col-sm-4.col-form-label Select chat
 
-									.col-sm-8
-										.dropdown.btn-group(dropdown)
-											button.btn.btn-default.dropdown-toggle(
-												dropdownToggle
-												aria-labelledby="supporter-chat-label"
-											)
-												| {{ supportChatLabel }}
+								.col-sm-8
+									.dropdown.btn-group(dropdown)
+										button.btn.btn-default.dropdown-toggle(
+											dropdownToggle
+											aria-labelledby="supporter-chat-label"
+										)
+											| {{ supportChatLabel }}
 
-											.dropdown-menu(*dropdownMenu)
-												a.dropdown-item((click)="pony.supportChat = undefined") Auto
+										.dropdown-menu(*dropdownMenu)
+											a.dropdown-item((click)="pony.supportChat = undefined") Auto
 
-												a.dropdown-item(*ngFor="let option of supportChatOptions"
-													(click)="pony.supportChat = option.id")
-													| {{ option.label }}
+											a.dropdown-item(*ngFor="let option of supportChatOptions"
+												(click)="pony.supportChat = option.id")
+												| {{ option.label }}
 
-								.row.form-group
-									label.col-sm-4.col-form-label Display sup tag
+							.row.form-group
+								label.col-sm-4.col-form-label Display sup tag
 
-									.col-sm-8
-										custom-checkbox([(checked)]="supportTagPriority")
-											| Display supporter tag over regular tag
+								.col-sm-8
+									custom-checkbox([(checked)]="supportTagPriority")
+										| Display supporter tag over regular tag
 
-								hr
+							hr
 
-								.row.form-group
-									label#social-site-label.col-sm-4.col-form-label(for="social-site")
-										| Show social site
-									.col-sm-8
-										.dropdown.btn-group(dropdown)
-											button.btn.btn-default.dropdown-toggle(
-												dropdownToggle
-												aria-labelledby="social-site-label"
-												aria-describedby="social-site-help"
-											)
+							.row.form-group
+								label#social-site-label.col-sm-4.col-form-label(for="social-site")
+									| Show social site
+								.col-sm-8
+									.dropdown.btn-group(dropdown)
+										button.btn.btn-default.dropdown-toggle(
+											dropdownToggle
+											aria-labelledby="social-site-label"
+											aria-describedby="social-site-help"
+										)
+											fa-icon.mr-1(
+												*ngIf="site?.icon" [icon]="icon(site.icon)" [fixedWidth]="true" [style.color]="site.color"
+												size="lg" [attr.aria-label]="site.icon")
+											strong {{site?.name}}
+										.dropdown-menu(*dropdownMenu)
+											a.dropdown-item(*ngFor="let s of sites" (click)="site = s")
 												fa-icon.mr-1(
-													*ngIf="site?.icon" [icon]="icon(site.icon)" [fixedWidth]="true" [style.color]="site.color"
-													size="lg" [attr.aria-label]="site.icon")
-												strong {{site?.name}}
-											.dropdown-menu(*dropdownMenu)
-												a.dropdown-item(*ngFor="let s of sites" (click)="site = s")
-													fa-icon.mr-1(
-														*ngIf="s.icon" [icon]="icon(s.icon)" [fixedWidth]="true" [style.color]="s.color"
-														size="lg" [attr.aria-label]="s.icon")
-													strong {{s.name}}
+													*ngIf="s.icon" [icon]="icon(s.icon)" [fixedWidth]="true" [style.color]="s.color"
+													size="lg" [attr.aria-label]="s.icon")
+												strong {{s.name}}
 
-								.row.form-group(*ngIf="tags.length > 1")
-									label.col-sm-4.col-form-label Show tags
+							.row.form-group(*ngIf="tags.length > 1")
+								label.col-sm-4.col-form-label Show tags
 
-									.col-sm-8
-										.dropdown.btn-group(dropdown)
-											button.btn.btn-default.dropdown-toggle(dropdownToggle aria-label="Show tag")
-												strong {{tag?.name}}
+								.col-sm-8
+									.dropdown.btn-group(dropdown)
+										button.btn.btn-default.dropdown-toggle(dropdownToggle aria-label="Show tag")
+											strong {{tag?.name}}
 
-											.dropdown-menu(*dropdownMenu)
-												a.dropdown-item(*ngFor="let t of tags" (click)="tag = t")
-													strong {{t.name}}
+										.dropdown-menu(*dropdownMenu)
+											a.dropdown-item(*ngFor="let t of tags" (click)="tag = t")
+												strong {{t.name}}
 
-								hr
+							hr
 
-								.row.form-group
-									label.col-sm-4.col-form-label Advanced options
+							.row.form-group
+								label.col-sm-4.col-form-label Advanced options
 
-									.col-sm-8.text-muted.pt-1
-										custom-checkbox([(checked)]="pony.respawnAtSpawn")
-											| always respawn at spawn point
+								.col-sm-8.text-muted.pt-1
+									custom-checkbox([(checked)]="pony.respawnAtSpawn")
+										| always respawn at spawn point
 
-										custom-checkbox([(checked)]="info.customOutlines")
-											| allow custom outlines
+									custom-checkbox([(checked)]="info.customOutlines")
+										| allow custom outlines
 
-										custom-checkbox([(checked)]="info.freeOutlines" (checkedChange)="freeOutlinesChanged($event)")
-											| don't darken outlines
+									custom-checkbox([(checked)]="info.freeOutlines" (checkedChange)="freeOutlinesChanged($event)")
+										| don't darken outlines
 
-										custom-checkbox(
-											[(checked)]="info.darkenLockedOutlines"
-											[disabled]="!info.freeOutlines"
-											(checkedChange)="darkenLockedOutlinesChanged($event)"
-										)
-											| darken locked outlines
+									custom-checkbox(
+										[(checked)]="info.darkenLockedOutlines"
+										[disabled]="!info.freeOutlines"
+										(checkedChange)="darkenLockedOutlinesChanged($event)"
+									)
+										| darken locked outlines
 
-								hr
+							hr
 
-								.row.form-group(*ngIf="debug")
-									label.col-sm-4.col-form-label Debug options
+							.row.form-group(*ngIf="debug")
+								label.col-sm-4.col-form-label Debug options
 
-									.col-sm-8
-										button.btn.btn-sm.btn-default((click)="addBlush()") Add blush
+								.col-sm-8
+									button.btn.btn-sm.btn-default((click)="addBlush()") Add blush
 
-								hr
+							hr
 
-								.row.form-group
-									label.col-sm-4.col-form-label Export / Import
+							.row.form-group
+								label.col-sm-4.col-form-label Export / Import
 
-									.col-sm-8
-										button.btn.btn-sm.btn-default((click)="exportPony()") Export pony
-										button.btn.btn-sm.btn-default.ml-1((click)="exportPonies()") Export all
-										button.btn.btn-sm.btn-default.ml-1((click)="importFile.click()") Import
+								.col-sm-8
+									button.btn.btn-sm.btn-default((click)="exportPony()") Export pony
+									button.btn.btn-sm.btn-default.ml-1((click)="exportPonies()") Export all
+									button.btn.btn-sm.btn-default.ml-1((click)="importFile.click()") Import
 
-										input.d-none(#importFile type="file" (change)="importPonies(importFile.files[0])")
+									input.d-none(#importFile type="file" (change)="importPonies(importFile.files[0])")
 
-								hr
-						.row.form-group(*ngIf="canUseEffects")
-							.col-sm-4.col-lock-box
-								label.col-form-label
-									| Effects
-									fa-icon.text-muted.ml-2([icon]="infoIcon" [tooltip]="effectsTooltip" containerClass="tooltip-desc")
-								check-box.lock-box(
-									[icon]="eraserIcon"
-									[checked]="hasCustomEffects"
-									[disabled]="!hasCustomEffects"
-									(checkedChange)="resetEffects()"
-									label="Clear effects"
-									title="Clear effects")
-							.col-sm-8
-								.btn-toolbar
-									.d-flex.flex-wrap(style="gap: 6px;")
-										button(
-											type="button"
-											[class]="info.blush ? 'btn btn-primary' : 'btn btn-default'"
-											(click)="toggleBlushEffect()"
-											[tooltip]="'Toggle blush effect'"
-											aria-label="Blush effect"
-										)
-											| BLUSH
-
-										button(
-											type="button"
-											[class]="info.sleeping ? 'btn btn-primary' : 'btn btn-default'"
-											(click)="toggleSleepingEffect()"
-											[tooltip]="'Toggle sleeping effect'"
-											aria-label="Sleeping effect"
-										)
-											| ZZZ
-
-										button(
-											type="button"
-											[class]="info.tears ? 'btn btn-primary' : 'btn btn-default'"
-											(click)="toggleTearsEffect()"
-											[tooltip]="'Toggle tears effect'"
-											aria-label="Tears effect"
-										)
-											| TEARS
-
-										button(
-											type="button"
-											[class]="info.crying ? 'btn btn-primary' : 'btn btn-default'"
-											(click)="toggleCryingEffect()"
-											[tooltip]="'Toggle crying effect'"
-											aria-label="Crying effect"
-										)
-											| CRY
-
-										button(
-											type="button"
-											[class]="info.hearts ? 'btn btn-primary' : 'btn btn-default'"
-											(click)="toggleHeartsEffect()"
-											[tooltip]="'Toggle hearts effect'"
-											aria-label="Hearts effect"
-										)
-											| HEARTS
-
-										button(
-											type="button"
-											[class]="info.magic ? 'btn btn-primary' : 'btn btn-default'"
-											(click)="toggleMagicEffect()"
-											[disabled]="!canUseMagicEffect"
-											[tooltip]="canUseMagicEffect ? 'Toggle magic effect' : 'Magic requires a horn'"
-											aria-label="Magic effect"
-										)
-											| MAGIC
-								hr
-
-								.row.form-group
-									.col-sm-4.col-lock-box
-										label.col-form-label
-											| Preview
-											fa-icon.text-muted.ml-2([icon]="infoIcon" [tooltip]="previewTooltip" containerClass="tooltip-desc")
-										check-box.lock-box(
-											[icon]="resetIcon"
-											[checked]="hasCustomPreviewSettings"
-											[disabled]="!hasCustomPreviewSettings"
-											(checkedChange)="resetPreview()"
-											label="Reset preview settings"
-											title="Reset preview settings")
-									.col-sm-8
-										.btn-toolbar
-											.btn-group
-												.dropdown(dropdown #previewScaleDropdown="ag-dropdown" [focusOnOpen]="false")
-													button.btn.btn-default.dropdown-toggle(type="button" dropdownToggle [tooltip]="isMobile ? 'Preview scale' : 'Preview scale (G / F)'" aria-haspopup="true" style="border-top-right-radius: 0; border-bottom-right-radius: 0;")
-														fa-icon([icon]="searchIcon")
-														span.ml-1 x{{previewScale}}
-													.dropdown-menu(style="min-width: 120px;" *dropdownMenu)
-														button.dropdown-item((click)="previewScale = 1; previewScaleDropdown.close(); changed()") x1
-														button.dropdown-item((click)="previewScale = 2; previewScaleDropdown.close(); changed()") x2
-														button.dropdown-item((click)="previewScale = 3; previewScaleDropdown.close(); changed()") x3
-														button.dropdown-item((click)="previewScale = 4; previewScaleDropdown.close(); changed()") x4
-														button.dropdown-item((click)="previewScale = 5; previewScaleDropdown.close(); changed()") x5
-														button.dropdown-item((click)="previewScale = 6; previewScaleDropdown.close(); changed()") x6
-														button.dropdown-item((click)="previewScale = 7; previewScaleDropdown.close(); changed()") x7
-												button([class]="showBackground ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="'Toggle preview background'" aria-label="Background" (click)="toggleBackground()")
-													fa-icon([icon]="paintBrushIcon")
-												button([class]="info.headTurned ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Turn head' : 'Turn head (H)'" aria-label="Turn head" (click)="toggleHeadTurned()")
-													fa-icon([icon]="horseHeadIcon")
-												button([class]="info.flip ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Flip character' : 'Flip: A ← / D →'" aria-label="Flip character" (click)="toggleFlip()")
-													fa-icon([icon]="flipIcon")
-												button([class]="hidePreviewName ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Show or hide name' : 'Show or hide name (Y)'" aria-label="Hide name" (click)="toggleHidePreviewName()")
-													span.fa-layers
-														fa-icon([icon]="nameIcon")
-														fa-icon(*ngIf="hidePreviewName" [icon]="slashIcon")
-												button(*ngIf="canTogglePreviewTag" [class]="hidePreviewTag ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Show or hide tag' : 'Show or hide tag (T)'" aria-label="Hide tag" (click)="toggleHidePreviewTag()")
-													span.fa-layers
-														fa-icon([icon]="tagIcon")
-														fa-icon(*ngIf="hidePreviewTag" [icon]="slashIcon")
-								.row.form-group(*ngIf="showBackground")
-									.col-sm-4.col-lock-box
-										label.col-form-label(for="preview-background") Background
-										check-box.lock-box(
-											[icon]="resetIcon"
-											[checked]="hasCustomPreviewBackground"
-											[disabled]="!hasCustomPreviewBackground"
-											(checkedChange)="resetBackground()"
-											label="Reset background"
-											title="Reset background")
-									.col-sm-8
-										color-picker(type="text" id="preview-background" [(color)]="info.previewBackground" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()")
-
-								.row.form-group
-									label.col-sm-4.col-form-label(for="description")
-										| Description
-										fa-icon.text-muted.ml-2([icon]="infoIcon" [tooltip]="descriptionTooltip" containerClass="tooltip-desc")
-									.col-sm-8
-										input.form-control#description(
-										[(ngModel)]="pony.desc" placeholder="example: with a hat #oc #winter" [maxlength]="maxDescLength")
-
-								.row.form-group
-									.col-sm-4.col-lock-box
-										label(for="frame-input") Animation
-										check-box.lock-box([icon]="playIcon" [(checked)]="playAnimation" label="Play animation")
-									.col-sm-8
-										.input-group
-											input.form-control#frame-input(
-												type="number" [(ngModel)]="state.animationFrame" [disabled]="playAnimation" min="0"
-												title="Animation frame" aria-label="Animation frame")
-
-											.input-group-append.dropdown(*ngIf="canSaveFiles" dropdown)
-												button.btn.btn-default.dropdown-toggle(dropdownToggle *ngIf="canExport" aria-label="Export / Import")
-													fa-icon([icon]="codeIcon")
-												.dropdown-menu.dropdown-menu-right(*dropdownMenu)
-													a.dropdown-item((click)="export()") export all
-													a.dropdown-item((click)="import()") import data
-													a.dropdown-item((click)="testSize()") print compressed
-													a.dropdown-item((click)="testJSON()") print raw
-
-											.input-group-append.dropdown(dropdown)
-												button.btn.btn-default(
-													*ngIf="canSaveFiles" (click)="export(activeAnimation)" title="Save as PNG" aria-label="Save as PNG")
-													fa-icon([icon]="saveIcon")
-												button.btn.btn-default.dropdown-toggle(dropdownToggle style="min-width: 80px")
-													strong {{animations[activeAnimation]().name}}
-												.dropdown-menu.dropdown-menu-right(*dropdownMenu)
-													a.dropdown-item(*ngFor="let a of animations; let i = index" (click)="setActiveAnimation(i)")
-														| {{a().name}}
-
+							hr
+							.row.form-group(*ngIf="canUseEffects")
+								.col-sm-4.col-lock-box
+									label.col-form-label
+										| Effects
+										fa-icon.text-muted.ml-2([icon]="infoIcon" [tooltip]="effectsTooltip" containerClass="tooltip-desc")
+									check-box.lock-box(
+										[icon]="eraserIcon"
+										[checked]="hasCustomEffects"
+										[disabled]="!hasCustomEffects"
+										(checkedChange)="resetEffects()"
+										label="Clear effects"
+										title="Clear effects")
+								.col-sm-8
+									.btn-toolbar
+										.d-flex.flex-wrap(style="gap: 6px;")
+											button(
+												type="button"
+												[class]="info.blush ? 'btn btn-primary' : 'btn btn-default'"
+												(click)="toggleBlushEffect()"
+												[tooltip]="'Toggle blush effect'"
+												aria-label="Blush effect"
+											)
+												| BLUSH
+	
+											button(
+												type="button"
+												[class]="info.sleeping ? 'btn btn-primary' : 'btn btn-default'"
+												(click)="toggleSleepingEffect()"
+												[tooltip]="'Toggle sleeping effect'"
+												aria-label="Sleeping effect"
+											)
+												| ZZZ
+	
+											button(
+												type="button"
+												[class]="info.tears ? 'btn btn-primary' : 'btn btn-default'"
+												(click)="toggleTearsEffect()"
+												[tooltip]="'Toggle tears effect'"
+												aria-label="Tears effect"
+											)
+												| TEARS
+	
+											button(
+												type="button"
+												[class]="info.crying ? 'btn btn-primary' : 'btn btn-default'"
+												(click)="toggleCryingEffect()"
+												[tooltip]="'Toggle crying effect'"
+												aria-label="Crying effect"
+											)
+												| CRY
+	
+											button(
+												type="button"
+												[class]="info.hearts ? 'btn btn-primary' : 'btn btn-default'"
+												(click)="toggleHeartsEffect()"
+												[tooltip]="'Toggle hearts effect'"
+												aria-label="Hearts effect"
+											)
+												| HEARTS
+	
+											button(
+												type="button"
+												[class]="info.magic ? 'btn btn-primary' : 'btn btn-default'"
+												(click)="toggleMagicEffect()"
+												[disabled]="!canUseMagicEffect"
+												[tooltip]="canUseMagicEffect ? 'Toggle magic effect' : 'Magic requires a horn'"
+												aria-label="Magic effect"
+											)
+												| MAGIC
+									hr
+	
+									.row.form-group
+										.col-sm-4.col-lock-box
+											label.col-form-label
+												| Preview
+												fa-icon.text-muted.ml-2([icon]="infoIcon" [tooltip]="previewTooltip" containerClass="tooltip-desc")
+											check-box.lock-box(
+												[icon]="resetIcon"
+												[checked]="hasCustomPreviewSettings"
+												[disabled]="!hasCustomPreviewSettings"
+												(checkedChange)="resetPreview()"
+												label="Reset preview settings"
+												title="Reset preview settings")
+										.col-sm-8
+											.btn-toolbar
+												.btn-group
+													.dropdown(dropdown #previewScaleDropdown="ag-dropdown" [focusOnOpen]="false")
+														button.btn.btn-default.dropdown-toggle(type="button" dropdownToggle [tooltip]="isMobile ? 'Preview scale' : 'Preview scale (G / F)'" aria-haspopup="true" style="border-top-right-radius: 0; border-bottom-right-radius: 0;")
+															fa-icon([icon]="searchIcon")
+															span.ml-1 x{{previewScale}}
+														.dropdown-menu(style="min-width: 120px;" *dropdownMenu)
+															button.dropdown-item((click)="previewScale = 1; previewScaleDropdown.close(); changed()") x1
+															button.dropdown-item((click)="previewScale = 2; previewScaleDropdown.close(); changed()") x2
+															button.dropdown-item((click)="previewScale = 3; previewScaleDropdown.close(); changed()") x3
+															button.dropdown-item((click)="previewScale = 4; previewScaleDropdown.close(); changed()") x4
+															button.dropdown-item((click)="previewScale = 5; previewScaleDropdown.close(); changed()") x5
+															button.dropdown-item((click)="previewScale = 6; previewScaleDropdown.close(); changed()") x6
+															button.dropdown-item((click)="previewScale = 7; previewScaleDropdown.close(); changed()") x7
+													button([class]="showBackground ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="'Toggle preview background'" aria-label="Background" (click)="toggleBackground()")
+														fa-icon([icon]="paintBrushIcon")
+													button([class]="info.headTurned ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Turn head' : 'Turn head (H)'" aria-label="Turn head" (click)="toggleHeadTurned()")
+														fa-icon([icon]="horseHeadIcon")
+													button([class]="info.flip ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Flip character' : 'Flip: A ← / D →'" aria-label="Flip character" (click)="toggleFlip()")
+														fa-icon([icon]="flipIcon")
+													button([class]="hidePreviewName ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Show or hide name' : 'Show or hide name (Y)'" aria-label="Hide name" (click)="toggleHidePreviewName()")
+														span.fa-layers
+															fa-icon([icon]="nameIcon")
+															fa-icon(*ngIf="hidePreviewName" [icon]="slashIcon")
+													button(*ngIf="canTogglePreviewTag" [class]="hidePreviewTag ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Show or hide tag' : 'Show or hide tag (T)'" aria-label="Hide tag" (click)="toggleHidePreviewTag()")
+														span.fa-layers
+															fa-icon([icon]="tagIcon")
+															fa-icon(*ngIf="hidePreviewTag" [icon]="slashIcon")
+									.row.form-group(*ngIf="showBackground")
+										.col-sm-4.col-lock-box
+											label.col-form-label(for="preview-background") Background
+											check-box.lock-box(
+												[icon]="resetIcon"
+												[checked]="hasCustomPreviewBackground"
+												[disabled]="!hasCustomPreviewBackground"
+												(checkedChange)="resetBackground()"
+												label="Reset background"
+												title="Reset background")
+										.col-sm-8
+											color-picker(type="text" id="preview-background" [(color)]="info.previewBackground" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()")
+	
+									.row.form-group
+										label.col-sm-4.col-form-label(for="description")
+											| Description
+											fa-icon.text-muted.ml-2([icon]="infoIcon" [tooltip]="descriptionTooltip" containerClass="tooltip-desc")
+										.col-sm-8
+											input.form-control#description(
+											[(ngModel)]="pony.desc" placeholder="example: with a hat #oc #winter" [maxlength]="maxDescLength")
+	
+									.row.form-group
+										.col-sm-4.col-lock-box
+											label(for="frame-input") Animation
+											check-box.lock-box([icon]="playIcon" [(checked)]="playAnimation" label="Play animation")
+										.col-sm-8
+											.input-group
+												input.form-control#frame-input(
+													type="number" [(ngModel)]="state.animationFrame" [disabled]="playAnimation" min="0"
+													title="Animation frame" aria-label="Animation frame")
+	
+												.input-group-append.dropdown(*ngIf="canSaveFiles" dropdown)
+													button.btn.btn-default.dropdown-toggle(dropdownToggle *ngIf="canExport" aria-label="Export / Import")
+														fa-icon([icon]="codeIcon")
+													.dropdown-menu.dropdown-menu-right(*dropdownMenu)
+														a.dropdown-item((click)="export()") export all
+														a.dropdown-item((click)="import()") import data
+														a.dropdown-item((click)="testSize()") print compressed
+														a.dropdown-item((click)="testJSON()") print raw
+	
+												.input-group-append.dropdown(dropdown)
+													button.btn.btn-default(
+														*ngIf="canSaveFiles" (click)="export(activeAnimation)" title="Save as PNG" aria-label="Save as PNG")
+														fa-icon([icon]="saveIcon")
+													button.btn.btn-default.dropdown-toggle(dropdownToggle style="min-width: 80px")
+														strong {{animations[activeAnimation]().name}}
+													.dropdown-menu.dropdown-menu-right(*dropdownMenu)
+														a.dropdown-item(*ngFor="let a of animations; let i = index" (click)="setActiveAnimation(i)")
+															| {{a().name}}
+	
 .modal-footer
 	button.btn.btn-default(type="button" (click)="close()") Close
 	button.btn.btn-success(type="button" (click)="onPlay()")

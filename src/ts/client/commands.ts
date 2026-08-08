@@ -46,5 +46,6 @@ export const CLIENT_COMMANDS: ClientCommand[] = [
 	{ name: 'unlockhouse', help: '/unlockhouse - enable editing by others' },
 	{ name: 'removetoolbox', help: '/removetoolbox - removes toolbox' },
 	{ name: 'restoretoolbox', help: '/restoretoolbox - restores toolbox' },
+	{ name: 'noclip', help: '/noclip - toggle collision (walk through walls)' },
 	{ name: 'bunnies', help: '/bunnies - rabbit management' },
 ];

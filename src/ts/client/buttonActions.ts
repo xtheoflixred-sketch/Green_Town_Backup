@@ -120,6 +120,8 @@ const bodyActions = [
 	actionButtonAction('up', 'Stand up / Fly up'),
 	actionButtonAction('turn-head', 'Turn head'),
 	actionButtonAction('magic', 'Magic', Action.Magic),
+	actionButtonAction('zoom-out', 'Zoom out'),
+	actionButtonAction('zoom-in', 'Zoom in'),
 	actionButtonAction('drop-toy', 'Drop toy', Action.DropToy),
 	actionButtonAction('drop', 'Drop item', Action.Drop),
 	actionButtonAction('interact', 'Interact'),
@@ -187,6 +189,8 @@ export function createDefaultButtonActions(): ButtonActionSlot[] {
 		{ action: getActionAction('turn-head') },
 
 		{ action: getActionAction('magic') },
+		{ action: getActionAction('zoom-out') },
+		{ action: getActionAction('zoom-in') },
 
 		{ action: expressionButtonAction(createExpression(Eye.Closed, Eye.Closed, Muzzle.Smile)) },
 		{ action: expressionButtonAction(createExpression(Eye.Neutral, Eye.Neutral3, Muzzle.Smile)) },
@@ -411,6 +415,14 @@ export function useAction(game: PonyTownGame, action: ButtonAction | undefined) 
 							interact(game, false);
 							break;
 						}
+						case 'zoom-out': {
+							game.zoomOut();
+							break;
+						}
+						case 'zoom-in': {
+							game.zoomIn();
+							break;
+						}
 						case 'open': {
 							// use held item (will open gift if holding one)
 							game.send(server => server.use());
@@ -620,7 +632,17 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 								drawPony(batch, actionPony, state, 20, 40, defaultDrawPonyOptions());
 								batch.drawSprite(sprites.arrow_down, BLACK, defaultPalette, 1, 3);
 								break;
-							} case 'interact': {
+							}
+					case 'zoom-out': {
+						batch.drawRect(BLACK, 4, 7, 8, 2);
+						break;
+					}
+					case 'zoom-in': {
+						batch.drawRect(BLACK, 4, 7, 8, 2);
+						batch.drawRect(BLACK, 7, 4, 2, 8);
+						break;
+					}
+					case 'interact': {
 								const state = { ...createState(), holding: fakePaletteManager(() => apple2(0, 0)) };
 								drawPony(batch, actionPony, state, 20, 40, defaultDrawPonyOptions());
 								batch.drawSprite(sprites.arrow_up, BLACK, defaultPalette, 1, 3);

@@ -18,6 +18,7 @@ export class InputManager {
 	private state: number[];
 	private prevState: number[];
 	private actions: Handler[][];
+	private anyInputHandlers: Array<() => void> = [];
 	private controllers: InputController[] = [];
 	constructor() {
 		this.state = array(KEYS, 0);
@@ -147,7 +148,14 @@ export class InputManager {
 		if (input < 0 || input >= KEYS) {
 			console.warn(`Input out of range: ${input}`);
 		} else if (this.state[input] !== value) {
+			const previous = this.state[input];
 			this.state[input] = value;
+
+			if (value !== 0 && previous === 0 && !this.isIgnoredInputForAfk(input)) {
+				for (const handler of this.anyInputHandlers) {
+					handler();
+				}
+			}
 
 			if (this.actions[input] && this.actions[input].length) {
 				for (const action of this.actions[input]) {
@@ -159,6 +167,14 @@ export class InputManager {
 		}
 
 		return false;
+	}
+
+	onAnyInput(handler: () => void) {
+		this.anyInputHandlers.push(handler);
+	}
+
+	private isIgnoredInputForAfk(input: Key) {
+		return input === Key.MOUSE_X || input === Key.MOUSE_Y || input === Key.MOUSE_WHEEL_X || input === Key.MOUSE_WHEEL_Y;
 	}
 	addValue(input: Key, value: number) {
 		if (input < 0 || input >= KEYS) {

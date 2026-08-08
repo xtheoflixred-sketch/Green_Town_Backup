@@ -14,6 +14,8 @@ export function canCollideWith(entity: Entity): boolean {
 }
 
 export function isStaticCollision<T>(entity: Entity, map: IMap<T>, forceOnGround = false) {
+	if (entity.noclip) return false;
+
 	if (DEVELOPMENT && entity.type !== PONY_TYPE) {
 		console.error(`isStaticCollision: non-pony entity`);
 	}
@@ -23,6 +25,8 @@ export function isStaticCollision<T>(entity: Entity, map: IMap<T>, forceOnGround
 }
 
 export function fixCollision<T>(entity: Entity, map: IMap<T>) {
+	if (entity.noclip) return true;
+
 	if (DEVELOPMENT && entity.type !== PONY_TYPE) {
 		console.error(`fixCollision: non-pony entity`);
 	}
@@ -83,6 +87,12 @@ function isColliding(x: number, y: number, mask: number, map: IMap<Region | unde
 }
 
 export function updatePosition(entity: Entity, delta: number, map: IMap<Region | undefined>) {
+	if (entity.noclip) {
+		entity.x += entity.vx * delta;
+		entity.y += entity.vy * delta;
+		return;
+	}
+
 	const ex = entity.x;
 	const ey = entity.y;
 	const speed = (!isFlying(entity) && isInWaterAt(map, ex, ey)) ? 0.5 : 1.0;

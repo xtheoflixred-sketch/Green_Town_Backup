@@ -1,7 +1,7 @@
 import { Component, ViewChild, TemplateRef, OnInit, OnDestroy } from '@angular/core';
 import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
 import { telegramLink } from '../../../client/data';
-import { faPaperPlane } from '../../../client/icons';
+import { faTelegram } from '../../../client/icons';
 import { TelegramPony } from '../telegram-pony/telegram-pony';
 
 @Component({
@@ -12,7 +12,7 @@ import { TelegramPony } from '../telegram-pony/telegram-pony';
 export class TelegramButton implements OnInit, OnDestroy {
 	readonly telegramLink = telegramLink;
 	readonly enableVisitTelegramButton = true;
-	readonly telegramIcon = faPaperPlane;
+	readonly telegramIcon = faTelegram;
 	isNudging = false;
 	currentModalRef?: BsModalRef;
 	@ViewChild('leaveSiteModal', { static: true }) leaveSiteModalTpl!: TemplateRef<any>;

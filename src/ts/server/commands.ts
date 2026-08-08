@@ -1499,35 +1499,103 @@ export function createCommands(world: World): Command[] {
 			updateEntityOptions(client.pony, { scale: value });
 			saySystem(client, `Scale set to ${value}x`);
 		}, false, 'Mod'),
+		command(['noclip'], '/noclip - toggle collision (walk through walls)', 'mod', ({}, client) => {
+			client.pony.noclip = !client.pony.noclip;
+			updateEntityOptions(client.pony, { noclip: client.pony.noclip } as any);
+			saySystem(client, `noclip: ${client.pony.noclip ? 'on' : 'off'}`);
+		}, false, 'Mod'),
 		command(['tp'], '/tp <location|x y|to <player>|here <player>|? - teleport around', 'mod', (_context, client, message) => {
 		const input = message.trim();
 		if (!input || input === '?') {
 			const lines = [
-				'Teleport command',
+				'Команда /tp — телепортация',
 				'',
-				'Usage:',
-				'  /tp <location>                 - go to a named spawn (see /locations)',
-				'  /tp <x> <y>                    - teleport to coords (decimals ok)',
-				'  /tp to <player>                - teleport to another player',
-				'  /tp here <player>              - bring a player to you',
-				'  /tp ?                          - show this help message',
+				'Использование:',
+				'  /tp <location>                  - перейти к именованной точке спауна (см. /locations)',
+				'  /tp <x> <y>                     - телепортироваться на указанные координаты (дробные значения допустимы)',
+				'  /tp to <player>                 - телепортироваться к другому игроку',
+				'  /tp to <player> <destination>   - телепортировать вас и указанного игрока к цели (ещё один игрок)',
+				'  /tp here <player>               - вызвать указанного игрока к себе',
+				'  /tp all                         - телепортировать всех игроков к вам',
+				'  /tp map <name>                  - перейти на карту с именем <name> (аналогично /goto)',
+				'  /tp ?                           - показать эту справку',
 				'',
-				'Examples:',
+				'Примеры:',
 				'  /tp spawn',
-				'  /tp 22.1 42,5',
+				'  /tp 22.1 42.5',
 				'  /tp to player2',
+				'  /tp to player2 destination',
 				'  /tp here player2',
+				'  /tp all                         - пример: телепортировать всех игроков к вам',
+				'  /tp map "Cave"                  - см. /maps',
 				'',
-				'Tip: enable "Show stats" to see Your Coords and use /players to list names',
+				"Подсказка: используйте /players для списка имён; включите 'Show stats', чтобы видеть свои координаты",
 			];
 			saySystem(client, lines.join('\n'));
 			return;
 		}
 
-		// handle to/here subcommands
+		// handle to/here/all subcommands
 		const parts = input.split(/\s+/);
-		if (parts[0].toLowerCase() === 'to' && parts[1]) {
+		const subcommand = parts[0].toLowerCase();
+		if ((subcommand === 'all') || (subcommand === 'here' && parts[1] && parts[1].toLowerCase() === 'all')) {
+			const senderName = client.pony.name || client.accountName;
+			const others = _context.world.clients.filter(c => c !== client);
+			if (others.length === 0) {
+				saySystem(client, "You're the only one on the server right now");
+				return;
+			}
+
+			for (const other of others) {
+				if (other.map !== client.map) {
+					_context.world.switchToMap(other, client.map, client.pony.x, client.pony.y);
+				} else {
+					teleportTo(other, client.pony.x, client.pony.y);
+				}
+				saySystem(other, `${senderName} teleported you to themselves`);
+			}
+
+			saySystem(client, `Teleported ${others.length} player${others.length === 1 ? '' : 's'} to you`);
+			return;
+		}
+
+		if (subcommand === 'to' && parts[1]) {
 			const targetName = parts.slice(1).join(' ');
+			const destinationName = parts.slice(2).join(' ');
+			if (parts.length >= 3 && destinationName) {
+				const playerName = parts[1];
+				const player = findArmyTargetClient(_context.world, playerName, client);
+				const destination = findArmyTargetClient(_context.world, destinationName);
+				if (!player) {
+					saySystem(client, 'player not found, try /players to see online names');
+					return;
+				}
+				if (!destination) {
+					saySystem(client, 'destination player not found, try /players to see online names');
+					return;
+				}
+
+				const clientName = client.pony.name || client.accountName;
+				const playerNameOut = player.pony.name || player.accountName;
+				const destinationNameOut = destination.pony.name || destination.accountName;
+
+				if (client.map !== destination.map) {
+					_context.world.switchToMap(client, destination.map, destination.pony.x, destination.pony.y);
+				} else {
+					teleportTo(client, destination.pony.x, destination.pony.y);
+				}
+				if (player.map !== destination.map) {
+					_context.world.switchToMap(player, destination.map, destination.pony.x, destination.pony.y);
+				} else {
+					teleportTo(player, destination.pony.x, destination.pony.y);
+				}
+
+				saySystem(player, `${clientName} teleported you to ${destinationNameOut}`);
+				saySystem(destination, `${clientName} and ${playerNameOut} teleported to you`);
+				saySystem(client, `Teleported you and ${playerNameOut} to ${destinationNameOut}`);
+				return;
+			}
+
 			const others = _context.world.clients.filter(c => (c.pony.name || '').toLowerCase() === targetName.toLowerCase());
 			if (others.length === 0) {
 				const byAccount = _context.world.clients.filter(c => c.accountName.toLowerCase() === targetName.toLowerCase());
@@ -1553,7 +1621,7 @@ export function createCommands(world: World): Command[] {
 			saySystem(client, `Teleported to ${target.pony.name || 'unnamed'} (${target.accountName})`);
 			return;
 		}
-		if (parts[0].toLowerCase() === 'here' && parts[1]) {
+		if (subcommand === 'here' && parts[1]) {
 			const targetName = parts.slice(1).join(' ');
 			const others = _context.world.clients.filter(c => (c.pony.name || '').toLowerCase() === targetName.toLowerCase());
 			if (others.length === 0) {
@@ -1566,6 +1634,7 @@ export function createCommands(world: World): Command[] {
 						teleportTo(target, client.pony.x, client.pony.y);
 					}
 					saySystem(client, `${target.accountName} (${target.pony.name || 'unnamed'}) has been teleported to you`);
+					saySystem(target, `${client.pony.name || client.accountName} teleported you to themself`);
 					return;
 				}
 				saySystem(client, 'player not found, try /players to see online names');
@@ -1578,6 +1647,7 @@ export function createCommands(world: World): Command[] {
 				teleportTo(target, client.pony.x, client.pony.y);
 			}
 			saySystem(client, `${target.pony.name || 'unnamed'} (${target.accountName}) has been teleported to you`);
+			saySystem(target, `${client.pony.name || client.accountName} teleported you to themself`);
 			return;
 		}
 
