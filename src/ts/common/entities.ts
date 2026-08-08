@@ -697,6 +697,8 @@ export const table3 = doodad(n('table-3'), sprites.table_3, 24, 21, 0,
 	mixColliderRect(-23, -14, 45, 14),
 	mixItemTrigger(-23, -14, 45, 14, itemTriggerArea.type));
 
+export const couch = doodad(n('couch'), sprites.couch, 37, 20, 0, mixColliderRect(-37, -3, 75, 8));
+
 export const wallMap = doodad(n('wall-map'), sprites.wall_map, 20, 51, 0, mixFlags(EntityFlags.StaticY));
 
 export const crate1A = doodad(n('crate-1a'), sprites.crate_1, 16, 45, 0, mixColliderRect(-15, -20, 30, 20));
@@ -2375,6 +2377,7 @@ export const placeableEntities: { type: number; name: string; }[] = [
 	{ type: table1.type, name: 'Small table' },
 	{ type: table2.type, name: 'Large table' },
 	{ type: table3.type, name: 'Long table' },
+	{ type: couch.type, name: 'Couch' },
 	{ type: lanternOn.type, name: 'Lantern' },
 	{ type: pumpkin.type, name: 'Pumpkin' },
 	{ type: jackoOn.type, name: `Jack-o'-lantern (lit)` },

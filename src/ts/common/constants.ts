@@ -31,6 +31,8 @@ export const FLY_DELAY = 0.4; // sec
 
 export const SERVER_FPS = 10;
 
+export const RENDER_SUPERSAMPLE = 2;
+
 export const AFK_TIMEOUT = 15 * MINUTE;
 export const REMOVE_TIMEOUT = 15 * MINUTE;
 export const REMOVE_INTERVAL = 1 * MINUTE;

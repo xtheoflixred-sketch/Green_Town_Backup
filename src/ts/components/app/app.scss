@@ -80,6 +80,8 @@ footer {
 	touch-action: none;
 	cursor: default;
 	user-select: none;
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
 }
 
 #pony-box {

@@ -233,12 +233,12 @@ export const enum MessageType {
 	Supporter3 = 11,
 	Supporter4 = 12,
 	Dismiss = 13,
-	Whisper = 13,
-	WhisperTo = 14,
-	WhisperAnnouncement = 15,
-	WhisperToAnnouncement = 16,
-	Builder = 17,
-	NPC = 18,
+	Whisper = 14,
+	WhisperTo = 15,
+	WhisperAnnouncement = 16,
+	WhisperToAnnouncement = 17,
+	Builder = 18,
+	NPC = 19,
 }
 
 export function toMessageType(type: MessageType) {
