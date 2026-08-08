@@ -106,10 +106,10 @@ export const createSay =
 			if (whisper && client === target)
 				return;
 
-			if (!command && (args === '.' || isTypingIndicatorMessage(args))) {
-				sayTransientMessage(client, args, type, target, settings);
-				return;
-			}
+		if (!command && args === '.') {
+			sayTransientMessage(client, args, type, target, settings);
+			return;
+		}
 
 			const forbidden = command == null && isPublicChat(type) && isForbiddenMessage(args);
 
@@ -211,6 +211,13 @@ function sayTransientMessage(
 	} else {
 		sayToEveryone(client, message, message, getMessageType(client, type), settings);
 	}
+}
+
+export function sayTypingIndicator(
+	client: IClient, active: boolean, type: ChatType, target: IClient | undefined, settings: GameServerSettings
+) {
+	const message = active ? typingIndicatorMessage : '.';
+	sayTransientMessage(client, message, type, target, settings);
 }
 
 function sayToClient(

@@ -507,8 +507,6 @@ interface Say {
 function getHoveredChatBubble(
 	entities: Entity[], player: Pony | undefined, camera: Camera, drawHidden: boolean, hidePublic: boolean, hover: Point, screenHover: Point
 ): { entity: Entity; says: Says; } | undefined {
-	sortEntities(entities);
-
 	for (let entityIndex = entities.length - 1; entityIndex >= 0; entityIndex--) {
 		const entity = entities[entityIndex];
 
@@ -537,6 +535,13 @@ function getHoveredChatBubble(
 	}
 
 	return undefined;
+}
+
+export function getChatEntityAndBubble(
+	entities: Entity[], player: Pony | undefined, camera: Camera, drawHidden: boolean, hidePublic: boolean, hover: Point, screenHover: Point
+): { entity: Entity; says: Says; } | undefined {
+	sortEntities(entities);
+	return getHoveredChatBubble(entities, player, camera, drawHidden, hidePublic, hover, screenHover);
 }
 
 export function getChatEntityAt(

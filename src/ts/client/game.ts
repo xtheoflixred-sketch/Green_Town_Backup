@@ -123,7 +123,7 @@ import {
 import {
 	OFFLINE_PONY, SUPPORTER_PONY, DISCORD_PONY, HOUR, CAMERA_WIDTH_MIN, CAMERA_WIDTH_MAX,
 	CAMERA_HEIGHT_MIN, CAMERA_HEIGHT_MAX, SECOND, TILE_CHANGE_RANGE, MINUTE, PONY_TYPE,
-	REGION_SIZE, tileWidth, tileHeight, ZOOM_PRESETS, getZoomScaleBounds
+	REGION_SIZE, tileWidth, tileHeight, ZOOM_PRESETS, getZoomScaleBounds, RENDER_SUPERSAMPLE
 } from '../common/constants';
 import {
 	ensureAllVisiblePoniesAreDecoded, invalidatePalettes, updateMap, updateEntities,
@@ -138,7 +138,7 @@ import { getEntityTypeName, woodenWalls, stoneWalls } from '../common/entities';
 import { hasExtendedInfo, setHeadAnimation, createPony } from '../common/pony';
 import { PaletteManager } from '../graphics/paletteManager';
 import { isWebGL2 } from '../graphics/webgl/webglUtils';
-import { drawFullScreenMessage, drawNames, drawChat, getChatEntityAt, getChatBubbleAt, drawPixelText, drawBoundsOutline } from '../graphics/graphicsUtils';
+import { drawFullScreenMessage, drawNames, drawChat, getChatEntityAt, getChatEntityAndBubble, drawPixelText, drawBoundsOutline } from '../graphics/graphicsUtils';
 import { Key } from './input/input';
 import { loadAndInitSpriteSheets } from './spriteUtils';
 import { version, isMobile } from './data';
@@ -1217,7 +1217,7 @@ export class PonyTownGame implements Game {
 			updateHover.y = -1;
 		}
 
-		const hoveredChatBubble = this.hideText ? undefined : getChatBubbleAt(
+		const hoveredChatResult = this.hideText ? undefined : getChatEntityAndBubble(
 			this.map.entitiesWithChat,
 			this.player,
 			this.camera,
@@ -1226,15 +1226,8 @@ export class PonyTownGame implements Game {
 			updateHover,
 			updateScreenHover,
 		);
-		const hoveredChatEntity = this.hideText ? undefined : getChatEntityAt(
-			this.map.entitiesWithChat,
-			this.player,
-			this.camera,
-			this.mod,
-			this.hidePublicChat,
-			updateHover,
-			updateScreenHover,
-		);
+		const hoveredChatBubble = hoveredChatResult && hoveredChatResult.says;
+		const hoveredChatEntity = hoveredChatResult && hoveredChatResult.entity;
 
 		const canHoverChatBubbleProfile = (entity: Pony) => {
 			const isOwnBubble = entity.id === (this.player ? this.player.id : undefined);
@@ -1848,7 +1841,7 @@ export class PonyTownGame implements Game {
 			bindFrameBuffer(gl, frameBuffer!);
 			gl.viewport(0, 0, frameBuffer!.width, frameBuffer!.height); // clearing the whole surface is preferable for most GPUs
 			gl.clear(clearMask);
-			gl.viewport(0, 0, width, height);
+			gl.viewport(0, 0, frameBuffer!.width, frameBuffer!.height);
 			this.drawMap(this.webgl, this.map, this.viewMatrix, mapDrawingColor, drawOptions);
 			gl.depthMask(false);
 			TIMING && timeEnd();
@@ -1859,7 +1852,7 @@ export class PonyTownGame implements Game {
 				gl.viewport(0, 0, frameBuffer2!.width, frameBuffer2!.height); // clearing the whole surface is preferable for most GPUs
 				gl.clearColor(light[0], light[1], light[2], light[3]);
 				gl.clear(gl.COLOR_BUFFER_BIT);
-				gl.viewport(0, 0, width, height);
+				gl.viewport(0, 0, frameBuffer2!.width, frameBuffer2!.height);
 				gl.blendFunc(gl.ONE, gl.ONE);
 
 				gl.useProgram(lightShader.program);
@@ -1898,7 +1891,7 @@ export class PonyTownGame implements Game {
 				bindTexture(gl, 0, frameBuffer!.colorTexture);
 				bindTexture(gl, 1, frameBuffer2!.colorTexture);
 				spriteBatch.begin();
-				spriteBatch.drawImage(WHITE, 0, 0, width, height, 0, 0, width, height);
+				spriteBatch.drawImage(WHITE, 0, 0, frameBuffer!.width, frameBuffer!.height, 0, 0, width, height);
 				spriteBatch.end();
 				TIMING && timeEnd();
 			}
@@ -1914,7 +1907,7 @@ export class PonyTownGame implements Game {
 				gl.uniform2f(spriteShader.uniforms.textureSize, frameBuffer!.colorTexture.width, frameBuffer!.colorTexture.height);
 				bindTexture(gl, 0, frameBuffer!.colorTexture);
 				spriteBatch.begin();
-				spriteBatch.drawImage(WHITE, 0, 0, width, height, 0, 0, width, height);
+				spriteBatch.drawImage(WHITE, 0, 0, frameBuffer!.width, frameBuffer!.height, 0, 0, width, height);
 				spriteBatch.end();
 				TIMING && timeEnd();
 			}
@@ -2858,13 +2851,17 @@ export class PonyTownGame implements Game {
 			return;
 		}
 
+		const ss = RENDER_SUPERSAMPLE;
+		const fboW = width * ss;
+		const fboH = height * ss;
+
 		const hasDepth = frameBuffer.depthStencilRenderbuffer !== null;
-		const isSizeChanged = width !== frameBuffer.width || height !== frameBuffer.height;
+		const isSizeChanged = fboW !== frameBuffer.width || fboH !== frameBuffer.height;
 		const isDepthChanged = hasDepth !== useDepthBuffer;
 
 		if (isSizeChanged || isDepthChanged) {
 			const maxSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
-			const isSizeTooBig = maxSize != null && (width > maxSize || height > maxSize);
+			const isSizeTooBig = maxSize != null && (fboW > maxSize || fboH > maxSize);
 
 			if (isSizeTooBig) {
 				this.setScale(this.scale + 1); // should not happen, useDepthBuffer is also ignored if it does
@@ -2872,8 +2869,8 @@ export class PonyTownGame implements Game {
 			} else {
 				disposeFrameBuffer(gl, frameBuffer);
 				disposeFrameBuffer(gl, frameBuffer2);
-				createFrameBuffer(gl, frameBuffer, width, height, useDepthBuffer, null);
-				createFrameBuffer(gl, frameBuffer2, width, height, false, frameBuffer.depthStencilRenderbuffer);
+				createFrameBuffer(gl, frameBuffer, fboW, fboH, useDepthBuffer, null);
+				createFrameBuffer(gl, frameBuffer2, fboW, fboH, false, frameBuffer.depthStencilRenderbuffer);
 			}
 		}
 	}

@@ -132,6 +132,10 @@ export function createPony(
 		magicColor: 0,
 	};
 
+	const initialState = flagsToState(state, false, false);
+	pony.ponyState.animation = initialState.animation;
+	setAnimatorState(pony.animator, initialState);
+
 	pony.ponyState.drawFaceExtra = batch => drawFaceExtra(batch, pony);
 
 	return pony;

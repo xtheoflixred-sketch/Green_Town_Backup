@@ -41,8 +41,8 @@ function isActionCommand(message: string) {
 	return /^\/(yawn|sneeze|excite|tada|achoo|laugh|lol|haha|хаха|jaja)/i.test(message);
 }
 
-const typingIndicatorShowDelay = 700;
-const typingIndicatorHideDelay = 1500;
+const typingIndicatorShowDelay = 300;
+const typingIndicatorHideDelay = 500;
 @Component({
 	selector: 'chat-box',
 	templateUrl: 'chat-box.pug',
@@ -81,7 +81,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	commandQuery = '';
 	get filteredCommands(): ClientCommand[] {
 		const query = this.commandQuery.toLowerCase();
-		return CLIENT_COMMANDS.filter(c => c.name.toLowerCase().startsWith(query));
+		return CLIENT_COMMANDS.filter((c: ClientCommand) => c.name.toLowerCase().startsWith(query));
 	}
 	selectCommand(cmd: ClientCommand) {
 		this.showCommandDropdown = false;
@@ -674,10 +674,13 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			replaceNodes(this.typeName.nativeElement, typeName);
 		}
 
-		if (changed) {
-			const { width } = (this.typeBox.nativeElement as HTMLElement).getBoundingClientRect();
-			const padding = 35 + 13 + Math.ceil(width);
-			(this.inputElement.nativeElement as HTMLElement).style.paddingLeft = `${padding}px`;
+		if (changed || this.isOpen) {
+			const chatBox = (this.chatBox.nativeElement as HTMLElement).getBoundingClientRect();
+			const typeBox = (this.typeBox.nativeElement as HTMLElement).getBoundingClientRect();
+			if (chatBox.width > 0 && typeBox.width > 0) {
+				const padding = Math.ceil(typeBox.right - chatBox.left) + 4;
+				(this.inputElement.nativeElement as HTMLElement).style.paddingLeft = `${padding}px`;
+			}
 		}
 	}
 }

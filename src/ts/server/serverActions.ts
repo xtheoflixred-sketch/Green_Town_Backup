@@ -30,7 +30,7 @@ import { SupporterInvitesService } from './services/supporterInvites';
 import { Move } from './move';
 import { logger } from './logger';
 import { findFriends, updateAccount } from './db';
-import { Say, saySystem, sayToOthers } from './chat';
+import { Say, saySystem, sayToOthers, sayTypingIndicator } from './chat';
 import { getTile } from '../common/worldMap';
 import { updateRegion, getExpectedRegion } from './regionUtils';
 import { findEntities } from './serverMap';
@@ -225,9 +225,10 @@ export class ServerActions implements IServerActions, SocketServer {
 		const chatType = typingMessageTypeToChatType(type);
 
 		if (chatType !== undefined) {
-			this.chatSay(this.client, active ? typingIndicatorMessage : '.', chatType, target && target.client, this.getSettings());
+			sayTypingIndicator(this.client, active, chatType, target && target.client, this.getSettings());
 		} else {
-			sayToOthers(this.client, active ? typingIndicatorMessage : '.', type, target && target.client, this.getSettings(), true);
+			const message = active ? typingIndicatorMessage : '.';
+			sayToOthers(this.client, message, type, target && target.client, this.getSettings(), true);
 		}
 	}
 	@Method({ rateLimit: '3/s', binary: [Bin.U32, Bin.U8] })
