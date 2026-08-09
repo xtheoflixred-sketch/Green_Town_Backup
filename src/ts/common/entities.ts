@@ -749,13 +749,31 @@ export const couchYellow = doodad(n('couch-yellow'), sprites.couch_yellow, 37, 2
 ));
 
 // floor lamps
-export const floorLampYellow = doodad(n('floor-lamp-yellow'), sprites.Floor_lamp_yellow, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
-export const floorLampOrange = doodad(n('floor-lamp-orange'), sprites.Floor_lamp_orange, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
-export const floorLampGreen = doodad(n('floor-lamp-green'), sprites.Floor_lamp_green, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
-export const floorLampGray = doodad(n('floor-lamp-gray'), sprites.Floor_lamp_gray, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
-export const floorLampPink = doodad(n('floor-lamp-pink'), sprites.Floor_lamp_pink, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
-export const floorLampTurquoise = doodad(n('floor-lamp-turquoise'), sprites.Floor_lamp_turquoise, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
-export const floorLampBlue = doodad(n('floor-lamp-blue'), sprites.Floor_lamp_blue, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
+const floorLampSpriteWidth = 28;
+const floorLampSpriteHeight = 74;
+const floorLampOriginX = Math.floor(floorLampSpriteWidth / 2);
+const floorLampOriginY = floorLampSpriteHeight - 6;
+const floorLampGlowScale = 2.5;
+
+function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: number) {
+	const lightSpriteOffsetX = 13;
+	const lightSpriteOffsetY = -39;
+
+	return doodad(n(name), sprite, floorLampOriginX, floorLampOriginY, 0,
+		mixColliderRect(-10, -11, 20, 14),
+		mixCover(-14, -56, 28, 44),
+		mixLight(lightColor, 0, 45, 180, 180, floorLampGlowScale),
+		mixLight(lightColor, 0, 25, 240, 240, floorLampGlowScale * 0.5),
+		mixLightSprite(sprites.firefly_light, WHITE, lightSpriteOffsetX, lightSpriteOffsetY));
+}
+
+export const floorLampYellow = createFloorLamp('floor-lamp-yellow', sprites.Floor_lamp_yellow, 0x9b7a12ff);
+export const floorLampOrange = createFloorLamp('floor-lamp-orange', sprites.Floor_lamp_orange, 0xb55d14ff);
+export const floorLampGreen = createFloorLamp('floor-lamp-green', sprites.Floor_lamp_green, 0x4d8a20ff);
+export const floorLampGray = createFloorLamp('floor-lamp-gray', sprites.Floor_lamp_gray, 0x7a7a7aff);
+export const floorLampPink = createFloorLamp('floor-lamp-pink', sprites.Floor_lamp_pink, 0xc95c93ff);
+export const floorLampTurquoise = createFloorLamp('floor-lamp-turquoise', sprites.Floor_lamp_turquoise, 0x2ca7a7ff);
+export const floorLampBlue = createFloorLamp('floor-lamp-blue', sprites.Floor_lamp_blue, 0x3c6ed9ff);
 
 export const curvedLog = doodad(n('curved-log'), sprites.curved_log, 14, -5, 0, mixColliderRect(-13, 70, 26, 10), mixFlags(EntityFlags.StaticY));
 

@@ -833,14 +833,14 @@ export function mixDrawDirectionSign(): MixinEntity {
 	};
 }
 
-export function mixLight(color: number, dx: number, dy: number, w: number, h: number): MixinEntity {
+export function mixLight(color: number, dx: number, dy: number, w: number, h: number, scaleAdjust = 1): MixinEntity {
 	return base => {
 		if (!SERVER || TESTS) {
 			base.lightOn = true;
 			base.lightColor = color;
 			base.lightScale = 1;
 			base.lightTarget = 1;
-			base.lightScaleAdjust = 1;
+			base.lightScaleAdjust = scaleAdjust;
 			const adjustedScale = base.lightScale * base.lightScaleAdjust * LIGHT_VOLUME_SCALE;
 			base.lightBounds = rect(-(dx + w / 2), -(dy + h / 2), w * adjustedScale, h * adjustedScale);
 			base.drawLight = function (batch: SpriteBatch) {
