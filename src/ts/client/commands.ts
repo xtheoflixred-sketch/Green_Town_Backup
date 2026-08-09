@@ -3,6 +3,38 @@ export interface ClientCommand {
 	help: string;
 }
 
+export const TOBE_ENTITIES = [
+	'none', 'npc',
+	'cat', 'bunny', 'bat', 'butterfly', 'firefly', 'spider',
+	'apple', 'apple2', 'appleGreen', 'appleGreen2', 'orange', 'orange2', 'pear', 'banana', 'lemon', 'lime',
+	'carrot1', 'carrot2', 'carrot3', 'carrot4',
+	'grapePurple', 'grapeGreen', 'mango',
+	'gift1', 'gift2', 'gift3',
+	'candyCane1', 'candyCane2', 'cookie', 'candy', 'eggs',
+	'basket', 'eggBasket2', 'eggBasket3',
+	'sign', 'signQuest', 'signQuestion', 'signDonate',
+	'box', 'barrel', 'crate1A', 'crate1B', 'crate2A', 'crate2B', 'crate3A', 'crate3B',
+	'bench1', 'table1', 'table2', 'table3',
+	'couch', 'couchBlue', 'couchGray', 'couchGreen', 'couchOrange', 'couchPink', 'couchPurple',
+	'rock', 'rock2', 'rock3',
+	'flower1', 'flower2', 'flower3',
+	'clover1', 'clover2', 'clover3', 'clover4',
+	'leaves1', 'leaves2', 'leaves3', 'leaves4',
+	'torchOn', 'torch',
+	'pumpkin', 'jackoLantern',
+	'tombstone1', 'tombstone2',
+	'ghost1', 'ghost2',
+	'lanternOn', 'lanternOnWall', 'lanternOnTable',
+	'web', 'xmasLights',
+	'snowpony1', 'snowpony2', 'snowpony3',
+	'mistletoe', 'holly',
+	'bookshelf', 'picture1', 'picture2', 'cushion1', 'cushion2',
+	'largeLeafedBush1', 'largeLeafedBush2',
+	'tree1', 'tree2', 'tree3', 'pine1', 'pine2',
+	'poof', 'poof2',
+	'boat',
+];
+
 export const CLIENT_COMMANDS: ClientCommand[] = [
 	{ name: 'help', help: '/help - show help' },
 	{ name: 'roll', help: '/roll [[min-]max] - randomize a number' },
@@ -48,6 +80,7 @@ export const CLIENT_COMMANDS: ClientCommand[] = [
 	{ name: 'restoretoolbox', help: '/restoretoolbox - restores toolbox' },
 	{ name: 'noclip', help: '/noclip - toggle collision (walk through walls)' },
 	{ name: 'bunnies', help: '/bunnies - rabbit management' },
+	{ name: 'tobe', help: '/tobe <type|none|list> - transform into entity' },
 	// mod commands
 	{ name: 'emotetest', help: '/emotetest - print all emotes' },
 	{ name: 'rareitems', help: '/rareitems - show rare hold items' },

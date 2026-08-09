@@ -1,10 +1,13 @@
 .chat-box(#chatBox)
 	div(#chatBoxInput)
 		.command-dropdown(*ngIf="showCommandDropdown")
-			ul.command-dropdown-menu
+			ul.command-dropdown-menu(*ngIf="!tobeMode")
 				li.command-dropdown-item(*ngFor="let cmd of filteredCommands" (click)="selectCommand(cmd)")
 					| /{{cmd.name}}
 					span.command-help(*ngIf="cmd.help") {{cmd.help}}
+			ul.command-dropdown-menu(*ngIf="tobeMode")
+				li.command-dropdown-item(*ngFor="let entity of filteredTobeEntities" (click)="selectTobeEntity(entity)")
+					| {{entity}}
 
 		input.chat-input#chat-input(
 			#inputElement

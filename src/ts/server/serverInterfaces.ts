@@ -225,6 +225,9 @@ export interface IClient extends ClientActions, ClientExtensions {
 	// toy notification tracking (timestamp of last long notification shown to avoid repeating long messages)
 	lastToyLongShownTime?: number;
 
+	// tobe transformation
+	tobedPony?: ServerEntity;
+
 	// pending data
 	updateQueue: BinaryWriter;
 	regionUpdates: Uint8Array[];
