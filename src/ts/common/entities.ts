@@ -755,6 +755,10 @@ const floorLampOriginX = Math.floor(floorLampSpriteWidth / 2);
 const floorLampOriginY = floorLampSpriteHeight - 6;
 const floorLampGlowScale = 2.5;
 
+function floorLampGlowBoost(base: any) {
+	base.lightScaleAdjust = floorLampGlowScale;
+}
+
 function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: number) {
 	const lightSpriteOffsetX = 13;
 	const lightSpriteOffsetY = -39;
@@ -762,9 +766,9 @@ function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: nu
 	return doodad(n(name), sprite, floorLampOriginX, floorLampOriginY, 0,
 		mixColliderRect(-10, -11, 20, 14),
 		mixCover(-14, -56, 28, 44),
-		mixLight(lightColor, 0, 45, 180, 180, floorLampGlowScale),
-		mixLight(lightColor, 0, 25, 240, 240, floorLampGlowScale * 0.5),
-		mixLightSprite(sprites.firefly_light, WHITE, lightSpriteOffsetX, lightSpriteOffsetY));
+		mixLight(lightColor, 0, 45, 180, 180),
+		mixLightSprite(sprites.light_lamp, WHITE, lightSpriteOffsetX, lightSpriteOffsetY),
+		floorLampGlowBoost);
 }
 
 export const floorLampYellow = createFloorLamp('floor-lamp-yellow', sprites.Floor_lamp_yellow, 0x9b7a12ff);
