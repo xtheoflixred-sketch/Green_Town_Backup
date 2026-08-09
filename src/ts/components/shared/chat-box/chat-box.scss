@@ -201,3 +201,24 @@
 	font-size: 11px;
 	margin-left: 8px;
 }
+
+.msgcolor-picker {
+	position: fixed;
+	z-index: 100;
+	width: 210px;
+
+	.msgcolor-reset {
+		display: block;
+		width: 100%;
+		margin-top: 4px;
+		padding: 6px 8px;
+		background: #3a3a3a;
+		color: #fff;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 12px;
+		text-align: center;
+		&:hover { background: #4a4a4a; }
+	}
+}

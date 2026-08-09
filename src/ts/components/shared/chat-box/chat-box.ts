@@ -81,6 +81,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	commandQuery = '';
 	tobeMode = false;
 	tobeQuery = '';
+	showColorPicker = false;
+	msgColor = '#bbbbbb';
+	colorPickerStyle: any = {};
+	private lastColorSend = 0;
 	get filteredCommands(): ClientCommand[] {
 		const query = this.commandQuery.toLowerCase();
 		return CLIENT_COMMANDS.filter((c: ClientCommand) => c.name.toLowerCase().startsWith(query));
@@ -107,6 +111,28 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.tobeQuery = '';
 		this.message = `/tobe ${entity} `;
 		this.input.focus();
+	}
+	onColorChange(color: string) {
+		this.msgColor = color;
+		const now = Date.now();
+		if (now - this.lastColorSend > 200) {
+			this.lastColorSend = now;
+			this.game.send(server => server.say(0, `/msgcolor ${color}`, ChatType.Say));
+		}
+	}
+	resetColor() {
+		this.msgColor = '#bbbbbb';
+		this.game.send(server => server.say(0, `/msgcolor reset`, ChatType.Say));
+		this.showColorPicker = false;
+		this.close();
+	}
+	private updateColorPickerPosition() {
+		const el = this.chatBox.nativeElement as HTMLElement;
+		const rect = el.getBoundingClientRect();
+		this.colorPickerStyle = {
+			left: `${rect.left}px`,
+			bottom: `${window.innerHeight - rect.top + 2}px`,
+		};
 	}
 	constructor(private game: PonyTownGame, zone: NgZone) {
 		this.subscriptions = [
@@ -188,6 +214,16 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.updateTypingIndicator();
 
 		const msg = this.message || '';
+
+		if (msg === '/msgcolor ' || msg === '/msgcolor') {
+			this.showColorPicker = true;
+			this.showCommandDropdown = false;
+			this.updateColorPickerPosition();
+			return;
+		} else {
+			this.showColorPicker = false;
+		}
+
 		if (this.tobeMode && msg.startsWith('/tobe ')) {
 			this.tobeQuery = msg.substring(6);
 			this.showCommandDropdown = true;
@@ -626,6 +662,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.commandQuery = '';
 			this.tobeMode = false;
 			this.tobeQuery = '';
+			this.showColorPicker = false;
 			this.input.blur();
 			this.isOpen = false;
 			this.chatBox.nativeElement.hidden = true;
