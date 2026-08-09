@@ -97,6 +97,9 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	private appliedBackgroundPowerSave?: boolean;
 	private dragStartByProfileId = new Map<number, { x: number; y: number; }>();
 	private documentMouseDownCapture = (event: MouseEvent) => this.onOutsideProfileMouseDown(event);
+	private readonly gameTabEmoji = ' 🐴';
+	private lastDocumentTitle = document.title;
+	private lastPlayingState = false;
 	tier4Profiles: Tier4Profile[] = [];
 	constructor(
 		private modalService: BsModalService,
@@ -143,6 +146,25 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	toggleInventory() {
 		this.inventoryOpen = !this.inventoryOpen;
 	}
+
+	private get tabTitleSuffix() {
+		return this.playing ? this.gameTabEmoji : '';
+	}
+
+	private updateDocumentTitle() {
+		const currentTitle = document.title || this.lastDocumentTitle;
+		const hasEmoji = currentTitle.endsWith(this.gameTabEmoji);
+		const baseTitle = hasEmoji
+			? currentTitle.slice(0, -this.gameTabEmoji.length)
+			: currentTitle;
+
+		const newTitle = baseTitle + this.tabTitleSuffix;
+		if (newTitle !== currentTitle) {
+			document.title = newTitle;
+			this.lastDocumentTitle = baseTitle;
+		}
+	}
+
 	get canUseTier4Profiles() {
 		return this.model.supporter >= 4;
 	}
@@ -151,6 +173,9 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	}
 	ngOnInit() {
 		this.inventoryOpen = false;
+		this.lastDocumentTitle = document.title;
+		this.lastPlayingState = this.playing;
+		this.updateDocumentTitle();
 		// Проверяем, существует ли ga в глобальном объекте window
 		if (typeof (window as any)['ga'] !== 'undefined') {
 			this.subscriptions.push(this.router.events.subscribe(event => {
@@ -213,6 +238,10 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	ngDoCheck() {
 		this.syncBackgroundModeClass();
 		this.syncTier4Profiles();
+		if (this.playing !== this.lastPlayingState) {
+			this.lastPlayingState = this.playing;
+			this.updateDocumentTitle();
+		}
 	}
 	ngOnDestroy() {
 		document.removeEventListener('mousedown', this.documentMouseDownCapture, true);

@@ -18,7 +18,8 @@
 				| load palette
 
 		div
-			.form-group(*ngFor="let c of palette")
-				.badge([style.background]="c.original" style="border: solid 1px #666") ........
+.form-group(*ngFor="let c of palette; let i = index")
+			.badge.color-swatch([style.background]="c.original" style="border: solid 1px #666" role="button" tabindex="0"
+				(click)="applyPaletteColor(i)" (keydown.enter)="applyPaletteColor(i)" (keydown.space)="applyPaletteColor(i)")
 				|  
 				color-picker([(color)]="c.current" (colorChange)="redraw()" style="display: inline-block;")

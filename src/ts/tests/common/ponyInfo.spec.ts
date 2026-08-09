@@ -78,6 +78,20 @@ describe('ponyInfo', () => {
 			expect(set.outlines).eql(['000000', '00ff00x']);
 		});
 
+		it('fills missing pattern colors for body and ears from the base color', () => {
+			const set: Set = {
+				fills: [undefined as any, undefined as any],
+				outlines: [undefined as any, undefined as any],
+				lockFills: [false, false],
+				lockOutlines: [false, false],
+			};
+
+			syncLockedSpriteSet(set, false, f => f + 'x', 'ff0000', '00ff00');
+
+			expect(set.fills).eql(['ff0000', 'ff0000']);
+			expect(set.outlines).eql(['ff0000x', 'ff0000x']);
+		});
+
 		it('uses base outline for first fill if fill is locked too', () => {
 			const set: Set = {
 				fills: ['ff0000', '00ff00'],

@@ -223,39 +223,39 @@ export function syncLockedSpriteSet<T>(
 	if (set === undefined)
 		return;
 
-	const fills = set.fills;
+	const fills = set.fills || (set.fills = [] as (T | undefined)[]);
+	const lockFills = set.lockFills || [];
+	const outlines = set.outlines || (set.outlines = [] as (T | undefined)[]);
+	const lockOutlines = set.lockOutlines || [];
 
-	if (!fills)
-		return;
-
-	const lockFills = set.lockFills;
-
-	if (lockFills) {
+	if (lockFills.length > 0) {
 		for (let i = 0; i < lockFills.length; i++) {
-			if (lockFills[i]) {
-				fills[i] = i === 0 ? baseFill : fills[0];
+			if (lockFills[i] || fills[i] === undefined) {
+				const fallbackFill = i === 0 ? baseFill : (fills[0] !== undefined ? fills[0] : baseFill);
+				fills[i] = fallbackFill;
 			}
 		}
 	}
 
-	const outlines = set.outlines;
-	const lockOutlines = set.lockOutlines;
-
-	if (outlines && lockOutlines) {
+	if (lockOutlines.length > 0) {
 		for (let i = 0; i < lockOutlines.length; i++) {
 			if (!customOutlines) {
 				lockOutlines[i] = true;
 			}
 
 			if (lockOutlines[i]) {
-				if (i === 0 && baseOutline && lockFills && lockFills[i]) {
+				if (i === 0 && baseOutline && lockFills[i]) {
 					outlines[i] = baseOutline;
 				} else {
-					outlines[i] = fillToOutline(fills[i]);
+					const fillValue = fills[i] !== undefined ? fills[i] : (i === 0 ? baseFill : fills[0]);
+					outlines[i] = fillToOutline(fillValue);
 				}
 			}
 		}
 	}
+
+	set.lockFills = lockFills;
+	set.lockOutlines = lockOutlines;
 }
 
 function syncLockedSpritesSet2<T>(

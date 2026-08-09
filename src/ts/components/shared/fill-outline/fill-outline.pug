@@ -1,6 +1,9 @@
 .row.form-group(*ngIf="outlineHidden")
 	.col-4.col-lock-box
-		label.text-muted.color-label {{label}}
+		.color-label-row
+			span.color-label-indicator(*ngIf="indicatorColor" [style.background-color]="indicatorColor"
+				role="button" tabindex="0" (click)="onIndicatorClick()" (keydown.enter)="onIndicatorClick()" (keydown.space)="onIndicatorClick()")
+			label.text-muted.color-label {{label}}
 		check-box.lock-box(
 			*ngIf="hasLock && !nonLockable" [(checked)]="locked" (checkedChange)="onLockedChange($event)"
 			[icon]="lockIcon" label="Automatic color")
@@ -11,7 +14,10 @@
 
 .row.form-group(*ngIf="!outlineHidden")
 	.col-4.col-sm-3.col-lock-box
-		label.text-muted.color-label {{label}}
+		.color-label-row
+			span.color-label-indicator(*ngIf="indicatorColor" [style.background-color]="indicatorColor"
+				role="button" tabindex="0" (click)="onIndicatorClick()" (keydown.enter)="onIndicatorClick()" (keydown.space)="onIndicatorClick()")
+			label.text-muted.color-label {{label}}
 		check-box.lock-box(
 			*ngIf="hasLock && !nonLockable" [(checked)]="locked" (checkedChange)="onLockedChange($event)"
 			[icon]="lockIcon" label="Automatic color")

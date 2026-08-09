@@ -45,6 +45,13 @@ export class ToolsPalette implements OnInit {
 
 		this.redraw();
 	}
+	applyPaletteColor(index: number) {
+		const color = this.palette[index];
+		if (color) {
+			color.current = color.original;
+			this.redraw();
+		}
+	}
 	redraw() {
 		const canvas = this.canvas.nativeElement as HTMLCanvasElement;
 		const width = Math.ceil(canvas.width / this.scale);

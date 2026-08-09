@@ -28,6 +28,14 @@ export class FillOutline {
 	onChange() {
 		this.change.emit();
 	}
+	onIndicatorClick() {
+		if (!this.indicatorColor || this.locked) {
+			return;
+		}
+		this.fill = this.indicatorColor;
+		this.fillChange.emit(this.fill);
+		this.onChange();
+	}
 	onFillChange(value: string) {
 		this.fillChange.emit(value);
 		this.onChange();
