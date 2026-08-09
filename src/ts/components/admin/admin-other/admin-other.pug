@@ -25,8 +25,10 @@
 				label Suspicious pony info to report
 				textarea.form-control([(ngModel)]="suspiciousPonies" rows="15")
 			.form-group(*ngIf="suspiciousPoniesError")
-				.alert.alert-danger
-					| {{suspiciousPoniesError}}
+				.alert.alert-danger(role="alert")
+					fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+					.alert-content
+						.alert-message {{suspiciousPoniesError}}
 			.form-group
 				button.btn.btn-primary((click)="saveSuspiciousPonies()") Save
 				button.btn.btn-default.ml-1((click)="resetSuspiciousPonies()") Reset

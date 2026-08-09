@@ -1,9 +1,21 @@
 import '../lib';
 import { expect } from 'chai';
-import { getServerChangelog, mergeChangelog, isPrivilegedAccount } from '../../common/changelogUtils';
+import { getServerChangelog, mergeChangelog, isPrivilegedAccount, buildSeasonGroups } from '../../common/changelogUtils';
 import { account } from '../mocks';
 
 describe('changelogUtils', () => {
+	it('preserves markdown formatting in changelog entries', () => {
+		const groups = buildSeasonGroups([
+			{ version: 'Season 1 — Patch 1 | Stable', changes: [
+				'Added the **Imported Character** window',
+				'Added `/collections` and `/col`',
+			] },
+		]);
+		expect(groups[0].patches[0].changes[0]).to.contain('<strong>Imported Character</strong>');
+		expect(groups[0].patches[0].changes[1]).to.contain('<code>/collections</code>');
+		expect(groups[0].patches[0].changes[1]).to.contain('<code>/col</code>');
+	});
+
 	it('returns only public changelog entries for anonymous account', () => {
 		const response = getServerChangelog();
 		const changelog = mergeChangelog(response);

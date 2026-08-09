@@ -388,7 +388,7 @@ export function authRoutes(
 					username,
 					name: displayName,
 					emails: [],
-					url: typeof query.photo_url === 'string' ? query.photo_url : undefined,
+					url: undefined,
 					createdAt: undefined,
 					suspended: undefined,
 				};

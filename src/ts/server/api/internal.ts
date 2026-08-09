@@ -22,6 +22,7 @@ import { toPairs, groupBy } from 'lodash';
 import { getSizeOfMap } from '../serverMap';
 import { createServerDefaultPony } from '../../common/ponyInfo';
 import { compressPonyString } from '../../common/compressPony';
+import { settings as globalSettings } from '../settings';
 import { teleportTo } from '../playerUtils';
 import { getWorldPerfStats } from '../worldPerfStats';
 
@@ -113,9 +114,10 @@ export const createJoin =
 				throw new UserError('Server is restricted');
 			}
 
-			// If character has no pony info, create a server default pony
+			// If character has no pony info, use server setting default if provided,
+			// otherwise create a server default pony from constants
 			if (!character.info) {
-				character.info = compressPonyString(createServerDefaultPony());
+				character.info = globalSettings && (globalSettings as any).defaultPonyInfo ? (globalSettings as any).defaultPonyInfo : compressPonyString(createServerDefaultPony());
 			}
 
 			await setupPonyAuth(character, account, findAuth);

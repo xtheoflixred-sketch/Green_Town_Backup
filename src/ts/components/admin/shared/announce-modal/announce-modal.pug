@@ -1,24 +1,61 @@
 ng-template(#template)
-	.modal-header
+	.modal-header.d-flex.justify-content-between.align-items-center
 		h4.modal-title
-			fa-icon([icon]="faBullhorn" [fixedWidth]="true")
+			fa-icon.mr-2([icon]="faBullhorn" [fixedWidth]="true")
 			| Send global announcement
-	.modal-body
+		button.close(type="button" (click)="cancel()") ×
+
+	.modal-body.announce-modal-body
 		.form-group
 			label Message
 			textarea.form-control(rows="5" [(ngModel)]="message" placeholder="Write the announcement text here...")
-			div.text-muted.mt-2
+			.text-muted.mt-2
 				| This message will be sent to all connected players.
+
 		.form-group
-			label Type
-			div.btn-group.btn-group-toggle.d-flex.flex-wrap(role="group")
-				button.btn.btn-sm.btn-outline-secondary.mb-2.mr-2(type="button" *ngFor="let option of typeOptions" [class.active]="announceType === option.value" (click)="announceType = option.value")
-					fa-icon([icon]="option.icon" [fixedWidth]="true")
-					| {{option.label}}
-					div.text-muted.mt-1 {{option.description}}
-		.div.mt-3
-			strong Preview
-			p.text-break {{ message || 'No announcement text entered yet.' }}
-	.modal-footer.d-flex.justify-content-end
-		button.btn.btn-secondary(type="button" (click)="cancel()") Cancel
+			label Destination
+			.announce-type-grid
+				button.btn.btn-outline-secondary.announce-type-option(
+					type="button"
+					*ngFor="let option of typeOptions"
+					[class.active]="announceType === option.value"
+					(click)="onAnnounceTypeChange(option.value)"
+				)
+					.d-flex.align-items-center
+						fa-icon.mr-2([icon]="option.icon" [fixedWidth]="true")
+						.d-flex.flex-column
+							strong {{ option.label }}
+							small.text-muted {{ option.description }}
+
+		.form-group.mt-3
+			label Alert type
+			.announce-alert-grid
+				button.btn.btn-outline-secondary.announce-alert-option(
+					type="button"
+					*ngFor="let option of alertTypes"
+					[class.active]="alertType === option.value"
+					[disabled]="isAlertTypeDisabled(option.value)"
+					(click)="onAlertTypeChange(option.value)"
+				)
+					.d-flex.align-items-center
+						fa-icon.mr-2([icon]="option.icon" [fixedWidth]="true")
+						.d-flex.flex-column
+							strong {{ option.label }}
+							small.text-muted {{ option.description }}
+
+		.announce-preview-card.mt-3
+			.d-flex.justify-content-between.align-items-center.mb-2
+				strong Preview
+				span.text-muted {{ alertTitle() }}
+			.alert([ngClass]="alertClass()" role="alert")
+				fa-icon.alert-icon([icon]="alertIcon()" size="2x" [fixedWidth]="true")
+				.alert-content
+					strong.alert-title {{ alertTitle() }}
+					.alert-message {{ message || 'No announcement text entered yet.' }}
+			.text-muted.mt-2
+				| This is a live preview. The final appearance depends on the alert styling used by the game.
+
+	.modal-footer.justify-content-end
+		button.btn.btn-outline-secondary(type="button" (click)="cancel()") Cancel
 		button.btn.btn-primary.ml-2(type="button" (click)="send()" [disabled]="!canSend()") Send
+

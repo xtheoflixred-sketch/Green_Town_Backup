@@ -83,6 +83,14 @@ html(lang="en")
 		if socketOptions
 			script#socket-options(type="text/plain")!=socketOptions
 
+		//- server settings exported for client (includes defaultPonyInfo)
+		if serverSettings
+			script#server-settings(type="application/json")!=JSON.stringify(serverSettings)
+
+		//- current API version hash from server
+		if apiVersion
+			script#api-version(type="application/json")!=JSON.stringify(apiVersion)
+
 		script.
 			(function () {
 				const wordsViewport = document.getElementById('loadingWords');

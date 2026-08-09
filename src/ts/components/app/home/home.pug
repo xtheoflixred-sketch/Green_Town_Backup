@@ -10,7 +10,9 @@ div(*ngIf="!playing")
 
 			.form-group(*ngIf="authError")
 				.alert.alert-danger(role="alert")
-					| {{authError}}
+				fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+				.alert-content
+					.alert-message {{authError}}
 			.form-group(*ngFor="let entry of globalAlertsEntries$ | async")
 						.alert.d-flex.align-items-center(role="alert" [ngClass]="alertClass(entry.type)")
 							fa-icon.mr-2([icon]="alertIcon(entry.type)" size="2x")
@@ -36,14 +38,13 @@ div(*ngIf="!playing")
 				// 👉 ВОТ ТУТ теперь правильно вставлен warning
 				.form-group(*ngIf="showLoginWarning")
 					.alert.alert-warning(role="alert")
-						fa-icon.mr-1([icon]="warningIcon" size="lg")
-						strong Важно:
-						
-						div([class.collapse]="!showFullWarning" [class.show]="showFullWarning")
-							br
-							|  Вы входите на основной рабочий билд сервера.
-
-							br
+					fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+					.alert-content
+						.alert-title Важно:
+						.alert-message
+							div([class.collapse]="!showFullWarning" [class.show]="showFullWarning")
+								br
+								|  Вы входите на основной рабочий билд сервера.
 							br
 
 							|  Сервер находится в активной разработке и тестировании, поэтому вы можете столкнуться со следующими проблемами:

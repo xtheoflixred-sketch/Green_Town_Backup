@@ -139,6 +139,16 @@ describe('clientUtils', () => {
 				color: undefined,
 			});
 		});
+
+		it('creates a Telegram profile URL from user name when stored URL is null', () => {
+			expect(toSocialSiteInfo({ id: 'foo', name: 'Enylof1', url: null as any, provider: 'telegram' })).eql({
+				id: 'foo',
+				name: 'Enylof1',
+				url: 'https://t.me/Enylof1',
+				icon: 'telegram',
+				color: '#2CA5E0',
+			});
+		});
 	});
 
 	describe('filterString()', () => {

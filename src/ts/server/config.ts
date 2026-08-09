@@ -39,6 +39,7 @@ export interface AppConfig {
 	servers: ServerConfig[];
 	facebookAppId?: string;
 	mockLoginEnabled?: boolean;
+	serverSettings?: { [key: string]: any };
 }
 
 export interface AppPackage {
@@ -119,3 +120,8 @@ const serverId = args.game || (args.login ? 'login' : (args.admin ? 'admin' : al
 
 export const server = allServers.find(s => s.id === serverId) || allServers[0];
 export const port = (args.port && parseInt(args.port, 10)) || server.port || config.port;
+
+// server-wide settings container — may include defaultPonyInfo
+// if not present in config, default to empty object
+(config as any).serverSettings = (config as any).serverSettings || {};
+export const serverSettings = (config as any).serverSettings;

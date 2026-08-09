@@ -3,6 +3,7 @@ import { Account, Character } from '../db';
 import { createCharacter } from './ponies';
 import { compressPonyString } from '../../common/compressPony';
 import { createServerDefaultPony } from '../../common/ponyInfo';
+import { settings as globalSettings } from '../settings';
 
 export const getMockAccounts: RequestHandler = async (_req, res, next) => {
 	try {
@@ -56,7 +57,8 @@ export const createMockAccount: RequestHandler = async (_req, res, next) => {
 		let ponyInfo: any = undefined;
 		try {
 			const pony = ponyName ? String(ponyName).trim() : `${accountName}'s Pony`;
-			await createCharacter(acc._id.toString(), pony, compressPonyString(createServerDefaultPony()));
+			const defaultPonyInfo = ((globalSettings as any).defaultPonyInfo || compressPonyString(createServerDefaultPony()));
+			await createCharacter(acc._id.toString(), pony, defaultPonyInfo);
 			// fetch latest character and return a similar shape as getMockAccounts
 			const characters = await Character.find({ account: acc._id }, '_id info').sort('-lastUsed').limit(1).lean().exec();
 			ponyInfo = characters && characters[0] && characters[0].info;

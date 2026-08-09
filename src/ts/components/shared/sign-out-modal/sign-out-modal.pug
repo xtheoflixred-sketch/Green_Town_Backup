@@ -10,8 +10,10 @@
 			p.sign-out-modal-warning
 				| You will be returned to the sign-in screen.
 
-		.alert.alert-danger.mt-3.mb-0(*ngIf="signOutError")
-			| {{ signOutError }}
+		.alert.alert-danger.mt-3.mb-0(*ngIf="signOutError" role="alert")
+			fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+			.alert-content
+				.alert-message {{ signOutError }}
 
 	.preview-card
 

@@ -52,6 +52,8 @@ export interface GeneralSettings {
 	suspiciousSafeInstantWholeMessages?: string;
 	suspiciousAuths?: string;
 	patreonToken?: string;
+	// compressed pony info string to use as the global server default for new characters
+	defaultPonyInfo?: string;
 }
 
 // NOTE: also update createLoginServerStatus()

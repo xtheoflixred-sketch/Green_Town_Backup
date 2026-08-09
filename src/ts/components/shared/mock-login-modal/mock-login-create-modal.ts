@@ -1,6 +1,8 @@
 import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { createServerDefaultPony } from '../../../common/ponyInfo';
+import { serverSettings } from '../../../client/data';
+import { decompressPonyString } from '../../../common/compressPony';
 import { faInfoCircle } from '../../../client/icons';
 import { MockAccount } from './mock-login-modal';
 
@@ -31,6 +33,13 @@ export class MockLoginCreateModal implements OnChanges {
   }
 
   getPreviewPony() {
+    try {
+      const info = serverSettings && serverSettings.defaultPonyInfo;
+      if (info) return decompressPonyString(info, true);
+    } catch (e) {
+      // ignore and fallback
+    }
+
     return createServerDefaultPony();
   }
 

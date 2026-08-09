@@ -14,8 +14,10 @@
 					span.text-muted.ml-1(*ngIf="!i.active") (inactive)
 				button.btn.btn-xs.btn-outline-danger Cancel
 
-	.alert.alert-danger.mt-3.mb-0(*ngIf="error")
-		| {{error}}
+	.alert.alert-danger.mt-3.mb-0(*ngIf="error" role="alert")
+		fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message {{error}}
 
 .modal-footer.justify-content-end
 	button.btn.btn-outline-secondary((click)="close.emit()")

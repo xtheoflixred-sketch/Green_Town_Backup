@@ -7,6 +7,9 @@ import {
 import { SpriteSet, PonyInfo, PaletteManager, ColorExtraSets, Palette } from '../../common/interfaces';
 import { RED, BLUE, YELLOW, ORANGE, TRANSPARENT } from '../../common/colors';
 import { repeat, times, flatten } from '../../common/utils';
+import { compressPonyString } from '../../common/compressPony';
+import * as clientData from '../../client/data';
+import { createDefaultPonyObject } from '../../components/services/model';
 
 type Set = SpriteSet<string>;
 
@@ -106,6 +109,22 @@ describe('ponyInfo', () => {
 			expect(pony.tail!.type).equal(0);
 			expect(pony.coatFill).equal('ff0000');
 			expect(pony.coatOutline).equal('8b0000');
+		});
+
+		it('uses server-provided default pony data when available', () => {
+			const pony = createServerDefaultPony();
+			const compressed = compressPonyString(pony);
+			const prev = (clientData as any).serverSettings;
+			(clientData as any).serverSettings = { defaultPonyInfo: compressed };
+
+			try {
+				const defaultPony = createDefaultPonyObject();
+				expect(defaultPony.ponyInfo).to.exist;
+				expect(defaultPony.ponyInfo!.coatFill).equal(pony.coatFill);
+				expect(defaultPony.ponyInfo!.coatOutline).equal(pony.coatOutline);
+			} finally {
+				(clientData as any).serverSettings = prev;
+			}
 		});
 	});
 

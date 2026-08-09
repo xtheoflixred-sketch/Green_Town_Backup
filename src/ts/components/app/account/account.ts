@@ -237,7 +237,7 @@ export class Account implements OnInit, OnDestroy {
 		return this.expandedSocials.has(siteId);
 	}
 	navigateToSocial(site: SocialSiteInfo) {
-		if (site.icon !== 'discord') {
+		if (site.icon !== 'discord' && site.url) {
 			window.open(site.url, '_blank', 'noopener noreferrer');
 		}
 	}

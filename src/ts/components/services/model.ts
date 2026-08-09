@@ -3,7 +3,6 @@ import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { merge } from 'lodash';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { HASH } from '../../generated/hash';
 import {
 	AccountData, UpdateAccountData, AccountSettings, GameStatus, SocialSiteInfo, PonyObject, JoinResponse,
 	OAuthProvider, EntitiesEditorInfo, FriendData, PalettePonyInfo, HiddenPlayer
@@ -14,7 +13,7 @@ import { isMod, getSupporterInviteLimit, getCharacterLimit } from '../../common/
 import {
 	NAME_ERROR, ACCESS_ERROR, CHARACTER_SAVING_ERROR, NOT_AUTHENTICATED_ERROR, OFFLINE_ERROR, PROTECTION_ERROR
 } from '../../common/errors';
-import { version, host } from '../../client/data';
+import { version, host, serverSettings, apiVersion } from '../../client/data';
 import {
 	toSocialSiteInfo, cleanName, validatePonyName, isStandalone, attachDebugMethod
 } from '../../client/clientUtils';
@@ -68,11 +67,23 @@ function getDefaultPony(ponies: PonyObject[]) {
 }
 
 export function createDefaultPonyObject(): PonyObject {
+	// If serverSettings.defaultPonyInfo exists, try to decode it; otherwise fallback
+	let ponyInfo = createServerDefaultPony();
+	try {
+		const info = serverSettings && serverSettings.defaultPonyInfo;
+		if (info) {
+			ponyInfo = decompressPonyString(info, true);
+		}
+	} catch (e) {
+		// silent fallback to server default
+		ponyInfo = createServerDefaultPony();
+	}
+
 	return {
 		id: '',
 		name: '',
 		info: '',
-		ponyInfo: createServerDefaultPony(),
+		ponyInfo,
 	};
 }
 
@@ -538,7 +549,7 @@ export class Model {
 
 		const params = new HttpParams()
 			.set('t', (Date.now() % 0x10000).toString(16));
-		const headers = new HttpHeaders({ 'api-version': HASH, 'api-bid': this.storage.getItem('bid') || '-' });
+		const headers = new HttpHeaders({ 'api-version': apiVersion, 'api-bid': this.storage.getItem('bid') || '-' });
 
 		return observableToPromise(this.http.post<T>(url, data, { params, headers }));
 	}

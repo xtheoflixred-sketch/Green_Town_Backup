@@ -19,6 +19,8 @@
 		router-outlet
 
 .admin-error(*ngIf="model.error")
-	.alert.alert-danger
+	.alert.alert-danger(role="alert")
+		fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message {{model.error}}
 		button.close.ml-2((click)="model.error = null") &times;
-		| {{model.error}}

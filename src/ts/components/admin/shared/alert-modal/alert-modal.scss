@@ -1,3 +1,5 @@
+@import '../../../../styles/partials/variables';
+
 .modal-body {
 	max-height: 72vh;
 	min-height: 0;
@@ -51,10 +53,11 @@
 
 .alert-entry-card {
 	border: 1px solid rgba(0, 0, 0, 0.08);
-	border-radius: 6px;
+	border-radius: 0.5rem;
 	padding: 1rem;
 	margin-bottom: 1rem;
 	background: #fff;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .alert-entry-card.alert-card-warning {
@@ -94,16 +97,61 @@
 	margin-bottom: 0.75rem;
 }
 
+// New alert style using centralized variables
 .alert-preview-card .alert {
+	display: flex;
+	align-items: flex-start;
+	gap: $alert-new-gap;
 	margin-bottom: 0;
-	padding: 0.75rem 1rem;
+	padding: $alert-new-padding;
+	border-radius: $alert-new-border-radius;
+	border: 1px solid;
 }
 
+.alert-preview-card .alert-icon {
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.alert-preview-card .alert-content {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex: 1;
+}
+
+.alert-preview-card .alert-title {
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+	display: block;
+}
+
+.alert-preview-card .alert-message {
+	margin: 0;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	word-break: break-word;
+}
+
+// Announcement alert
 .alert-preview-card .alert-announcement {
-	background: linear-gradient(90deg, #497ea5 0%, #b8c8d4 100%);
-	color: #f8f9fa;
-	border: none;
-	box-shadow: 0 2px 8px rgba(73,126,165,0.08);
+	@include alert-new-style($alert-new-announcement-bg, $alert-new-announcement-border, $alert-new-announcement-color, $alert-new-announcement-icon, $alert-new-announcement-title);
+}
+
+// Warning alert
+.alert-preview-card .alert-warning {
+	@include alert-new-style($alert-new-warning-bg, $alert-new-warning-border, $alert-new-warning-color, $alert-new-warning-icon, $alert-new-warning-title);
+}
+
+// Info alert
+.alert-preview-card .alert-info {
+	@include alert-new-style($alert-new-info-bg, $alert-new-info-border, $alert-new-info-color, $alert-new-info-icon, $alert-new-info-title);
+}
+
+// Danger alert
+.alert-preview-card .alert-danger {
+	@include alert-new-style($alert-new-danger-bg, $alert-new-danger-border, $alert-new-danger-color, $alert-new-danger-icon, $alert-new-danger-title);
 }
 
 .alert-preview-info {

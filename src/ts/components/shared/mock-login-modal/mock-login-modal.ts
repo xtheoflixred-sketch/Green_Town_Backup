@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Output, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { toPalette, createServerDefaultPony, mockPaletteManager } from '../../../common/ponyInfo';
 import { decodePonyInfo } from '../../../common/compressPony';
+import { serverSettings } from '../../../client/data';
 import { faUserPlus } from '../../../client/icons';
 
 export interface MockAccount {
@@ -40,6 +41,16 @@ export class MockLoginModal implements OnInit, OnChanges {
     if (ponyInfo) {
       return decodePonyInfo(ponyInfo, mockPaletteManager);
     }
+
+    try {
+      const info = serverSettings && serverSettings.defaultPonyInfo;
+      if (info) {
+        return decodePonyInfo(info, mockPaletteManager);
+      }
+    } catch (e) {
+      // fall back to the built-in server default pony
+    }
+
     return toPalette(createServerDefaultPony());
   }
 

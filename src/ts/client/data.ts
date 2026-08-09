@@ -3,6 +3,7 @@ import { ClientOptions, createBinaryReader, readObject } from 'ag-sockets/dist/b
 import { OAuthProvider } from '../common/interfaces';
 import { normalizeVersion, VersionInfo, parseVersion, formatVersion } from '../common/version';
 import { parseChangelogVersion } from '../common/changelogUtils';
+import { HASH } from '../generated/hash';
 
 /* istanbul ignore next */
 function attr(name: string): string | undefined {
@@ -46,6 +47,15 @@ export const signUpProviders = oauthProviders.filter(i => !i.connectOnly);
 export const signInProviders = oauthProviders.filter(i => i.connectOnly);
 
 /* istanbul ignore next */
+export const apiVersion = (() => {
+	try {
+		return json<string>('api-version', HASH);
+	} catch {
+		return HASH;
+	}
+})();
+
+/* istanbul ignore next */
 export function socketOptions(): ClientOptions {
 	const options = data('socket-options');
 
@@ -57,6 +67,9 @@ export function socketOptions(): ClientOptions {
 		throw new Error('Missing socket options');
 	}
 }
+
+/* istanbul ignore next */
+export const serverSettings = json<any>('server-settings', '{}');
 
 /* istanbul ignore next */
 function setMobile() {

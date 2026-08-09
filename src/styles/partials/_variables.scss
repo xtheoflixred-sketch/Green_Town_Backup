@@ -130,6 +130,54 @@ $alert-warning-bg: #ca8e35;
 $alert-danger-color: #f7d9d9;
 $alert-danger-bg: #cf6461;
 
+// new modern alert style variables
+$alert-new-padding: 12px 14px;
+$alert-new-border-radius: 8px;
+$alert-new-gap: 12px;
+
+// announcement alert (blue)
+$alert-new-announcement-bg: rgba(73, 126, 165, 0.14);
+$alert-new-announcement-border: rgba(73, 126, 165, 0.3);
+$alert-new-announcement-color: #b8c8d4;
+$alert-new-announcement-icon: #5fa3d9;
+$alert-new-announcement-title: #e0f0ff;
+
+// warning alert (orange)
+$alert-new-warning-bg: rgba(255, 152, 0, 0.12);
+$alert-new-warning-border: rgba(255, 152, 0, 0.24);
+$alert-new-warning-color: #ffe082;
+$alert-new-warning-icon: #ffb74d;
+$alert-new-warning-title: #ffd54f;
+
+// info alert (cyan)
+$alert-new-info-bg: rgba(58, 183, 218, 0.12);
+$alert-new-info-border: rgba(58, 183, 218, 0.24);
+$alert-new-info-color: #80deea;
+$alert-new-info-icon: #4dd0e1;
+$alert-new-info-title: #b2ebf2;
+
+// danger alert (red)
+$alert-new-danger-bg: rgba(244, 67, 54, 0.12);
+$alert-new-danger-border: rgba(244, 67, 54, 0.24);
+$alert-new-danger-color: #ef9a9a;
+$alert-new-danger-icon: #f44336;
+$alert-new-danger-title: #ffcdd2;
+
+// mixin for new alert style
+@mixin alert-new-style($bg, $border, $color, $icon-color, $title-color) {
+	background: $bg;
+	border-color: $border;
+	color: $color;
+
+	.alert-icon {
+		color: $icon-color;
+	}
+
+	.alert-title {
+		color: $title-color;
+	}
+}
+
 // navs
 // navs
 $nav-tabs-border-color: rgba(255, 255, 255, 0.08);

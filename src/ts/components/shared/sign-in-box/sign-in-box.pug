@@ -4,15 +4,16 @@
 
 	div(*ngIf="showLoginWarning")
 		.alert.alert-warning.mb-3(role="alert")
-			fa-icon.mr-1.text-center([icon]="warningIcon" size="lg")
-			strong Важно:
-			
-			div([class.collapse]="!showFullWarning" [class.show]="showFullWarning")
-				br
-				|  Вы входите на основной рабочий билд сервера.
+			fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+			.alert-content
+				.alert-title Важно:
+				.alert-message
+					div([class.collapse]="!showFullWarning" [class.show]="showFullWarning")
+						br
+						|  Вы входите на основной рабочий билд сервера.
 
-				br
-				br
+						br
+						br
 
 				|  Сервер находится в активной разработке и тестировании, поэтому вы можете столкнуться со следующими проблемами:
 				ul.mb-2

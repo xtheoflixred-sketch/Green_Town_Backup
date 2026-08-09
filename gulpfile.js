@@ -96,6 +96,28 @@ const sprites = () => Promise.resolve() // del(['tools/output/images/*'])
 		.pipe(gulpif(!argv.fast, imagemin()))
 		.pipe(gulp.dest('assets/images')));
 
+const markdownToHtml = (raw) => {
+	if (!raw || typeof raw !== 'string') return raw || '';
+	if (/<\/?[a-z][\s\S]*>/i.test(raw)) return raw;
+
+	let html = raw
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+
+	html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+	html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+	html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+	html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+	html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+	html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+|\/[^)]+)\)/g,
+		'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+	return html;
+};
+
 const changelog = cb => {
 	const parseFile = (path) => {
 		if (!fs.existsSync(path)) {
@@ -111,10 +133,10 @@ const changelog = cb => {
 			if (node.tokens) {
 				for (const token of node.tokens) {
 					if (token.text) {
-						const text = token.text
-							.replace(/^\[test\]/, '<span class="badge badge-secondary">test</span>');
-						if (text.trim()) {
-							changes.push(text);
+						const formattedText = markdownToHtml(token.text
+							.replace(/^\[test\]/, '<span class="badge badge-secondary">test</span>'));
+						if (formattedText.trim()) {
+							changes.push(formattedText);
 						}
 					}
 				}

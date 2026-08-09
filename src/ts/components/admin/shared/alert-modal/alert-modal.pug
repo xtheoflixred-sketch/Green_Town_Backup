@@ -1,40 +1,179 @@
 ng-template(#template)
-    .modal-header
+    .modal-header.d-flex.justify-content-between.align-items-center
         h4.modal-title
-            fa-icon([icon]="megaphoneIcon" [fixedWidth]="true")
-            | Global announcement
+            fa-icon.mr-2(
+                [icon]="megaphoneIcon"
+                [fixedWidth]="true"
+            )
+            | {{ alertTitle }}
+
+        button.close(
+            type="button"
+            (click)="cancel()"
+        )
+            | ×
 
     .modal-body
         .alert-body-scroll
-            tabset(type="pills" [(activeIndex)]="activeIndex")
-                tab(title="Create announcement")
-                div(*tabContent)
-                    .form-group.mb-2
-                        button.btn.btn-sm.btn-primary(type="button" (click)="addEntry()")
-                            | Add announcement
-                        div.text-muted.mt-1
-                            | Add one or more announcement entries below.
-                    .alert-board
-                        .alert-entry-card.alert-card-announcement(*ngFor="let entry of entries; let i = index")
-                            .alert-entry-header.d-flex.justify-content-between.align-items-center
-                                strong.mb-0 Announcement {{i + 1}}
-                                button.btn.btn-xs.btn-danger(type="button" (click)="removeEntry(i)" [disabled]="entries.length === 1") Remove
-                            .alert-entry-controls.row.mt-2
-                                .col-12
-                                    label.mb-1 Message
-                                    textarea.form-control(rows="3" [(ngModel)]="entry.message" placeholder="Write announcement text here")
-                tab(title="Preview announcement")
-                div(*tabContent)
-                    div.alert-preview-info.mb-3
-                        | Preview how the announcement will look once sent.
-                    .alert-preview-card(*ngFor="let entry of entries")
-                        .alert.alert-announcement.d-flex.align-items-center(role="alert")
-                            fa-icon.mr-2([icon]="megaphoneIcon" size="2x")
-                            span.flex-grow-1
-                                strong.text-uppercase Announcement:
-                                |  {{entry.message || 'No announcement text entered.'}}
+            tabset(
+                type="pills"
+                [(activeIndex)]="activeIndex"
+            )
+
+                tab(title="Create alert")
+                    div(*tabContent)
+                        .form-group.mb-3
+                            .d-flex.justify-content-between.align-items-center.mb-2
+                                label.mb-0 Alert entries
+
+                                button.btn.btn-sm.btn-primary(
+                                    type="button"
+                                    (click)="addEntry()"
+                                )
+                                    | Add alert
+
+                            div.text-muted
+                                | Add one or more messages. Each message can have its own alert type.
+
+                        .alert-board
+                            .alert-entry-card(
+                                *ngFor="let entry of entries; let i = index"
+                                [class.alert-card-warning]="entry.type === 'warning'"
+                                [class.alert-card-danger]="entry.type === 'danger'"
+                                [class.alert-card-info]="entry.type === 'info'"
+                                [class.alert-card-announcement]="entry.type === 'announcement'"
+                            )
+                                .alert-entry-header.d-flex.justify-content-between.align-items-center
+                                    .d-flex.align-items-center
+                                        fa-icon.mr-2(
+                                            [icon]="alertIcon(entry.type)"
+                                            [fixedWidth]="true"
+                                        )
+
+                                        strong.mb-0
+                                            | Alert {{i + 1}}
+
+                                    button.btn.btn-sm.btn-danger(
+                                        type="button"
+                                        (click)="removeEntry(i)"
+                                        [disabled]="entries.length === 1"
+                                    )
+                                        | Remove
+
+                                .alert-entry-controls.mt-3
+                                    .form-group.mb-3
+                                        label.mb-1 Type
+
+                                        .btn-group.btn-group-toggle.d-flex.flex-wrap(
+                                            role="group"
+                                        )
+                                            button.btn.btn-sm.mr-2.mb-2(
+                                                type="button"
+                                                *ngFor="let type of alertTypes"
+                                                [class.btn-warning]="type.value === 'warning' && entry.type === type.value"
+                                                [class.btn-danger]="type.value === 'danger' && entry.type === type.value"
+                                                [class.btn-info]="type.value === 'info' && entry.type === type.value"
+                                                [class.btn-primary]="type.value === 'announcement' && entry.type === type.value"
+                                                [class.btn-outline-secondary]="entry.type !== type.value"
+                                                (click)="entry.type = type.value"
+                                            )
+                                                fa-icon.mr-1(
+                                                    *ngIf="type.icon"
+                                                    [icon]="type.icon"
+                                                    [fixedWidth]="true"
+                                                )
+
+                                                | {{type.label}}
+
+                                    .form-group.mb-0
+                                        label.mb-1 Message
+
+                                        textarea.form-control(
+                                            rows="3"
+                                            [(ngModel)]="entry.message"
+                                            placeholder="Write alert message here..."
+                                        )
+
+                        .form-group.mt-3
+                            label.mb-1 Alert duration
+
+                            select.form-control(
+                                [(ngModel)]="alertExpire"
+                                [ngModelOptions]="{standalone: true}"
+                            )
+                                option(
+                                    *ngFor="let expire of alertExpires"
+                                    [ngValue]="expire"
+                                )
+                                    | {{expire.name}}
+
+                tab(title="Preview alert")
+                    div(*tabContent)
+                        .alert-preview-info.mb-3
+                            strong Preview
+
+                            div.text-muted
+                                | This is how the alert will appear to the player.
+
+                        .alert-preview-empty(
+                            *ngIf="!canConfirm()"
+                        )
+                            fa-icon(
+                                [icon]="megaphoneIcon"
+                                size="2x"
+                            )
+
+                            div.mt-2
+                                | No alert text entered yet.
+
+                        .alert-preview-board(*ngIf="canConfirm()")
+                            .alert-preview-card(
+                                *ngFor="let entry of entries"
+                                [hidden]="!entry.message.trim()"
+                            )
+                                .alert(
+                                    [ngClass]="alertClass(entry.type)"
+                                    role="alert"
+                                )
+                                    fa-icon.alert-icon(
+                                        [icon]="alertIcon(entry.type)"
+                                        size="2x"
+                                        [fixedWidth]="true"
+                                    )
+
+                                    .alert-content
+                                        strong.alert-title
+                                            | {{entry.type === 'warning' ? 'Warning' : entry.type === 'danger' ? 'Danger' : entry.type === 'info' ? 'Information' : 'Announcement'}}
+
+                                        .alert-message
+                                            | {{entry.message}}
+
+                        .alert-preview-info.mt-3
+                            fa-icon.mr-1(
+                                [icon]="megaphoneIcon"
+                                [fixedWidth]="true"
+                            )
+
+                            | The alert will be shown to the selected account until it expires.
 
     .modal-footer.d-flex
         .flex-grow-1
-        button.btn.btn-wide.btn-outline-secondary(type="button" (click)="cancel()") Cancel
-        button.btn.btn-wide.btn-primary.ml-2(type="button" (click)="confirm()" [disabled]="!canConfirm()") Send
+            button.btn.btn-wide.btn-outline-danger(
+                *ngIf="hasAlert"
+                type="button"
+                (click)="removeAlert()"
+            )
+                | Remove alert
+
+        button.btn.btn-wide.btn-outline-secondary(
+            type="button"
+            (click)="cancel()"
+        )
+            | Cancel
+
+        button.btn.btn-wide.btn-primary.ml-2(
+            type="button"
+            (click)="confirm()"
+            [disabled]="!canConfirm()"
+        )
+            | {{confirmLabel}}

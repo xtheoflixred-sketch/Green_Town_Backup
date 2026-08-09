@@ -16,11 +16,16 @@ h1(focusTitle) Account settings
 					fa-icon.ml-1.text-danger(*ngIf="showAccountAlert" [icon]="alertIcon" title="Missing field value")
 				date-picker([(date)]="data.birthdate")
 			.form-group(*ngIf="accountError")
-				.alert.alert-danger
-					| {{accountError}}
+				.alert.alert-danger(role="alert")
+					fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+					.alert-content
+						.alert-message {{accountError}}
 			.form-group(*ngIf="accountSaved")
-				.alert.alert-success
-					| Changes saved
+				.alert.alert-success(role="alert")
+					fa-icon.alert-icon([icon]="successIcon" size="2x" [fixedWidth]="true")
+					.alert-content
+						.alert-message
+							| Changes saved
 			.form-group.text-right
 				button.btn.btn-default(type="submit" [disabled]="!canSubmit" style="min-width: 100px;")
 					| {{saveButtonText}}
@@ -78,20 +83,30 @@ h1(focusTitle) Account settings
 							| #[span.sr-only {{p.name}}] {{p.name}}
 
 			.form-group(*ngIf="mergeError")
-				.alert.alert-danger
-					| {{mergeError}}
+				.alert.alert-danger(role="alert")
+					fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+					.alert-content
+						.alert-message {{mergeError}}
 
 			.form-group(*ngIf="authError")
-				.alert.alert-danger
-					| {{authError}}
+				.alert.alert-danger(role="alert")
+					fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+					.alert-content
+						.alert-message {{authError}}
 
 			.form-group(*ngIf="mergedAccount")
-				.alert.alert-success
-					| Account connected successfully
+				.alert.alert-success(role="alert")
+					fa-icon.alert-icon([icon]="successIcon" size="2x" [fixedWidth]="true")
+					.alert-content
+						.alert-message
+							| Account connected successfully
 
 			.form-group(*ngIf="removedAccount")
-				.alert.alert-success
-					| Account removed successfully
+				.alert.alert-success(role="alert")
+					fa-icon.alert-icon([icon]="successIcon" size="2x" [fixedWidth]="true")
+					.alert-content
+						.alert-message
+							| Account removed successfully
 
 	.col-md-6
 		div(style="margin-bottom: 100px;")

@@ -5,20 +5,15 @@
 
 			.info-alert.mb-4
 				.alert.alert-warning(role="alert")
+					fa-icon.alert-icon([icon]="logoIcon" size="3x" [fixedWidth]="true")
 
-					.header-content
-						img.pixelart.server-logo-icon.center(
-							revSrc="images/logo-120.png"
-							alt="Green Town")
-
+					.alert-content
 						.header-text
 							h1(focusTitle) Welcome to Game!
 							p.header-subtitle
 								| Play on the custom Green Town server by logging in or creating an account.
 
-					hr.my-3(*ngIf="showLoginWarning")
-
-
+							hr.my-3(*ngIf="showLoginWarning")
 
 					fa-icon.mr-1(
 						[icon]="warningIcon"

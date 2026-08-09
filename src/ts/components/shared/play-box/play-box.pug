@@ -1,36 +1,51 @@
 .form-group(*ngIf="hasTooManyPonies")
 	.alert.alert-warning(role="alert")
-		| You have more than the allowed number of {{characterLimit}} ponies, the additional ones may get deleted.
-		| Remove some of your unused ponies to prevent losing the ones you want to keep.
+		fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| You have more than the allowed number of {{characterLimit}} ponies, the additional ones may get deleted.
+				| Remove some of your unused ponies to prevent losing the ones you want to keep.
 
 .form-group(*ngIf="isMarkedForMultiples")
 	.alert.alert-warning(role="alert")
-		| Your account has been flagged for creating multiple accounts.
-		| Creating more accounts may result in a permanent ban.
+		fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Your account has been flagged for creating multiple accounts.
+				| Creating more accounts may result in a permanent ban.
 
 .form-group(*ngFor="let entry of globalAlertsEntries$ | async")
-	.alert.d-flex.align-items-center(role="alert" [ngClass]="alertClass(entry.type)")
-		fa-icon.mr-2([icon]="alertIcon(entry.type)" size="2x")
-		span.flex-grow-1 {{entry.message}}
+	.alert([ngClass]="alertClass(entry.type)" role="alert")
+		fa-icon.alert-icon([icon]="alertIcon(entry.type)" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message {{entry.message}}
 
 .form-group(*ngIf="leftMessage")
 	.alert([ngClass]="leftAlertClass" role="alert")
-		| {{leftMessage}}
+		fa-icon.alert-icon([icon]="alertIcon(leftAlertClass === 'alert-info' ? 'info' : 'warning')" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message {{leftMessage}}
 
 .form-group(*ngIf="isAndroidBrowser")
 	.alert.alert-warning(role="alert")
-		| Your browser is outdated and is not able to correctly run Green Town.
-		| Please install a different browser to be able to play the game.
+		fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Your browser is outdated and is not able to correctly run Green Town.
+				| Please install a different browser to be able to play the game.
 
 .form-group(*ngIf="model.missingBirthdate && !birthdateSet && requestBirthdate")
-	.alert.alert-warning.text-left(role="alert")
-		label(for="birthdate")
-			| Set your date of birth
-		date-picker([(date)]="birthdate")
-		.mt-2.text-right
-			button.btn.btn-default.px-4((click)="saveBirthdate()") Save
-		p.mb-0.mt-2
-			| Please fill-in your #[b date of birth] in order to not lose access to the game in future updates.
+	.alert.alert-warning(role="alert")
+		fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-title Set your date of birth
+			.alert-message
+				label(for="birthdate")
+				date-picker([(date)]="birthdate")
+				.mt-2.text-right
+					button.btn.btn-default.px-4((click)="saveBirthdate()") Save
+				p.mb-0.mt-2
+					| Please fill-in your #[b date of birth] in order to not lose access to the game in future updates.
 
 .form-group.dropdown(dropdown)
 	.btn-group.d-flex
@@ -57,64 +72,105 @@
 				strong {{s.name}}
 			.text-muted.text-wrap {{s.desc}}
 
-.form-group.text-left.text-muted.server-alert(*ngIf="server?.alert === '18+'")
-	fa-icon.float-left.p-2([icon]="warningIcon" size="2x")
-	| By playing on this server you confirm that you are over 18 years old and you take no issue
-	| with seeing adult topics.
+.form-group(*ngIf="server?.alert === '18+'")
+	.alert.alert-warning(role="alert")
+		fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-title Mature Content Warning
+			.alert-message
+				| By playing on this server you confirm that you are over 18 years old and you take no issue
+				| with seeing adult topics.
 
-.form-group.text-left.text-info.server-alert(*ngIf="server?.alert === 'test'")
-	fa-icon.float-left.p-2([icon]="infoIcon" size="2x")
-	| Supporter test server: Here you can try experimental and unfinished features that we're working on.
-	| Keep in mind everything is subject to change.
+.form-group(*ngIf="server?.alert === 'test'")
+	.alert.alert-info(role="alert")
+		fa-icon.alert-icon([icon]="infoIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-title Supporter Test Server
+			.alert-message
+				| Here you can try experimental and unfinished features that we're working on.
+				| Keep in mind everything is subject to change.
 
 .form-group(*ngIf="server?.offline")
 	.alert.alert-info(role="alert")
-		| Selected server is offline, try again later
+		fa-icon.alert-icon([icon]="infoIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Selected server is offline, try again later
 
 .form-group(*ngIf="offline")
 	.alert.alert-info(role="alert")
-		| Server is offline, try again later
+		fa-icon.alert-icon([icon]="infoIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Server is offline, try again later
 
 .form-group(*ngIf="protectionError && !offline")
 	.alert.alert-info(role="alert")
-		| Cloudflare error, #[button.btn.btn-sm.btn-outline-default((click)="reload()") reload] to continue.
+		fa-icon.alert-icon([icon]="infoIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Cloudflare error, #[button.btn.btn-sm.btn-outline-default((click)="reload()") reload] to continue.
 
 .form-group(*ngIf="updateWarning")
 	.alert.alert-warning(role="alert")
-		| Server will restart shortly for updates and maintenance.
-		| Save your character to avoid losing any progress.
+		fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Server will restart shortly for updates and maintenance.
+				| Save your character to avoid losing any progress.
 
 .form-group(*ngIf="isBrowserOutdated")
 	.alert.alert-warning(role="alert")
-		button.close.float-right((click)="dismissOutdatedBrowser()" aria-label="Close" style="font-size: 20px;") &times;
-		| Your browser is outdated and is known to have issues running Green Town.
-		| Make sure you have latest version installed.
+		fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Your browser is outdated and is known to have issues running Green Town.
+				| Make sure you have latest version installed.
+		button.close.ml-2((click)="dismissOutdatedBrowser()" aria-label="Close" style="font-size: 20px;") &times;
 
 .form-group(*ngIf="invalidVersion && !offline")
 	.alert.alert-danger(role="alert")
-		| Your client version is outdated, #[button.btn.btn-sm.btn-outline-default((click)="reload()") reload] to be able to play.
+		fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Your client version is outdated, #[button.btn.btn-sm.btn-outline-default((click)="reload()") reload] to be able to play.
 
 .form-group(*ngIf="isAccessError")
 	.alert.alert-danger(role="alert")
-		| You're no longer signed-in, #[button.btn.btn-sm.btn-outline-default((click)="reload()") reload] to be able to sign-in again.
+		fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| You're no longer signed-in, #[button.btn.btn-sm.btn-outline-default((click)="reload()") reload] to be able to sign-in again.
 
 .form-group(*ngIf="failedToLoadImages")
 	.alert.alert-danger(role="alert")
-		| Failed to load game assets, #[button.btn.btn-sm.btn-outline-default((click)="hardReload()") reload] to retry.
+		fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Failed to load game assets, #[button.btn.btn-sm.btn-outline-default((click)="hardReload()") reload] to retry.
 
 .form-group(*ngIf="isWebGLError")
 	.alert.alert-danger(role="alert")
-		| Failed to create WebGL context. Your graphics card drivers or browser are outdated or graphics
-		| acceleration is disabled. Go to #[a.alert-link(href="http://webglreport.com/" tabindex) WebGL Report] to
-		| check WebGL support in your browser.
+		fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Failed to create WebGL context. Your graphics card drivers or browser are outdated or graphics
+				| acceleration is disabled. Go to #[a.alert-link(href="http://webglreport.com/" tabindex) WebGL Report] to
+				| check WebGL support in your browser.
 
 .form-group(*ngIf="isBrowserError")
 	.alert.alert-danger(role="alert")
-		| Your browser is outdated, make sure you have the latest version installed.
+		fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| Your browser is outdated, make sure you have the latest version installed.
 
 .form-group(*ngIf="isOtherError")
 	.alert.alert-danger(role="alert")
-		| {{error}}
+		fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-message
+				| {{error}}
 
 .form-group.text-left.text-large(*ngIf="server")
 	h5 Server rules

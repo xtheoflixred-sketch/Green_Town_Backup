@@ -169,19 +169,27 @@ export const providers = providerList.filter(isProviderConfigured);
 
 export function getProfileUrl(profile: OAuthProfile): string | undefined {
 	if (profile.provider === 'twitter') {
-		return `https://twitter.com/${profile.username}`;
+		return profile.username ? `https://twitter.com/${profile.username}` : undefined;
 	} else if (profile.provider === 'tumblr') {
-		return `http://${profile.username}.tumblr.com/`;
+		return profile.username ? `http://${profile.username}.tumblr.com/` : undefined;
 	} else if (profile.provider === 'facebook') {
-		return `http://www.facebook.com/${profile.id}`;
+		return profile.id ? `http://www.facebook.com/${profile.id}` : undefined;
 	} else if (profile.provider === 'discord') {
 		return undefined;
 	} else if (profile.provider === 'telegram') {
-		return profile.profileUrl;
-	} else if (profile._json.attributes && profile._json.attributes.url) { // patreon
+		const username = profile.username || profile.displayName || profile.id;
+		if (!username || username === 'null' || username === 'undefined') {
+			return profile.profileUrl || undefined;
+		}
+		const telegramUsername = String(username).replace(/^@/, '').trim();
+		if (!telegramUsername) {
+			return profile.profileUrl || undefined;
+		}
+		return profile.profileUrl || `https://t.me/${telegramUsername}`;
+	} else if (profile._json && profile._json.attributes && profile._json.attributes.url) { // patreon
 		return profile._json.attributes.url;
 	} else {
-		return profile.profileUrl || profile._json.url;
+		return profile.profileUrl || (profile._json && profile._json.url) || undefined;
 	}
 }
 

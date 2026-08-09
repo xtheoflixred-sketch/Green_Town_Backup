@@ -4,11 +4,14 @@ div(*ngIf="isOwner")
 	button.btn.btn-sm.btn-default.ml-1((click)="openAnnounce()")
 		fa-icon([icon]="announceIcon" [fixedWidth]="true")
 		| Global announce
+	button.btn.btn-sm.btn-default.ml-1((click)="openDefaultPony()")
+		| Default pony
 	button.btn.btn-sm.btn-default.ml-1((click)="shutdownServers()")
 		| Shutdown servers
 	button.btn.btn-sm.btn-default.ml-1((click)="resetUpdating()")
 		| Reset updating
 	announce-modal(#announceModal="announceModal")
+	| <default-pony-modal #defaultPonyModal="defaultPonyModal"></default-pony-modal>
 
 h3.mt-4 Servers
 

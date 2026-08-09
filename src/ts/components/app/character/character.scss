@@ -30,6 +30,13 @@
 	}
 }
 
+.alert-message {
+	margin: 0;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	word-break: break-word;
+}
+
 .character-tab {
 	background: $dark-bg;
 	margin-top: 10px;

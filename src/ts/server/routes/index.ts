@@ -6,6 +6,7 @@ import { ClientOptions, Server, writeObject } from 'ag-sockets';
 import { OAuthProvider } from '../../common/interfaces';
 import { providers, OAuthProviderInfo } from '../oauth';
 import { config, version, description } from '../config';
+import { HASH } from '../../generated/hash';
 import { TokenData } from '../serverInterfaces';
 import { logger } from '../logger';
 import { pathTo } from '../paths';
@@ -30,6 +31,7 @@ interface PageOptions {
 	socketOptions?: ClientOptions;
 	webpack?: boolean;
 	local?: boolean;
+	apiVersion?: string;
 }
 
 function getFiles(urlBase: string, dir: string, sub: string): RevFile[] {
@@ -121,6 +123,8 @@ export function createIndex(assetsPath: string, adminAssetsPath: string) {
 			oauthProviders,
 			facebookAppId: config.facebookAppId,
 			isPublic: isPublic ? 'true' : undefined,
+			serverSettings: (config.serverSettings || {}),
+			apiVersion: HASH,
 		});
 	}
 

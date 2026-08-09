@@ -6,6 +6,7 @@ import {
 import { hasRole } from '../../../common/accountUtils';
 import { AdminModel } from '../../services/adminModel';
 import { AnnounceModal } from '../shared/announce-modal/announce-modal';
+import { DefaultPonyModal } from '../shared/default-pony-modal/default-pony-modal';
 import { faCog, faSlidersH, faBullhorn } from '../../../client/icons';
 
 @Component({
@@ -15,6 +16,7 @@ import { faCog, faSlidersH, faBullhorn } from '../../../client/icons';
 })
 export class AdminState {
 	@ViewChild(AnnounceModal, { static: false }) announceModal!: AnnounceModal;
+	 @ViewChild(DefaultPonyModal, { static: false }) defaultPonyModal!: DefaultPonyModal;
 	readonly cogIcon = faCog;
 	readonly optionsIcon = faSlidersH;
 	readonly announceIcon = faBullhorn;
@@ -111,6 +113,11 @@ export class AdminState {
 	openAnnounce() {
 		if (this.announceModal) {
 			this.announceModal.open();
+		}
+	}
+	openDefaultPony() {
+		if (this.defaultPonyModal) {
+			this.defaultPonyModal.open();
 		}
 	}
 	resetUpdating(server = '*') {

@@ -132,7 +132,7 @@
 								fa-icon([icon]="faStickyNote")
 							span.text-muted.text-truncate(title="{{getNote(f)}}") {{getNote(f)}}
 						.d-flex.gap-1.px-1.py-1(*ngIf="editingNoteFor !== f.accountId")
-							button.btn.btn-sm.btn-outline-secondary.flex-grow-1(type="button" title="View profile" (click)="showProfileFor(f)")
+							button.btn.btn-sm.btn-outline-secondary.flex-grow-1(type="button" title="View profile" [disabled]="!f.online" (click)="showProfileFor(f)")
 								fa-icon.me-1([icon]="faUserCircle")
 								| Profile
 							button.btn.btn-sm.btn-outline-info.flex-grow-1(type="button" *ngIf="!getNote(f)" title="Add friend note" (click)="startEditNote(f); $event.stopPropagation()")

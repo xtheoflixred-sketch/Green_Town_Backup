@@ -729,17 +729,19 @@ page-loader(*ngIf="!playing")
 
 					.row.form-group
 						label#social-site-label.col-sm-4.col-form-label Show social site
-
 						.col-sm-8
 							.dropdown.btn-group(dropdown)
 								button.btn.btn-default.dropdown-toggle(
-									dropdownToggle
-									aria-labelledby="social-site-label"
-								)
+									dropdownToggle aria-labelledby="social-site-label" aria-describedby="social-site-help")
+									fa-icon.mr-1(
+										*ngIf="site?.icon" [icon]="icon(site.icon)" [fixedWidth]="true" [style.color]="site.color"
+										size="lg" [attr.aria-label]="site.icon")
 									strong {{site?.name}}
-
 								.dropdown-menu(*dropdownMenu)
 									a.dropdown-item(*ngFor="let s of sites" (click)="site = s")
+										fa-icon.mr-1(
+											*ngIf="s.icon" [icon]="icon(s.icon)" [fixedWidth]="true" [style.color]="s.color"
+											size="lg" [attr.aria-label]="s.icon")
 										strong {{s.name}}
 
 					.row.form-group(*ngIf="tags.length > 1")

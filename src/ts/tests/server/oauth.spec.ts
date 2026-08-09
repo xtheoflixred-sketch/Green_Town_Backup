@@ -1,7 +1,7 @@
 import '../lib';
 import { expect } from 'chai';
 import { createHash, createHmac } from 'crypto';
-import { createTelegramAuthRedirectUrl, verifyTelegramAuthData } from '../../server/oauth';
+import { createTelegramAuthRedirectUrl, getProfileUrl, verifyTelegramAuthData } from '../../server/oauth';
 
 describe('telegram oauth helpers', () => {
 	it('verifies Telegram auth payloads with the bot token', () => {
@@ -62,5 +62,18 @@ describe('telegram oauth helpers', () => {
 		})();
 
 		expect(verifyTelegramAuthData(raw, token)).to.equal(true);
+	});
+
+	it('builds a Telegram profile URL from username when profileUrl is missing', () => {
+		const profile = {
+			provider: 'telegram',
+			id: '42',
+			username: 'Enylof1',
+			displayName: 'Enylof1',
+			_raw: '',
+			_json: {},
+		};
+
+		expect(getProfileUrl(profile as any)).to.equal('https://t.me/Enylof1');
 	});
 });

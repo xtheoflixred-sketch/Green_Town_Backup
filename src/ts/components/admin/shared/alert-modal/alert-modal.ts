@@ -36,7 +36,7 @@ const alertExpires = [
 	styleUrls: ['alert-modal.scss'],
 })
 export class AlertModal {
-		@Input() account?: Account;
+	@Input() account?: Account;
 	@ViewChild('template', { static: true }) template!: TemplateRef<any>;
 	alertModalRef?: BsModalRef;
 	activeIndex = 0;
@@ -63,6 +63,12 @@ export class AlertModal {
 		return this.hasAlert ? 'Update' : 'Send';
 	}
 
+	private resetState() {
+		this.alertExpire = alertExpires[3];
+		this.entries = [{ message: '', type: 'warning' }];
+		this.activeIndex = 0;
+	}
+
 	open(account?: Account) {
 		if (account) {
 			this.account = account;
@@ -72,10 +78,10 @@ export class AlertModal {
 			return;
 		}
 
-		this.alertExpire = alertExpires[3];
+		this.resetState();
 		this.entries = this.parseAlert(this.account.alert && this.account.alert.message);
 		this.activeIndex = this.hasAlert ? 1 : 0;
-		this.alertModalRef = this.modalService.show(this.template, { ignoreBackdropClick: true });
+		this.alertModalRef = this.modalService.show(this.template, { ignoreBackdropClick: true, class: 'modal-lg' });
 	}
 
 	cancel() {
@@ -97,6 +103,7 @@ export class AlertModal {
 		if (this.account) {
 			this.model.setAlert(this.account._id, '', 0);
 		}
+		this.cancel();
 	}
 
 	       addEntry() {

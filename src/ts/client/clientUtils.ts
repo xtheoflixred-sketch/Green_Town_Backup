@@ -164,13 +164,35 @@ export function validatePonyName(name: string | undefined): boolean {
 	return !!name && !!name.length && name.length <= PLAYER_NAME_MAX_LENGTH && !/^[.,_-]+$/.test(name);
 }
 
+function normalizeSocialSiteUrl(provider: string, name: string | undefined, url: string | undefined | null): string | undefined {
+	const raw = url && String(url).trim();
+	if (!raw || raw === 'null' || raw === 'undefined') {
+		if (provider === 'telegram') {
+			const username = String(name || '').replace(/^@/, '').trim();
+			return username ? `https://t.me/${username}` : undefined;
+		}
+		return undefined;
+	}
+
+	if (provider === 'telegram' && /^https?:\/\//i.test(raw)) {
+		return raw;
+	}
+
+	if (provider === 'telegram') {
+		const username = String(name || '').replace(/^@/, '').trim();
+		return username ? `https://t.me/${username}` : raw;
+	}
+
+	return raw;
+}
+
 export function toSocialSiteInfo({ id, name, url, provider }: SocialSite): SocialSiteInfo {
 	const oauth = oauthProviders.find(p => p.id === provider);
 
 	return {
 		id,
 		name,
-		url,
+		url: normalizeSocialSiteUrl(provider, name, url),
 		icon: oauth && oauth.id,
 		color: oauth && oauth.color,
 	};

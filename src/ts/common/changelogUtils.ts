@@ -27,6 +27,32 @@ export interface ChangelogResponse {
 
 const VERSION_REGEX = /^\s*Season\s+(\d+)\s*[—-]\s*Patch\s+(\d+)(?:\s*\|\s*(.+))?/i;
 
+function escapeHtml(value: string): string {
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+}
+
+export function markdownToHtml(value: string): string {
+	const raw = (value || '').trim();
+	if (!raw) return '';
+	if (/<\/?[a-z][\s\S]*>/i.test(raw)) return raw;
+
+	let html = escapeHtml(raw);
+	html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+	html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+	html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+	html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+	html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+	html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+|\/[^)]+)\)/g,
+		'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+	return html;
+}
+
 export function parseChangelogVersion(version: string): {
 	season: number;
 	patch: number;
@@ -72,7 +98,11 @@ export function mergeChangelog(r: ChangelogResponse): ChangelogRawEntry[] {
 }
 
 export function buildSeasonGroups(entries: ChangelogRawEntry[]): ChangelogSeasonGroup[] {
-	const parsed = entries.map(e => ({ ...e, ...parseChangelogVersion(e.version) }));
+	const parsed = entries.map(e => ({
+		...e,
+		changes: (e.changes || []).map(change => markdownToHtml(change)),
+		...parseChangelogVersion(e.version),
+	}));
 	const sorted = parsed.sort((a, b) => {
 		if (b.season !== a.season) return b.season - a.season;
 		if (b.patch !== a.patch) return b.patch - a.patch;

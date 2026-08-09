@@ -222,8 +222,11 @@
 						help="Uses old background to reduce performance cost while loading and in menus")
 						| Power save mode in background
 
-					.alert.alert-info.mt-2.mb-0
-						| New background may stutter and is not optimized for weaker devices.
+					.alert.alert-info.mt-2.mb-0(role="alert")
+						fa-icon.alert-icon([icon]="infoIcon" size="2x" [fixedWidth]="true")
+						.alert-content
+							.alert-message
+								| New background may stutter and is not optimized for weaker devices.
 
 				.form-group
 					custom-checkbox(
