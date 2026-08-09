@@ -31,6 +31,15 @@ describe('ponyInfo', () => {
 			syncLockedSpriteSet({ fills: ['00ff00'] }, false, f => f, 'ff0000', '00ff00');
 		});
 
+		it('creates more color slots for pattern sets', () => {
+			const set = spriteSet(0, true, 'ff0000');
+
+			expect(set.fills).to.have.length(21);
+			expect(set.outlines).to.have.length(21);
+			expect(set.lockFills).to.have.length(21);
+			expect(set.lockOutlines).to.have.length(21);
+		});
+
 		it('uses base fill if fill is locked', () => {
 			const set: Set = {
 				fills: [],

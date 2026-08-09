@@ -426,7 +426,7 @@ export function postdecompressColorSet<T>(
 
 // set
 
-const MAX_COLORS = 6;
+const MAX_COLORS = 21;
 const ALL_UNLOCKED = array(MAX_COLORS, false);
 const ALL_LOCKED = array(MAX_COLORS, true);
 

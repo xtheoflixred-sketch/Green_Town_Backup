@@ -20,8 +20,11 @@ import {
 	SLEEVED_ACCESSORIES, mergedBackAccessories, mergedExtraAccessories, mergedHeadAccessories,
 } from '../client/ponyUtils';
 
-const MAX_COLORS = 6;
-const FILLS = ['1e90ff', '32cd32', 'da70d6', 'dc143c', '7fffd4'];
+const MAX_COLORS = 21;
+const FILLS = [
+	'1e90ff', '32cd32', 'da70d6', 'dc143c', '7fffd4', 'ffd700', 'ff8c00', '800080', '00ffff', 'ff1493',
+	'8a2be2', '00ff7f', 'ff6347', '4169e1', '20b2aa', 'ff69b4', 'adff2f', 'ff4500', '4682b4', 'c71585'
+];
 
 const frontHooves = sprites.frontLegHooves[1] as ColorExtraSets;
 const backHooves = sprites.backLegHooves[1] as ColorExtraSets;
