@@ -18,6 +18,27 @@ interface Renderable {
 	shadow?: Sprite;
 }
 
+/** Scale around entity feet so visuals match bounds scaled from origin (editor select outline). */
+function beginEntityScaleAtFeet(
+	batch: PaletteSpriteBatch, entityX: number, entityY: number, scale: number
+): boolean {
+	if (scale === 1) {
+		return false;
+	}
+
+	batch.save();
+	batch.translate(entityX, entityY);
+	batch.scale(scale, scale);
+	batch.translate(-entityX, -entityY);
+	return true;
+}
+
+function endEntityScaleAtFeet(batch: PaletteSpriteBatch, scaled: boolean) {
+	if (scaled) {
+		batch.restore();
+	}
+}
+
 export interface AnimatedRenderable {
 	frames: Sprite[];
 	shadow?: Sprite;
@@ -465,13 +486,7 @@ export function mixDrawWindow(
 				const vanishLevel = (this as any).vanishLevel || 0;
 				const alpha = vanishLevel ? 0.5 : (entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1);
 				const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
-
-				if (scale !== 1) {
-					batch.save();
-					batch.translate(x, y);
-					batch.scale(scale, scale);
-					batch.translate(-x, -y);
-				}
+				const scaled = beginEntityScaleAtFeet(batch, baseX, baseY, scale);
 
 				batch.globalAlpha = prevAlpha * alpha;
 
@@ -486,10 +501,7 @@ export function mixDrawWindow(
 				}
 
 				batch.globalAlpha = prevAlpha;
-
-				if (scale !== 1) {
-					batch.restore();
-				}
+				endEntityScaleAtFeet(batch, scaled);
 			};
 		}
 	};
@@ -516,8 +528,10 @@ export function mixDraw(sprite: PaletteRenderable, dx: number, dy: number, palet
 
 			base.draw = function (batch: PaletteSpriteBatch, options: DrawOptions) {
 				const scale = (this as any).entityScale || 1;
-				const x = toScreenX(this.x + (this.ox || 0)) - dx;
-				const y = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0)) - dy;
+				const entityX = toScreenX(this.x + (this.ox || 0));
+				const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0));
+				const x = entityX - dx;
+				const y = entityY - dy;
 				const coverOpacity = 1 - 0.6 * (this.coverLifting || 0);
 				const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
 				const prevAlpha = batch.globalAlpha;
@@ -527,13 +541,7 @@ export function mixDraw(sprite: PaletteRenderable, dx: number, dy: number, palet
 				const combinedAlpha = prevAlpha * alpha;
 				const outlineMode = !!options.outlineMode;
 				const outlineColor = options.outlineColor || WHITE;
-
-				if (scale !== 1) {
-					batch.save();
-					batch.translate(x, y);
-					batch.scale(scale, scale);
-					batch.translate(-x, -y);
-				}
+				const scaled = beginEntityScaleAtFeet(batch, entityX, entityY, scale);
 
 				batch.globalAlpha = combinedAlpha;
 
@@ -549,10 +557,7 @@ export function mixDraw(sprite: PaletteRenderable, dx: number, dy: number, palet
 				}
 
 				batch.globalAlpha = 1;
-
-				if (scale !== 1) {
-					batch.restore();
-				}
+				endEntityScaleAtFeet(batch, scaled);
 			};
 		}
 	};
@@ -648,8 +653,10 @@ export function mixDrawSeasonal(setup: MixDrawSeasonal): MixinEntity {
 
 			base.draw = function (batch: PaletteSpriteBatch, options: DrawOptions) {
 				const scale = (this as any).entityScale || 1;
-				const x = toScreenX(this.x + (this.ox || 0)) - dx;
-				const y = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0)) - dy;
+				const entityX = toScreenX(this.x + (this.ox || 0));
+				const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0));
+				const x = entityX - dx;
+				const y = entityY - dy;
 				const coverOpacity = 1 - 0.6 * (this.coverLifting || 0);
 				const outlineMode = !!options.outlineMode;
 				const outlineColor = options.outlineColor !== undefined ? options.outlineColor : WHITE;
@@ -658,13 +665,7 @@ export function mixDrawSeasonal(setup: MixDrawSeasonal): MixinEntity {
 				const vanishLevel = (this as any).vanishLevel || 0;
 				const alpha = vanishLevel ? 0.5 : (entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1);
 				const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
-
-				if (scale !== 1) {
-					batch.save();
-					batch.translate(x, y);
-					batch.scale(scale, scale);
-					batch.translate(-x, -y);
-				}
+				const scaled = beginEntityScaleAtFeet(batch, entityX, entityY, scale);
 
 				if (!outlineMode && sprite.shadow !== undefined) {
 					batch.drawSprite(sprite.shadow, options.shadowColor, defaultPalette, x, y);
@@ -677,10 +678,7 @@ export function mixDrawSeasonal(setup: MixDrawSeasonal): MixinEntity {
 				}
 
 				batch.globalAlpha = previousAlpha;
-
-				if (scale !== 1) {
-					batch.restore();
-				}
+				endEntityScaleAtFeet(batch, scaled);
 
 				if (season !== options.season) {
 					setupSeason(options.season);
@@ -930,29 +928,22 @@ export function mixDrawShadow(sprite: PaletteRenderable, dx: number, dy: number,
 			base.palettes = [defaultPalette];
 			base.draw = function (batch: PaletteSpriteBatch, options: DrawOptions) {
 				const scale = (this as any).entityScale || 1;
-				const x = toScreenX(this.x + (this.ox || 0)) - dx;
-				const y = toScreenYWithZ(this.y + (this.oy || 0), this.z) - dy;
+				const entityX = toScreenX(this.x + (this.ox || 0));
+				const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z);
+				const x = entityX - dx;
+				const y = entityY - dy;
 				const color = shadowColor === undefined ? options.shadowColor : shadowColor;
 				const prevAlpha = batch.globalAlpha;
 				const entityOpacity = (this as any).entityOpacity;
 				const vanishLevel = (this as any).vanishLevel || 0;
 				const alpha = vanishLevel ? 0.5 : (entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1);
 				const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : color;
-
-				if (scale !== 1) {
-					batch.save();
-					batch.translate(x, y);
-					batch.scale(scale, scale);
-					batch.translate(-x, -y);
-				}
+				const scaled = beginEntityScaleAtFeet(batch, entityX, entityY, scale);
 
 				batch.globalAlpha = prevAlpha * alpha;
 				sprite.shadow && batch.drawSprite(sprite.shadow, tint, defaultPalette, x, y);
 				batch.globalAlpha = prevAlpha;
-
-				if (scale !== 1) {
-					batch.restore();
-				}
+				endEntityScaleAtFeet(batch, scaled);
 			};
 		}
 	};
@@ -996,28 +987,21 @@ export function mixDrawWall(
 			const sprite = fullWalls ? full : half;
 			const palette = fullWalls ? fullPalette : halfPalette;
 			const scale = (this as any).entityScale || 1;
-			const x = toScreenX(this.x) - dx;
-			const y = toScreenYWithZ(this.y, this.z) - (fullWalls ? dy : dy2);
+			const entityX = toScreenX(this.x);
+			const entityY = toScreenYWithZ(this.y, this.z);
+			const x = entityX - dx;
+			const y = entityY - (fullWalls ? dy : dy2);
 			const prevAlpha = batch.globalAlpha;
 			const entityOpacity = (this as any).entityOpacity;
 			const vanishLevel = (this as any).vanishLevel || 0;
 			const alpha = vanishLevel ? 0.5 : (entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1);
 			const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
-
-			if (scale !== 1) {
-				batch.save();
-				batch.translate(x, y);
-				batch.scale(scale, scale);
-				batch.translate(-x, -y);
-			}
+			const scaled = beginEntityScaleAtFeet(batch, entityX, entityY, scale);
 
 			batch.globalAlpha = prevAlpha * alpha;
 			sprite.color && batch.drawSprite(sprite.color, tint, palette, x, y);
 			batch.globalAlpha = prevAlpha;
-
-			if (scale !== 1) {
-				batch.restore();
-			}
+			endEntityScaleAtFeet(batch, scaled);
 		};
 	};
 }
@@ -1054,29 +1038,22 @@ export function mixDrawSpider(
 			if (h < height) {
 				const lineLength = height - h - 4;
 				const scale = (this as any).entityScale || 1;
-				const x = toScreenX(this.x) - dx;
-				const y = toScreenYWithZ(this.y, this.z) - dy - heightOffset - h;
+				const entityX = toScreenX(this.x);
+				const entityY = toScreenYWithZ(this.y, this.z);
+				const x = entityX - dx;
+				const y = entityY - dy - heightOffset - h;
 				const prevAlpha = batch.globalAlpha;
 				const entityOpacity = (this as any).entityOpacity;
 				const vanishLevel = (this as any).vanishLevel || 0;
 				const alpha = vanishLevel ? 0.5 : (entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1);
 				const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
-
-				if (scale !== 1) {
-					batch.save();
-					batch.translate(x, y);
-					batch.scale(scale, scale);
-					batch.translate(-x, -y);
-				}
+				const scaled = beginEntityScaleAtFeet(batch, entityX, entityY, scale);
 
 				batch.globalAlpha = prevAlpha * alpha;
 				batch.drawRect(0x181818ff, x + 2, y - lineLength, 1, lineLength + 1);
 				batch.drawSprite(spriteColor, tint, palette, x, y);
 				batch.globalAlpha = prevAlpha;
-
-				if (scale !== 1) {
-					batch.restore();
-				}
+				endEntityScaleAtFeet(batch, scaled);
 			}
 		};
 	};

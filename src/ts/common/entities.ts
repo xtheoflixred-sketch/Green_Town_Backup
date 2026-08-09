@@ -760,14 +760,15 @@ function floorLampGlowBoost(base: any) {
 }
 
 function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: number) {
-	const lightSpriteOffsetX = 13;
-	const lightSpriteOffsetY = -39;
+	// light_lamp is 59x88 — center on the shade (lamp origin is near the base)
+	const lightSpriteOffsetX = 30;
+	const lightSpriteOffsetY = 72;
 
 	return doodad(n(name), sprite, floorLampOriginX, floorLampOriginY, 0,
 		mixColliderRect(-10, -11, 20, 14),
 		mixCover(-14, -56, 28, 44),
 		mixLight(lightColor, 0, 45, 180, 180),
-		mixLightSprite(sprites.light_lamp, WHITE, lightSpriteOffsetX, lightSpriteOffsetY),
+		mixLightSprite(sprites.light_lamp, lightColor, lightSpriteOffsetX, lightSpriteOffsetY),
 		floorLampGlowBoost);
 }
 

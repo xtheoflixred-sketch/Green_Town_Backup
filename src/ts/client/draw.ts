@@ -22,6 +22,24 @@ function isItemTrigger(entity: Entity) {
 	return entity && (entity.type === entities.itemTriggerPoint.type || entity.type === entities.itemTriggerArea.type);
 }
 
+/** Prefer unscaled spriteBounds × entityScale so the orange select box tracks the drawn sprite. */
+function getSelectOutlineBounds(entity: Entity) {
+	const spriteBounds = (entity as any).spriteBounds as { x: number; y: number; w: number; h: number } | undefined;
+	if (spriteBounds && spriteBounds.w > 0 && spriteBounds.h > 0) {
+		const scale = (entity as any).entityScale || 1;
+		if (scale === 1) {
+			return spriteBounds;
+		}
+		return {
+			x: spriteBounds.x * scale,
+			y: spriteBounds.y * scale,
+			w: spriteBounds.w * scale,
+			h: spriteBounds.h * scale,
+		};
+	}
+	return getAnyBounds(entity);
+}
+
 function drawEntities(batch: PaletteSpriteBatch, entities: Entity[], camera: Camera, options: DrawOptions) {
 	const drawHidden = options.drawHidden;
 	let entitiesDrawn = 0;
@@ -99,8 +117,12 @@ export function drawEntityLightSprites(batch: SpriteBatch, entities: Entity[], c
 		}
 
 		if (isBoundsVisible(camera, entity.lightSpriteBounds, entity.x, entity.y) && (!isHidden(entity) || drawHidden)) {
-			// Draw light sprites at a fixed depth in front of all entities
-			batch.depth = -1000;
+			// Far-plane depth so GEQUAL always passes (cleared depth + all entities).
+			// entity.depth only lights pixels of that entity / things drawn before it —
+			// so area lights like light_lamp only showed when the pony overlapped the sprite.
+			// Do not use large negative values: sprite light shader has no DEPTH_BUFFERED
+			// abs(), so they clip or map to near and fail the test.
+			batch.depth = 1;
 			if (entity.type === PONY_TYPE) {
 				drawPonyEntityLightSprite(batch, entity as Pony, options);
 			} else {
@@ -167,7 +189,7 @@ export function drawMap(
 	if (BETA && options.debug.itemTrigger) {
 		for (const entity of map.entities) {
 			if (isItemTrigger(entity)) {
-				const bounds = getAnyBounds(entity);
+				const bounds = getSelectOutlineBounds(entity);
 				if (bounds) {
 					drawBoundsOutline(batch, entity, bounds, SELECTED_ITEM_TRIGGER_BOUNDS, 2);
 				}
@@ -177,7 +199,7 @@ export function drawMap(
 
 	if (BETA) {
 		for (const entity of selectedEntities) {
-			const bounds = getAnyBounds(entity);
+			const bounds = getSelectOutlineBounds(entity);
 			// Use special salad/grass color for item triggers
 			const isItemTrigger = entity && (entity.type === entities.itemTriggerPoint.type || entity.type === entities.itemTriggerArea.type);
 			drawBoundsOutline(batch, entity, bounds, isItemTrigger ? SELECTED_TRIGGER_BOUNDS : SELECTED_ENTITY_BOUNDS, 2);
