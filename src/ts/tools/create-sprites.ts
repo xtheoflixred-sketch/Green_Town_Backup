@@ -46,7 +46,7 @@ const outputPath = path.join(rootPath, 'tools', 'output');
 const destPath = path.join(rootPath, 'tools', 'output', 'images');
 const ponyPath = path.join(sourcePath, 'pony');
 
-const shadowPalette = [TRANSPARENT, BLACK, 0x000000fb];
+const shadowPalette = [TRANSPARENT, BLACK, 0x000000fb, 0x000000fd];
 const isPng = matcher(/\.png$/);
 const getPngs = (directory: string) => fs.readdirSync(directory).filter(isPng);
 const getFrames = (layers: Layer[]) => layers.filter(nameMatches(/^frame/)).sort(compareLayers);

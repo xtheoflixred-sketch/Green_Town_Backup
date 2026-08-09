@@ -748,6 +748,15 @@ export const couchYellow = doodad(n('couch-yellow'), sprites.couch_yellow, 37, 2
 	collider(61, 7, 14, 28),
 ));
 
+// floor lamps
+export const floorLampYellow = doodad(n('floor-lamp-yellow'), sprites.Floor_lamp_yellow, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
+export const floorLampOrange = doodad(n('floor-lamp-orange'), sprites.Floor_lamp_orange, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
+export const floorLampGreen = doodad(n('floor-lamp-green'), sprites.Floor_lamp_green, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
+export const floorLampGray = doodad(n('floor-lamp-gray'), sprites.Floor_lamp_gray, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
+export const floorLampPink = doodad(n('floor-lamp-pink'), sprites.Floor_lamp_pink, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
+export const floorLampTurquoise = doodad(n('floor-lamp-turquoise'), sprites.Floor_lamp_turquoise, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
+export const floorLampBlue = doodad(n('floor-lamp-blue'), sprites.Floor_lamp_blue, 10, 40, 0, mixColliderRect(-10, -30, 20, 15), mixCover(-20, -40, 40, 20));
+
 export const curvedLog = doodad(n('curved-log'), sprites.curved_log, 14, -5, 0, mixColliderRect(-13, 70, 26, 10), mixFlags(EntityFlags.StaticY));
 
 export const wallMap = doodad(n('wall-map'), sprites.wall_map, 20, 51, 0, mixFlags(EntityFlags.StaticY));
@@ -2438,6 +2447,13 @@ export const placeableEntities: { type: number; name: string; }[] = [
 	{ type: couchTurquoise.type, name: 'Couch (turquoise)' },
 	{ type: couchWhite.type, name: 'Couch (white)' },
 	{ type: couchYellow.type, name: 'Couch (yellow)' },
+	{ type: floorLampYellow.type, name: 'Floor lamp (yellow)' },
+	{ type: floorLampOrange.type, name: 'Floor lamp (orange)' },
+	{ type: floorLampGreen.type, name: 'Floor lamp (green)' },
+	{ type: floorLampGray.type, name: 'Floor lamp (gray)' },
+	{ type: floorLampPink.type, name: 'Floor lamp (pink)' },
+	{ type: floorLampTurquoise.type, name: 'Floor lamp (turquoise)' },
+	{ type: floorLampBlue.type, name: 'Floor lamp (blue)' },
 	{ type: curvedLog.type, name: 'Curved log' },
 	{ type: lanternOn.type, name: 'Lantern' },
 	{ type: pumpkin.type, name: 'Pumpkin' },

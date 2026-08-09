@@ -12,7 +12,10 @@ const validPatternColors = [
 	0, // black
 ];
 
-const getAlpha = (alpha: number) => alpha < 15 ? false : (alpha > 250 ? true : null);
+const getAlpha = (alpha: number) => {
+	const rounded = round255(alpha);
+	return rounded < 15 ? false : (rounded > 250 ? true : null);
+};
 const isOutline = (shade: number) => shade <= 159;
 const round255 = (n: number) => n > 200 ? 255 : (n < 50 ? 0 : n);
 const rgbToColor = (r: number, g: number, b: number) => round255(r) | (round255(g) << 8) | (round255(b) << 16);
