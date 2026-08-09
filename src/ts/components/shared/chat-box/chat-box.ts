@@ -15,7 +15,7 @@ import { invalidEnumReturn } from '../../../common/utils';
 import { isAdmin, isMod } from '../../../common/accountUtils';
 import { findMatchingEntityNames, findEntityOrMockByAnyMeans, findBestEntityByName } from '../../../client/handlers';
 import { sample } from 'lodash';
-import { CLIENT_COMMANDS, ClientCommand } from '../../../client/commands';
+import { CLIENT_COMMANDS, ClientCommand, TOBE_ENTITIES } from '../../../client/commands';
 
 const chatTypeNames: string[] = [];
 const chatTypeClasses: string[] = [];
@@ -79,15 +79,60 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	private typingHideTimeout: any;
 	showCommandDropdown = false;
 	commandQuery = '';
+	tobeMode = false;
+	tobeQuery = '';
+	showColorPicker = false;
+	msgColor = '#bbbbbb';
+	colorPickerStyle: any = {};
+	private lastColorSend = 0;
 	get filteredCommands(): ClientCommand[] {
 		const query = this.commandQuery.toLowerCase();
 		return CLIENT_COMMANDS.filter((c: ClientCommand) => c.name.toLowerCase().startsWith(query));
 	}
+	get filteredTobeEntities(): string[] {
+		const query = this.tobeQuery.toLowerCase();
+		return TOBE_ENTITIES.filter((e: string) => e.toLowerCase().startsWith(query));
+	}
 	selectCommand(cmd: ClientCommand) {
 		this.showCommandDropdown = false;
 		this.commandQuery = '';
-		this.message = `/${cmd.name} `;
+		if (cmd.name === 'tobe') {
+			this.message = '/tobe ';
+			this.tobeMode = true;
+		} else {
+			this.message = `/${cmd.name} `;
+			this.tobeMode = false;
+		}
 		this.input.focus();
+	}
+	selectTobeEntity(entity: string) {
+		this.showCommandDropdown = false;
+		this.tobeMode = false;
+		this.tobeQuery = '';
+		this.message = `/tobe ${entity} `;
+		this.input.focus();
+	}
+	onColorChange(color: string) {
+		this.msgColor = color;
+		const now = Date.now();
+		if (now - this.lastColorSend > 200) {
+			this.lastColorSend = now;
+			this.game.send(server => server.say(0, `/msgcolor ${color}`, ChatType.Say));
+		}
+	}
+	resetColor() {
+		this.msgColor = '#bbbbbb';
+		this.game.send(server => server.say(0, `/msgcolor reset`, ChatType.Say));
+		this.showColorPicker = false;
+		this.close();
+	}
+	private updateColorPickerPosition() {
+		const el = this.chatBox.nativeElement as HTMLElement;
+		const rect = el.getBoundingClientRect();
+		this.colorPickerStyle = {
+			left: `${rect.left}px`,
+			bottom: `${window.innerHeight - rect.top + 2}px`,
+		};
 	}
 	constructor(private game: PonyTownGame, zone: NgZone) {
 		this.subscriptions = [
@@ -169,11 +214,31 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.updateTypingIndicator();
 
 		const msg = this.message || '';
-		if (msg.startsWith('/')) {
+
+		if (msg === '/msgcolor ' || msg === '/msgcolor') {
+			this.showColorPicker = true;
+			this.showCommandDropdown = false;
+			this.updateColorPickerPosition();
+			return;
+		} else {
+			this.showColorPicker = false;
+		}
+
+		if (this.tobeMode && msg.startsWith('/tobe ')) {
+			this.tobeQuery = msg.substring(6);
+			this.showCommandDropdown = true;
+		} else if (msg.startsWith('/tobe ')) {
+			this.tobeMode = true;
+			this.tobeQuery = msg.substring(6);
+			this.showCommandDropdown = true;
+		} else if (msg.startsWith('/')) {
+			this.tobeMode = false;
 			this.commandQuery = msg.substring(1);
 			this.showCommandDropdown = true;
 		} else {
+			this.tobeMode = false;
 			this.commandQuery = '';
+			this.tobeQuery = '';
 			this.showCommandDropdown = false;
 		}
 	}
@@ -209,7 +274,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		}
 
 		if (e.keyCode === Key.TAB) {
-			if (this.showCommandDropdown && this.filteredCommands.length > 0) {
+			if (this.showCommandDropdown && this.tobeMode && this.filteredTobeEntities.length > 0) {
+				this.selectTobeEntity(this.filteredTobeEntities[0]);
+				e.preventDefault();
+			} else if (this.showCommandDropdown && this.filteredCommands.length > 0) {
 				this.selectCommand(this.filteredCommands[0]);
 				e.preventDefault();
 			} else if (this.message) {
@@ -592,6 +660,9 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.emojiBoxState = 'none';
 			this.showCommandDropdown = false;
 			this.commandQuery = '';
+			this.tobeMode = false;
+			this.tobeQuery = '';
+			this.showColorPicker = false;
 			this.input.blur();
 			this.isOpen = false;
 			this.chatBox.nativeElement.hidden = true;
