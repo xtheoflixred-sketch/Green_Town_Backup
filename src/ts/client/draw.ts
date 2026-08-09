@@ -99,7 +99,8 @@ export function drawEntityLightSprites(batch: SpriteBatch, entities: Entity[], c
 		}
 
 		if (isBoundsVisible(camera, entity.lightSpriteBounds, entity.x, entity.y) && (!isHidden(entity) || drawHidden)) {
-			batch.depth = entity.depth;
+			// Draw light sprites at a fixed depth in front of all entities
+			batch.depth = -1000;
 			if (entity.type === PONY_TYPE) {
 				drawPonyEntityLightSprite(batch, entity as Pony, options);
 			} else {
