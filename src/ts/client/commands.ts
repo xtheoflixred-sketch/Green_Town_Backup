@@ -100,7 +100,7 @@ export const CLIENT_COMMANDS: ClientCommand[] = [
 	{ name: 'emotetest', help: '/emotetest - print all emotes' },
 	{ name: 'rareitems', help: '/rareitems - show rare hold items' },
 	{ name: 'goto', help: '/goto <map_id> [instance] - teleport to map spawn' },
-	{ name: 'speed', help: '/speed - manage player movement speed' },
+	{ name: 'speed', help: '/speed [0.1-7] - изменить скорость' },
 	{ name: 'scale', help: '/scale <value|reset> - manage player pony size (0.1-10)' },
 	{ name: 'tp', help: '/tp <location|x y|to <player>|here <player>|? - teleport around' },
 	{ name: 'locations', help: '/locations - show list all spawn locations on current map' },

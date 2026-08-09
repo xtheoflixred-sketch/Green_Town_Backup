@@ -60,6 +60,66 @@ export default function (server: ServerConfig, settings: Settings, world: World 
 			});
 	});
 
+	// CUSTOM_IMAGES_DISABLED: image upload endpoint
+	// app.post('/upload-image', offline, async (req, res) => {
+	// 	try {
+	// 		const user = req.user as IAccount;
+	//
+	// 		if (!(user.flags & AccountFlags.CanPlaceImages) && !isMod(user)) {
+	// 			return res.status(403).send({ error: 'Insufficient permissions' });
+	// 		}
+	//
+	// 		const image: string = req.body.image;
+	// 		const width: number = req.body.width || 80;
+	// 		const height: number = req.body.height || 80;
+	//
+	// 		if (!image || !image.startsWith('data:image/')) {
+	// 			return res.status(400).send({ error: 'Invalid image data' });
+	// 		}
+	//
+	// 		const headerEnd = image.indexOf(',');
+	// 		if (headerEnd === -1) {
+	// 			return res.status(400).send({ error: 'Invalid image format' });
+	// 		}
+	//
+	// 		const mimeType = image.substring(5, headerEnd).split(';')[0];
+	// 		const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff'];
+	// 		if (!allowedTypes.includes(mimeType)) {
+	// 			return res.status(400).send({ error: `Unsupported image format: ${mimeType}` });
+	// 		}
+	//
+	// 		const base64Data = image.substring(headerEnd + 1);
+	// 		const buffer = Buffer.from(base64Data, 'base64');
+	//
+	// 		if (buffer.length > 5 * 1024 * 1024) {
+	// 			return res.status(400).send({ error: 'File too large. Maximum 5MB' });
+	// 		}
+	//
+	// 		let ext = '.png';
+	// 		if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') ext = '.jpg';
+	// 		else if (mimeType === 'image/gif') ext = '.gif';
+	// 		else if (mimeType === 'image/bmp') ext = '.bmp';
+	// 		else if (mimeType === 'image/webp') ext = '.webp';
+	// 		else if (mimeType === 'image/svg+xml') ext = '.svg';
+	// 		else if (mimeType === 'image/tiff') ext = '.tiff';
+	//
+	// 		const name = randomString(10);
+	// 		const filePath = path.join(pathTo('build', 'assets'), name + ext);
+	//
+	// 		await fs.writeFileAsync(filePath, buffer);
+	//
+	// 		return res.send({
+	// 			name: name + ext,
+	// 			url: `/assets/${name + ext}`,
+	// 			width,
+	// 			height
+	// 		});
+	// 	} catch (e) {
+	// 		console.error('Image upload error:', e);
+	// 		return res.status(500).send({ error: 'Upload failed' });
+	// 	}
+	// });
+
 	app.post('/animation-mp4', offline, (req, res) => {
 		const image: string = req.body.image;
 		const width: number = req.body.width || 80;

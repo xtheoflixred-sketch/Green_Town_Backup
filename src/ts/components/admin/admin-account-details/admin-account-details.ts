@@ -47,6 +47,7 @@ export class AdminAccountDetails implements OnInit, OnDestroy {
 	readonly dataIcon = faDatabase;
 	readonly copyIcon = faCopy;
 	readonly roles = ROLES;
+	readonly flags = accountFlags;
 	ages = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 	account?: Account;
 	duplicates?: DuplicateResult[];
@@ -291,6 +292,18 @@ export class AdminAccountDetails implements OnInit, OnDestroy {
 		if (this.id) {
 			this.model.setRole(this.id, role, !this.hasRole(role));
 		}
+	}
+	hasFlag(flag: number) {
+		return !!(this.account && (this.account.flags & flag));
+	}
+	toggleFlag(flag: number, enabled: boolean) {
+		if (!this.account) return;
+		if (enabled) {
+			this.account.flags |= flag;
+		} else {
+			this.account.flags &= ~flag;
+		}
+		this.model.setAccountFlags(this.account._id, this.account.flags);
 	}
 	showAccountData() {
 		if (this.id) {

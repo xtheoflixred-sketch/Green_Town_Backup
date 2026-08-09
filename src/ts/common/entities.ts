@@ -2582,6 +2582,61 @@ export const tools = [
 export const candies1Types = [candyCane1, candyCane2, cookie, cookiePony].map(e => e.type);
 export const candies2Types = [cookie, cookiePony].map(e => e.type);
 
+// custom image entity
+
+function mixCustomImageDraw(base: Entity, options?: EntityOptions) {
+	base.customImageUrl = '';
+	base.customImageWidth = 0;
+	base.customImageHeight = 0;
+	base.customImageScale = 1;
+	base.customImageZOrder = 'above';
+	base.customImageOpacity = 1;
+	base.customImageLoaded = false;
+	base.customImageFrames = 0;
+	base.customImageFrameDelay = 0;
+	base.customImageCurrentFrame = 0;
+	base.customImageFrameTimer = 0;
+	base.customImageElement = undefined;
+
+	if (options && 'customImageUrl' in options && (options as any).customImageUrl) {
+		base.customImageUrl = (options as any).customImageUrl;
+		base.customImageWidth = (options as any).customImageWidth || 48;
+		base.customImageHeight = (options as any).customImageHeight || 48;
+		base.customImageScale = (options as any).customImageScale || 1;
+		base.customImageZOrder = (options as any).customImageZOrder || 'above';
+		base.customImageOpacity = (options as any).customImageOpacity || 1;
+
+		if (!base.options) base.options = {};
+		(base.options as any).customImageUrl = (options as any).customImageUrl;
+		(base.options as any).customImageWidth = (options as any).customImageWidth;
+		(base.options as any).customImageHeight = (options as any).customImageHeight;
+		(base.options as any).customImageScale = (options as any).customImageScale || 1;
+		(base.options as any).customImageZOrder = (options as any).customImageZOrder || 'above';
+		(base.options as any).customImageOpacity = (options as any).customImageOpacity || 1;
+
+		const scale = base.customImageScale || 1;
+		const w = (base.customImageWidth || 48) * scale;
+		const h = (base.customImageHeight || 48) * scale;
+		base.bounds = rect(-w / 2, -h, w, h);
+		base.colliders = [rect(-w / 2, -h, w, h) as any];
+	} else {
+		base.bounds = rect(-24, -24, 48, 48);
+		base.colliders = [rect(-24, -24, 48, 48) as any];
+	}
+}
+
+function mixCustomImageInteract(base: Entity) {
+	base.interactRange = 1.5;
+}
+
+export const customImage = registerMix(n('custom-image'),
+	mixFlags(EntityFlags.Movable | EntityFlags.Interactive),
+	mixCustomImageDraw,
+	mixCustomImageInteract,
+);
+
+export const CUSTOM_IMAGE_TYPE = customImage.type;
+
 if (DEVELOPMENT) {
 	if (pony.type !== PONY_TYPE) {
 		throw new Error(`Invalid pony type ${pony.type} !== ${PONY_TYPE}`);

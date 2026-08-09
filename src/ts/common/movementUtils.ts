@@ -31,16 +31,21 @@ const SECE = 0x0000bc0e;
 const PI2 = Math.PI * 2;
 const DIRS_ANGLE = DIRS.length / PI2;
 
-export function flagsToSpeed(flags: EntityState): number {
+export function flagsToSpeed(flags: EntityState, entity?: Entity): number {
 	const state = flags & EntityState.PonyStateMask;
 
+	let speed = 0;
 	if (state === EntityState.PonyTrotting) {
-		return PONY_SPEED_TROT;
+		speed = PONY_SPEED_TROT;
 	} else if (state === EntityState.PonyWalking) {
-		return PONY_SPEED_WALK;
-	} else {
-		return 0;
+		speed = PONY_SPEED_WALK;
 	}
+
+	if (entity && entity.speedMultiplier !== undefined) {
+		speed *= clamp(entity.speedMultiplier, 0.1, 7);
+	}
+
+	return speed;
 }
 
 export function dirToVector(dir: number): Point {

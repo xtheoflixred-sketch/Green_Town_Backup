@@ -17,7 +17,7 @@
 	a.color-picker-chevron((mousedown)="toggleOpen()" [hidden]="isDisabled" aria-label="Pick color")
 		fa-icon([icon]="chevronIcon" [fixedWidth]="true")
 	.dropdown-menu.dropdown-menu-right.color-picker-menu.show(
-		(mousedown)="stopEvent($event)" *ngIf="isOpen" aria-hidden="true")
+		[class.open-up]="openUp" (mousedown)="stopEvent($event)" *ngIf="isOpen" aria-hidden="true")
 		.color-picker-sv(
 			[style.background-color]="hue" (agDrag)="dragSV($event)" agDragRelative="self" [agDragPrevent]="true")
 			.color-picker-sv-overlay

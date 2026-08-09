@@ -338,6 +338,7 @@ export const enum AccountFlags {
 	DuplicatesNotification = 4,
 	BlockMerging = 16,
 	BlockFriendRequests = 256,
+	CanPlaceImages = 512,
 }
 
 export const accountFlags = [
@@ -346,6 +347,7 @@ export const accountFlags = [
 	{ value: AccountFlags.DuplicatesNotification, name: 'DuplicatesNotification', label: 'duplicates notification' },
 	{ value: AccountFlags.BlockMerging, name: 'BlockMerging', label: 'block merging' },
 	{ value: AccountFlags.BlockFriendRequests, name: 'BlockFriendRequests', label: 'block friend requests' },
+	{ value: AccountFlags.CanPlaceImages, name: 'CanPlaceImages', label: 'can place images' },
 ];
 
 export const enum PatreonFlags {

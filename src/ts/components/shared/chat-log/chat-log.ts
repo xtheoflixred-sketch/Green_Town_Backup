@@ -60,6 +60,7 @@ export interface ChatLogMessage {
 	classes?: string;
 	entityId?: number;
 	dom?: ChatLogLineDOM;
+	color?: string;
 }
 
 type Tab = 'local' | 'personal' | 'party' | 'whisper';
@@ -305,6 +306,21 @@ export function updateChatLogLine(line: ChatLogLineDOM, entry: ChatLogMessage, h
 	line.prefixText.nodeValue = prefix || '';
 	line.suffixText.nodeValue = suffix ? ` ${suffix}: ` : ': ';
 	replaceNodes(line.message, message);
+
+	const { color } = entry;
+
+	if (color) {
+		const cssColor = color.startsWith('#') ? color : `#${color}`;
+		line.label.style.color = cssColor;
+		line.name.style.color = cssColor;
+		line.nameContent.style.color = cssColor;
+		line.message.style.color = cssColor;
+	} else {
+		line.label.style.color = '';
+		line.name.style.color = '';
+		line.nameContent.style.color = '';
+		line.message.style.color = '';
+	}
 }
 
 function createChatLogLabelIcon(iconDefinition: any) {
@@ -698,7 +714,7 @@ export class ChatLog implements AfterViewInit, OnDestroy, DoCheck {
 	get inactiveBg() {
 		return `rgba(0, 0, 0, ${(this.opacity / 200) * 0.5})`;
 	}
-	private createEntry({ id, crc, name, message, type }: ChatMessage): ChatLogMessage {
+	private createEntry({ id, crc, name, message, type, color }: ChatMessage): ChatLogMessage {
 		const system = type === MessageType.System;
 		const entry: ChatLogMessage = {
 			entityId: system ? 0 : id,
@@ -710,6 +726,7 @@ export class ChatLog implements AfterViewInit, OnDestroy, DoCheck {
 			prefix: PREFIXES[type] || '',
 			suffix: SUFFIXES[type] || '',
 			classes: CLASSES[type] || '',
+			color,
 		};
 
 		if (!system) {

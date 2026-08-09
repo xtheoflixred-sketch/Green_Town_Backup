@@ -424,6 +424,7 @@ export interface Says {
 	type?: MessageType;
 	timer?: number;
 	total?: number;
+	color?: string;
 }
 
 export const typingIndicatorMessage = '...';
@@ -584,6 +585,30 @@ export interface Entity extends EntityPart {
 
 	// noclip
 	noclip?: boolean;
+	// movement modifier applied by server (/speed command)
+	speedMultiplier?: number;
+	// custom message color set by /msgcolor
+	messageColor?: string;
+
+	// custom image
+	customImageUrl?: string;
+	customImageWidth?: number;
+	customImageHeight?: number;
+	customImageScale?: number;
+	customImageZOrder?: 'above' | 'below';
+	customImageOpacity?: number;
+	customImageLoaded?: boolean;
+	customImageFrames?: number;
+	customImageFrameDelay?: number;
+	customImageCurrentFrame?: number;
+	customImageFrameTimer?: number;
+	customImageElement?: HTMLElement;
+
+	// entity info box
+	entityMessage?: string;
+	spriteTint?: number;
+	entityScale?: number;
+	entityOpacity?: number;
 }
 
 export interface FakeEntity {
@@ -1170,6 +1195,7 @@ export interface ChatMessage {
 	name: string;
 	message: string;
 	type: MessageType;
+	color?: string;
 }
 
 export interface CommonButtonAction {
@@ -1283,6 +1309,7 @@ export interface EditorPlaceAction {
 	x: number;
 	y: number;
 	preview?: boolean;
+	options?: any;
 }
 
 export interface EditorMoveAction {
@@ -1358,6 +1385,46 @@ export interface EditorPartyAction {
 	type: 'party';
 }
 
+export interface EditorSetCustomImageAction {
+	type: 'setCustomImage';
+	entities: number[];
+	customImageUrl?: string;
+	customImageWidth?: number;
+	customImageHeight?: number;
+	customImageScale?: number;
+	customImageZOrder?: 'above' | 'below';
+	customImageOpacity?: number;
+}
+
+export interface EditorSetNameAction {
+	type: 'setname';
+	entities: number[];
+	name?: string;
+	entityMessage?: string;
+	messageColor?: string;
+}
+
+export interface EditorSetTintAction {
+	type: 'settint';
+	entities: number[];
+	spriteTint?: number;
+	customImageScale?: number;
+	customImageOpacity?: number;
+	customImageZOrder?: 'above' | 'below';
+	entityScale?: number;
+	entityOpacity?: number;
+}
+
+export interface EditorHoldEntityAction {
+	type: 'holdentity';
+	entities: number[];
+}
+
+export interface EditorBecomeEntityAction {
+	type: 'becomeentity';
+	entities: number[];
+}
+
 export type EditorAction =
 	EditorPlaceAction |
 	EditorMoveAction |
@@ -1372,7 +1439,12 @@ export type EditorAction =
 	EditorMirrorAction |
 	EditorOtherAction |
 	EditorTileAction |
-	EditorPartyAction;
+	EditorPartyAction |
+	EditorSetCustomImageAction |
+	EditorSetNameAction |
+	EditorSetTintAction |
+	EditorHoldEntityAction |
+	EditorBecomeEntityAction;
 
 export const enum SelectFlags {
 	None = 0,

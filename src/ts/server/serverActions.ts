@@ -20,7 +20,7 @@ import { World, findClientByAccountId, findAllOnlineFriends } from './world';
 import { HidingService } from './services/hiding';
 import {
 	createCharacterState, interactWith, useHeldItem, setEntityExpression, getPlayerState, execAction,
-	updateEntityPlayerState, holdToy, holdItem, unholdItem
+	updateEntityPlayerState, holdToy, holdItem, unholdItem, teleportTo
 } from './playerUtils';
 import { allEntities } from './api/account';
 import { CounterService } from './services/counter';
@@ -1026,17 +1026,17 @@ export class ServerActions implements IServerActions, SocketServer {
 						break;
 					}
 
-					clearToolPreview(this.client, this.world);
-					if (includes(allEntities, action.entity)) {
-						const name = action.entity;
-						const entity = (entities as any)[name](action.x, action.y);
-						const toAdd = Array.isArray(entity) ? entity : [entity];
-						toAdd.forEach(e => this.world.addEntity(e, this.map));
-						added.push({ name, entities: toAdd });
-					} else {
-						saySystem(this.client, 'Invalid entity');
-					}
-					break;
+				clearToolPreview(this.client, this.world);
+				if (includes(allEntities, action.entity)) {
+					const name = action.entity;
+					const entity = (entities as any)[name](action.x, action.y, action.options || {});
+					const toAdd = Array.isArray(entity) ? entity : [entity];
+					toAdd.forEach(e => this.world.addEntity(e, this.map));
+					added.push({ name, entities: toAdd });
+				} else {
+					saySystem(this.client, 'Invalid entity');
+				}
+				break;
 				case 'move':
 					if (action.preview) {
 						for (const { id, x, y } of action.entities) {
@@ -1107,13 +1107,163 @@ export class ServerActions implements IServerActions, SocketServer {
 					added.forEach(x => x.entities.forEach(e => this.world.removeEntityFromSomeMap(e)));
 					added.length = 0;
 					break;
-				case 'list':
-					const existingEntities = added
-						.filter(({ entities }) => entities.some(e => !!this.world.getEntityById(e.id)))
-						.map(({ name, entities: [{ x, y }] }) => ({ name, x, y }));
-					this.client.entityList(existingEntities);
-					break;
-				case 'remove':
+			case 'list':
+				const existingEntities = added
+					.filter(({ entities }) => entities.some(e => !!this.world.getEntityById(e.id)))
+					.map(({ name, entities: [{ x, y }] }) => ({ name, x, y }));
+				this.client.entityList(existingEntities);
+				break;
+			// CUSTOM_IMAGES_DISABLED: setCustomImage handler
+			// case 'setCustomImage':
+			// 	for (const id of action.entities) {
+			// 		const entity = this.world.getEntityById(id) as ServerEntity;
+			// 		if (entity && entity.type === entities.CUSTOM_IMAGE_TYPE) {
+			// 			if (action.customImageUrl !== undefined) (entity as any).customImageUrl = action.customImageUrl;
+			// 			if (action.customImageWidth !== undefined) (entity as any).customImageWidth = action.customImageWidth;
+			// 			if (action.customImageHeight !== undefined) (entity as any).customImageHeight = action.customImageHeight;
+			// 			if (action.customImageScale !== undefined) (entity as any).customImageScale = action.customImageScale;
+			// 			if (action.customImageZOrder !== undefined) (entity as any).customImageZOrder = action.customImageZOrder;
+			// 			if (action.customImageOpacity !== undefined) (entity as any).customImageOpacity = action.customImageOpacity;
+			// 			updateEntityOptions(entity, {
+			// 				customImageUrl: (entity as any).customImageUrl,
+			// 				customImageWidth: (entity as any).customImageWidth,
+			// 				customImageHeight: (entity as any).customImageHeight,
+			// 				customImageScale: (entity as any).customImageScale,
+			// 				customImageZOrder: (entity as any).customImageZOrder,
+			// 				customImageOpacity: (entity as any).customImageOpacity,
+			// 			} as any);
+			// 		}
+			// 	}
+			// 	break;
+			case 'setname': {
+				for (const id of action.entities) {
+					const entity = this.world.getEntityById(id);
+					if (entity && entity.type !== PONY_TYPE) {
+						if (action.name !== undefined) entity.name = action.name;
+						if (action.entityMessage !== undefined) (entity as any).entityMessage = action.entityMessage;
+						if (action.messageColor !== undefined) (entity as any).messageColor = action.messageColor;
+						updateEntityOptions(entity, {
+							name: entity.name,
+							entityMessage: (entity as any).entityMessage,
+							messageColor: (entity as any).messageColor,
+						} as any);
+					}
+				}
+				break;
+			}
+			case 'settint': {
+				for (const id of action.entities) {
+					const entity = this.world.getEntityById(id);
+					if (entity) {
+						const options: any = {};
+
+						if (action.spriteTint !== undefined) {
+							(entity as any).spriteTint = action.spriteTint;
+							options.spriteTint = action.spriteTint;
+						}
+
+						if (action.customImageScale !== undefined) {
+							(entity as any).customImageScale = action.customImageScale;
+							options.customImageScale = action.customImageScale;
+						}
+
+						if (action.customImageOpacity !== undefined) {
+							(entity as any).customImageOpacity = action.customImageOpacity;
+							options.customImageOpacity = action.customImageOpacity;
+						}
+
+						if (action.customImageZOrder !== undefined) {
+							(entity as any).customImageZOrder = action.customImageZOrder;
+							options.customImageZOrder = action.customImageZOrder;
+						}
+
+						if (action.entityScale !== undefined) {
+							(entity as any).entityScale = action.entityScale;
+							options.entityScale = action.entityScale;
+							const scale = action.entityScale;
+							const scaleRect = (r: any, original: any) => {
+								if (!r) return r;
+								const base = original || r;
+								return {
+									x: base.x * scale,
+									y: base.y * scale,
+									w: base.w * scale,
+									h: base.h * scale,
+								};
+							};
+
+							if (entity.bounds) {
+								if (!(entity as any)._originalBounds) {
+									(entity as any)._originalBounds = { ...entity.bounds };
+								}
+								entity.bounds = scaleRect(entity.bounds, (entity as any)._originalBounds);
+							}
+
+							if (entity.interactBounds) {
+								if (!(entity as any)._originalInteractBounds) {
+									(entity as any)._originalInteractBounds = { ...entity.interactBounds };
+								}
+								entity.interactBounds = scaleRect(entity.interactBounds, (entity as any)._originalInteractBounds);
+							}
+
+							if (entity.chatBounds) {
+								if (!(entity as any)._originalChatBounds) {
+									(entity as any)._originalChatBounds = { ...entity.chatBounds };
+								}
+								entity.chatBounds = scaleRect(entity.chatBounds, (entity as any)._originalChatBounds);
+							}
+
+							if (entity.lightBounds) {
+								if (!(entity as any)._originalLightBounds) {
+									(entity as any)._originalLightBounds = { ...entity.lightBounds };
+								}
+								entity.lightBounds = scaleRect(entity.lightBounds, (entity as any)._originalLightBounds);
+							}
+
+							if (entity.lightSpriteBounds) {
+								if (!(entity as any)._originalLightSpriteBounds) {
+									(entity as any)._originalLightSpriteBounds = { ...entity.lightSpriteBounds };
+								}
+								entity.lightSpriteBounds = scaleRect(entity.lightSpriteBounds, (entity as any)._originalLightSpriteBounds);
+							}
+
+							if ((entity as any).collidersBounds) {
+								if (!(entity as any)._originalCollidersBounds) {
+									(entity as any)._originalCollidersBounds = { ...(entity as any).collidersBounds };
+								}
+								(entity as any).collidersBounds = scaleRect((entity as any).collidersBounds, (entity as any)._originalCollidersBounds);
+							}
+						}
+
+						if (action.entityOpacity !== undefined) {
+							(entity as any).entityOpacity = action.entityOpacity;
+							options.entityOpacity = action.entityOpacity;
+						}
+
+						updateEntityOptions(entity, options);
+					}
+				}
+				break;
+			}
+			case 'holdentity': {
+				for (const id of action.entities) {
+					const entity = this.world.getEntityById(id);
+					if (entity && entity.type !== PONY_TYPE) {
+						holdItem(this.client.pony, entity.type);
+					}
+				}
+				break;
+			}
+			case 'becomeentity': {
+				for (const id of action.entities) {
+					const entity = this.world.getEntityById(id);
+					if (entity && entity.type !== PONY_TYPE) {
+						teleportTo(this.client, entity.x, entity.y);
+					}
+				}
+				break;
+			}
+			case 'remove':
 					for (const id of action.entities) {
 						const entity = this.world.getEntityById(id);
 

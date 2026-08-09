@@ -2,7 +2,7 @@ import '../lib';
 import { expect } from 'chai';
 import {
 	syncLockedPonyInfo, syncLockedSpriteSet, syncLockedPonyInfoNumber, toPaletteSet, releasePalettes,
-	createDefaultPony, createServerDefaultPony
+	createDefaultPony, createServerDefaultPony, spriteSet
 } from '../../common/ponyInfo';
 import { SpriteSet, PonyInfo, PaletteManager, ColorExtraSets, Palette } from '../../common/interfaces';
 import { RED, BLUE, YELLOW, ORANGE, TRANSPARENT } from '../../common/colors';

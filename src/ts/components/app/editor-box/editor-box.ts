@@ -2,13 +2,14 @@ import { Component, ElementRef, NgZone, QueryList, TemplateRef, ViewChild, ViewC
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
 import { uniq } from 'lodash';
 import { entityButtonAction } from '../../../client/buttonActions';
-import { faEdit, faCog, faDrawPolygon, faTrash, emptyIcon, faCheck, faClone, faEraser, faRetweet, faCopy, faWrench, faHammer, faPaintBrush } from '../../../client/icons';
+import { faEdit, faCog, faDrawPolygon, faTrash, emptyIcon, faCheck, faClone, faEraser, faRetweet, faCopy, faWrench, faHammer, faPaintBrush, faUpload } from '../../../client/icons';
 import { PonyTownGame, engines } from '../../../client/game';
 import { StorageService } from '../../services/storageService';
 import { Model, getEntityNameFromType, getEntityNames, getEntityTypesFromName } from '../../services/model';
 import { getAlpha, withAlpha, colorToHexRGB, parseColor } from '../../../common/color';
 import { BLACK } from '../../../common/colors';
 import { Entity, Engine, EngineInfo, DebugFlags, tileTypeNames, EntityButtonAction, Action } from '../../../common/interfaces';
+import { CUSTOM_IMAGE_TYPE } from '../../../common/entities';
 
 @Component({
 	selector: 'editor-box',
@@ -28,6 +29,7 @@ export class EditorBox {
 	readonly shovelIcon = faPaintBrush;
 	readonly hammerIcon = faHammer;
 	readonly duplicateIcon = faClone;
+	readonly uploadIcon = faUpload;
 	readonly showFields: Array<{ field: keyof DebugFlags; label: string }> = [
 		{ field: 'id', label: 'id' },
 		{ field: 'bounds', label: 'bounds' },
@@ -53,6 +55,14 @@ export class EditorBox {
 	entitySearch = '';
 	pendingEditorEntity = '';
 	private showEditor = false;
+	private scaleSendTimer: any = null;
+	private opacitySendTimer: any = null;
+	private spriteTintSendTimer: any = null;
+	private _originalBounds = new WeakMap<any, any>();
+	private _originalInteractBounds = new WeakMap<any, any>();
+	private _originalChatBounds = new WeakMap<any, any>();
+	private _originalLightBounds = new WeakMap<any, any>();
+	private _originalLightSpriteBounds = new WeakMap<any, any>();
 	constructor(
 		public model: Model,
 		private game: PonyTownGame,
@@ -337,6 +347,284 @@ export class EditorBox {
 			entities: [{ id, x, y }],
 		}));
 	}
+
+	get entityCustomImageScale() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? ((entity as any).customImageScale || 1) : 1;
+	}
+
+	set entityCustomImageScale(value) {
+		this.editor.selectedEntities.forEach(e => {
+			(e as any).customImageScale = value;
+			const w = ((e as any).customImageWidth || 48) * value;
+			const h = ((e as any).customImageHeight || 48) * value;
+			if (e.bounds) {
+				e.bounds = { x: -w / 2, y: -h, w, h };
+			}
+		});
+		if (this.scaleSendTimer) clearTimeout(this.scaleSendTimer);
+		this.scaleSendTimer = setTimeout(() => {
+			this.game.send(server => server.editorAction({
+				type: 'setCustomImage',
+				entities: this.editor.selectedEntities.map(e => e.id),
+				customImageScale: value,
+			}));
+		}, 100);
+	}
+
+	get entityCustomImageZOrder() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? ((entity as any).customImageZOrder || 'above') : 'above';
+	}
+
+	set entityCustomImageZOrder(value: 'above' | 'below') {
+		this.editor.selectedEntities.forEach(e => {
+			(e as any).customImageZOrder = value;
+		});
+		this.game.send(server => server.editorAction({
+			type: 'setCustomImage',
+			entities: this.editor.selectedEntities.map(e => e.id),
+			customImageZOrder: value,
+		}));
+	}
+
+	get entityCustomImageOpacity() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? ((entity as any).customImageOpacity !== undefined ? (entity as any).customImageOpacity : 1) : 1;
+	}
+
+	set entityCustomImageOpacity(value) {
+		this.editor.selectedEntities.forEach(e => {
+			(e as any).customImageOpacity = value;
+		});
+		if (this.opacitySendTimer) clearTimeout(this.opacitySendTimer);
+		this.opacitySendTimer = setTimeout(() => {
+			this.game.send(server => server.editorAction({
+				type: 'setCustomImage',
+				entities: this.editor.selectedEntities.map(e => e.id),
+				customImageOpacity: value,
+			}));
+		}, 100);
+	}
+
+	get isCustomImageEntity() {
+		return this.editor.selectedEntities.some(e => (e as any).type === CUSTOM_IMAGE_TYPE);
+	}
+
+	get entityCustomImageUrl() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? ((entity as any).customImageUrl || '') : '';
+	}
+
+	set entityCustomImageUrl(value: string) {
+		this.editor.selectedEntities.forEach(e => {
+			(e as any).customImageUrl = value;
+			(e as any).customImageLoaded = false;
+			(e as any).customImageLoadedImg = undefined;
+			(e as any).customImageElement = undefined;
+		});
+		this.game.send(server => server.editorAction({
+			type: 'setCustomImage',
+			entities: this.editor.selectedEntities.map(e => e.id),
+			customImageUrl: value,
+		}));
+	}
+
+	get entityNameInput() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? (entity.name || '') : '';
+	}
+
+	set entityNameInput(value: string) {
+		this.editor.selectedEntities.forEach(e => {
+			e.name = value;
+		});
+		this.game.send(server => server.editorAction({
+			type: 'setname',
+			entities: this.editor.selectedEntities.map(e => e.id),
+			name: value,
+		}));
+	}
+
+	get entityMessageInput() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? ((entity as any).entityMessage || '') : '';
+	}
+
+	set entityMessageInput(value: string) {
+		this.editor.selectedEntities.forEach(e => {
+			(e as any).entityMessage = value;
+		});
+		this.game.send(server => server.editorAction({
+			type: 'setname',
+			entities: this.editor.selectedEntities.map(e => e.id),
+			entityMessage: value,
+		}));
+	}
+
+	get entityMessageColor() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? (entity.messageColor || '#ffffff') : '#ffffff';
+	}
+
+	set entityMessageColor(value: string) {
+		this.editor.selectedEntities.forEach(e => {
+			e.messageColor = value;
+		});
+		this.game.send(server => server.editorAction({
+			type: 'setname',
+			entities: this.editor.selectedEntities.map(e => e.id),
+			messageColor: value,
+		}));
+	}
+
+	get entityScale() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? ((entity as any).entityScale || 1) : 1;
+	}
+
+	set entityScale(value: number) {
+		const scaleValue = Math.round(value * 100) / 100;
+		this.editor.selectedEntities.forEach(e => {
+			(e as any).entityScale = scaleValue;
+			if (e.bounds) {
+				if (!this._originalBounds.has(e)) {
+					this._originalBounds.set(e, { ...e.bounds });
+				}
+				const base = this._originalBounds.get(e);
+				e.bounds = {
+					x: base.x * scaleValue,
+					y: base.y * scaleValue,
+					w: base.w * scaleValue,
+					h: base.h * scaleValue,
+				};
+			}
+			if (e.interactBounds) {
+				if (!this._originalInteractBounds.has(e)) {
+					this._originalInteractBounds.set(e, { ...e.interactBounds });
+				}
+				const base = this._originalInteractBounds.get(e);
+				e.interactBounds = {
+					x: base.x * scaleValue,
+					y: base.y * scaleValue,
+					w: base.w * scaleValue,
+					h: base.h * scaleValue,
+				};
+			}
+			if (e.chatBounds) {
+				if (!this._originalChatBounds.has(e)) {
+					this._originalChatBounds.set(e, { ...e.chatBounds });
+				}
+				const base = this._originalChatBounds.get(e);
+				e.chatBounds = {
+					x: base.x * scaleValue,
+					y: base.y * scaleValue,
+					w: base.w * scaleValue,
+					h: base.h * scaleValue,
+				};
+			}
+			if (e.lightBounds) {
+				if (!this._originalLightBounds.has(e)) {
+					this._originalLightBounds.set(e, { ...e.lightBounds });
+				}
+				const base = this._originalLightBounds.get(e);
+				e.lightBounds = {
+					x: base.x * scaleValue,
+					y: base.y * scaleValue,
+					w: base.w * scaleValue,
+					h: base.h * scaleValue,
+				};
+			}
+			if (e.lightSpriteBounds) {
+				if (!this._originalLightSpriteBounds.has(e)) {
+					this._originalLightSpriteBounds.set(e, { ...e.lightSpriteBounds });
+				}
+				const base = this._originalLightSpriteBounds.get(e);
+				e.lightSpriteBounds = {
+					x: base.x * scaleValue,
+					y: base.y * scaleValue,
+					w: base.w * scaleValue,
+					h: base.h * scaleValue,
+				};
+			}
+		});
+		if (this.scaleSendTimer) clearTimeout(this.scaleSendTimer);
+		this.scaleSendTimer = setTimeout(() => {
+			this.game.send(server => server.editorAction({
+				type: 'settint',
+				entities: this.editor.selectedEntities.map(e => e.id),
+				entityScale: scaleValue,
+			}));
+		}, 100);
+	}
+
+	get entityOpacity() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? ((entity as any).entityOpacity !== undefined ? (entity as any).entityOpacity : 1) : 1;
+	}
+
+	set entityOpacity(value: number) {
+		this.editor.selectedEntities.forEach(e => {
+			(e as any).entityOpacity = value;
+		});
+		if (this.opacitySendTimer) clearTimeout(this.opacitySendTimer);
+		this.opacitySendTimer = setTimeout(() => {
+			this.game.send(server => server.editorAction({
+				type: 'settint',
+				entities: this.editor.selectedEntities.map(e => e.id),
+				entityOpacity: value,
+			}));
+		}, 100);
+	}
+
+	get entitySpriteTint() {
+		const entity = this.editor.selectedEntities[0];
+		const tint = entity ? ((entity as any).spriteTint || 0xffffffff) : 0xffffffff;
+		return '#' + ((tint >> 8) & 0xFFFFFF).toString(16).padStart(6, '0');
+	}
+
+	set entitySpriteTint(value: string) {
+		const hex = parseInt(value.replace('#', ''), 16);
+		const tint = ((hex & 0xFFFFFF) << 8) | 0xFF;
+		this.editor.selectedEntities.forEach(e => {
+			(e as any).spriteTint = tint;
+		});
+		if (this.spriteTintSendTimer) clearTimeout(this.spriteTintSendTimer);
+		this.spriteTintSendTimer = setTimeout(() => {
+			this.game.send(server => server.editorAction({
+				type: 'settint',
+				entities: this.editor.selectedEntities.map(e => e.id),
+				spriteTint: tint,
+			}));
+		}, 100);
+	}
+
+	// CUSTOM_IMAGES_DISABLED: onCustomImageUpload
+	// onCustomImageUpload(event: Event) {
+	// 	const input = event.target as HTMLInputElement;
+	// 	if (!input.files || !input.files.length) return;
+	// 	const file = input.files[0];
+	// 	const reader = new FileReader();
+	// 	reader.onload = () => {
+	// 		const dataUrl = reader.result as string;
+	// 		fetch('/api-tools/upload-image', {
+	// 			method: 'POST',
+	// 			headers: { 'Content-Type': 'application/json' },
+	// 			body: JSON.stringify({ image: dataUrl, width: 80, height: 80 }),
+	// 		})
+	// 		.then(r => r.json())
+	// 		.then(result => {
+	// 			if (result.url) {
+	// 				this.entityCustomImageUrl = result.url;
+	// 			} else if (result.error) {
+	// 				console.error('Upload failed:', result.error);
+	// 			}
+	// 		})
+	// 		.catch(err => console.error('Upload error:', err));
+	// 	};
+	// 	reader.readAsDataURL(file);
+	// 	input.value = '';
+	// }
 	editorClear() {
 		this.game.send(server => server.editorAction({ type: 'clear' }));
 	}
@@ -453,6 +741,34 @@ export class EditorBox {
 	showEntitiesInfo() {
 		console.log(this.editor.selectedEntities);
 	}
+	saveEntityName() {
+		const entities = this.editor.selectedEntities.map(e => e.id);
+		this.game.send(server => server.editorAction({
+			type: 'setname',
+			entities,
+			name: this.entityNameInput.substring(0, 30),
+			entityMessage: this.entityMessageInput.substring(0, 100),
+			messageColor: this.entityMessageColor,
+		}));
+	}
+	holdSelectedItem() {
+		const entities = this.editor.selectedEntities.map(e => e.id);
+		if (entities.length) {
+			this.game.send(server => server.editorAction({ type: 'holdentity', entities }));
+		}
+	}
+	becomeSelectedItem() {
+		const entities = this.editor.selectedEntities.map(e => e.id);
+		if (entities.length) {
+			this.game.send(server => server.editorAction({ type: 'becomeentity', entities }));
+		}
+	}
+	loadEntityFields(entity: Entity) {
+		const e = entity as any;
+		this.entityNameInput = e.name || '';
+		this.entityMessageInput = e.entityMessage || '';
+		this.entityMessageColor = e.messageColor || '#bbbbbb';
+	}
 	toggleShow(field: keyof DebugFlags) {
 		(this.game.debug as any)[field] = !this.isShow(field);
 		this.game.saveDebug();
@@ -460,4 +776,22 @@ export class EditorBox {
 	isShow(field: keyof DebugFlags) {
 		return !!this.game.debug[field];
 	}
+
+	// CUSTOM_IMAGES_DISABLED: onImageFileSelected
+	// onImageFileSelected(file: File) {
+	// 	if (!file) return;
+	// 	const dotIndex = file.name.lastIndexOf('.');
+	// 	const ext = dotIndex >= 0 ? file.name.substring(dotIndex + 1).toLowerCase() : '';
+	// 	const allowedExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'tiff'];
+	// 	if (!allowedExts.includes(ext)) return;
+	// 	if (file.size > 5 * 1024 * 1024) return;
+	// 	const player = this.game.player;
+	// 	if (!player) return;
+	// 	const reader = new FileReader();
+	// 	reader.onload = () => {
+	// 		const base64 = reader.result as string;
+	// 		this.game.uploadCustomImage(base64, file.type, player.x, player.y);
+	// 	};
+	// 	reader.readAsDataURL(file);
+	// }
 }

@@ -31,7 +31,7 @@ export const createMove =
 			const pony = client.pony;
 			const { x, y, dir, flags, time, camera } = decodeMovement(a, b, c, d, e);
 			const v = dirToVector(dir);
-			const speed = flagsToSpeed(flags) * (pony && pony.speedMultiplier || 1);
+			const speed = flagsToSpeed(flags, pony);
 
 			if (checkOutsideMap(client, x, y))
 				return;
@@ -71,6 +71,12 @@ export const createMove =
 
 			pony.vx = v.x * speed;
 			pony.vy = v.y * speed;
+
+			const MAX_VEL = 15.5;
+			if (pony.vx > MAX_VEL) pony.vx = MAX_VEL;
+			else if (pony.vx < -MAX_VEL) pony.vx = -MAX_VEL;
+			if (pony.vy > MAX_VEL) pony.vy = MAX_VEL;
+			else if (pony.vy < -MAX_VEL) pony.vy = -MAX_VEL;
 
 			let ponyState = pony.state || 0;
 
@@ -119,6 +125,8 @@ function checkOutsideMap(client: IClient, x: number, y: number): boolean {
 }
 
 function checkLagging(client: IClient, time: number, connectionTime: number, settings: GameServerSettings): boolean {
+	if (client.pony.noclip) return false;
+
 	const dt = time - connectionTime;
 	const lagging = (dt > maxLagLimit) || (dt < -maxLagLimit);
 
@@ -142,6 +150,8 @@ function checkLagging(client: IClient, time: number, connectionTime: number, set
 function checkTeleporting(
 	client: IClient, x: number, y: number, time: number, settings: GameServerSettings, counter: CounterService<void>
 ): boolean {
+	if (client.pony.noclip) return false;
+
 	if (!client.lastTime)
 		return false;
 

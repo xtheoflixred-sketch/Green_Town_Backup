@@ -351,6 +351,14 @@ export function drawPonyEntity(batch: PaletteSpriteBatch, pony: Pony, drawOption
 		batch.save();
 		transformBatch(batch, pony);
 
+		const entityOpacity = (pony as any).entityOpacity;
+		const vanishLevel = (pony as any).vanishLevel || 0;
+		if (vanishLevel) {
+			batch.globalAlpha = 0.5;
+		} else if (entityOpacity !== undefined && entityOpacity < 1) {
+			batch.globalAlpha = entityOpacity;
+		}
+
 		const options = pony.drawingOptions;
 		options.flipped = right;
 		options.selected = pony.selected === true || pony.chatHovered === true;
@@ -661,13 +669,26 @@ export function updatePonyHold(pony: Pony, game: PonyTownGame) {
 	const ponyState = pony.ponyState;
 	const hadLight = hasDrawLight(pony);
 	const hadLightSprite = hasLightSprite(pony);
+	const tint = (pony as any).holdSpriteTint || 0;
+	const options = tint ? { spriteTint: tint } as any : {};
 
 	if (pony.hold !== 0) {
 		if (ponyState.holding === undefined) {
-			ponyState.holding = createAnEntity(pony.hold, 0, 0, 0, {}, pony.paletteManager, game);
+			ponyState.holding = createAnEntity(pony.hold, 0, 0, 0, options, pony.paletteManager, game);
 		} else if (ponyState.holding.type !== pony.hold) {
 			releaseEntity(ponyState.holding);
-			ponyState.holding = createAnEntity(pony.hold, 0, 0, 0, {}, pony.paletteManager, game);
+			ponyState.holding = createAnEntity(pony.hold, 0, 0, 0, options, pony.paletteManager, game);
+		}
+
+		if (tint) {
+			(ponyState.holding as any).spriteTint = tint;
+		}
+
+		if (ponyState.holding.pickableX === undefined) {
+			ponyState.holding.pickableX = 25;
+		}
+		if (ponyState.holding.pickableY === undefined) {
+			ponyState.holding.pickableY = 52;
 		}
 	} else if (ponyState.holding !== undefined) {
 		releaseEntity(ponyState.holding);
@@ -760,8 +781,7 @@ function updatePonyExpression(pony: Pony, expr: number, safe: boolean) {
 function transformBatch(batch: SpriteBatch | PaletteSpriteBatch, entity: Entity) {
 	batch.translate(toScreenX(entity.x), toScreenYWithZ(entity.y, entity.z));
 	batch.scale(isFacingRight(entity) ? -1 : 1, 1);
-	// Apply scale multiplier if present (default 1.0)
-	const scale = (entity as any).scale || 1;
+	const scale = (entity as any).entityScale || (entity as any).scale || 1;
 	if (scale !== 1) {
 		batch.scale(scale, scale);
 	}

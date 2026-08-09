@@ -727,7 +727,11 @@ export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, messa
 
 		if (bubbleEntity && !bubbleEntity.fake && game.map.entitiesById.has(bubbleEntity.id)) {
 			const total = getSaysTime(message);
-			addChatBubble(game.map, bubbleEntity, { message, type, total, timer: total, created: Date.now() }, getChatBubbleLimit(game.settings.account.chatBubbleLimit));
+			const customColor = type === MessageType.Chat ? (entity as any).messageColor : undefined;
+			addChatBubble(game.map, bubbleEntity, {
+				message, type, total, timer: total, created: Date.now(),
+				color: customColor,
+			}, getChatBubbleLimit(game.settings.account.chatBubbleLimit));
 		}
 
 		if (isWhisper(type)) {
@@ -737,7 +741,8 @@ export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, messa
 
 		if (shouldShowChatMessageInChatlog(game, entity, type)) {
 			const { id, name = '', crc } = entity;
-			game.messageQueue.push({ id, crc, name, message, type });
+			const customColor = type === MessageType.Chat ? (entity as any).messageColor : undefined;
+			game.messageQueue.push({ id, crc, name, message, type, color: customColor });
 		}
 	}
 }
@@ -850,6 +855,9 @@ function updateEntityOptionsInternal(entity: Entity, options: Partial<EntityOrPo
 	if ('lightSpriteY' in options) entity.lightSpriteY = options.lightSpriteY;
 	if ('lightScaleAdjust' in options) entity.lightScaleAdjust = options.lightScaleAdjust;
 
+	if (isPony(entity) && ('entityOpacity' in options || 'spriteTint' in options || 'entityScale' in options)) {
+		(entity as Pony).discardBatch = true;
+	}
 	if (isPony(entity) && 'modal' in options && game.selected && game.selected.id === entity.id) {
 		(game.selected as any).modal = (options as any).modal;
 		game.applyChanges();

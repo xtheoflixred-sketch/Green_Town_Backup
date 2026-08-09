@@ -295,7 +295,14 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 
 			e.preventDefault();
 		} else if (e.keyCode === Key.ENTER && this.isOpen) {
-			this.send(e);
+			if (this.showColorPicker) {
+				this.showColorPicker = false;
+				this.message = '';
+				this.close();
+				e.preventDefault();
+			} else {
+				this.send(e);
+			}
 		} else if (e.keyCode === Key.ESCAPE) {
 			if (this.showCommandDropdown) {
 				this.showCommandDropdown = false;

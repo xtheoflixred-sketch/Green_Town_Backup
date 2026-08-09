@@ -489,6 +489,8 @@ export class PonyTownGame implements Game {
 	private input = new InputManager();
 	socket?: ClientSocketService;
 	private canvas?: HTMLCanvasElement;
+	imageOverlayElements = new Map<number, HTMLElement>();
+	imageOverlayContainer?: HTMLElement;
 	private statsText?: Text;
 	private timeSize = 0;
 	private lastStats = 0;
@@ -938,6 +940,7 @@ export class PonyTownGame implements Game {
 	}
 	init() {
 		this.canvas = document.getElementById('canvas') as HTMLCanvasElement;
+		this.imageOverlayContainer = document.getElementById('image-overlay') as HTMLElement;
 		this.updateTileSets();
 		this.input.initialize(this.canvas);
 
@@ -1047,6 +1050,42 @@ export class PonyTownGame implements Game {
 			});
 
 			this.canvas.addEventListener('touchstart', () => this.audio.touch());
+
+			// CUSTOM_IMAGES_DISABLED: drag&drop for custom images
+			// this.canvas.addEventListener('dragover', (e) => {
+			// 	e.preventDefault();
+			// 	e.stopPropagation();
+			// });
+			//
+			// this.canvas.addEventListener('drop', (e) => {
+			// 	e.preventDefault();
+			// 	e.stopPropagation();
+			//
+			// 	const file = e.dataTransfer && e.dataTransfer.files[0];
+			// 	if (!file || !file.type.startsWith('image/')) return;
+			//
+			// 	const dotIndex = file.name.lastIndexOf('.');
+			// 	const ext = dotIndex >= 0 ? file.name.substring(dotIndex + 1).toLowerCase() : '';
+			// 	const allowedExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'];
+			// 	if (!allowedExts.includes(ext)) return;
+			// 	if (file.size > 5 * 1024 * 1024) return;
+			//
+			// 	const reader = new FileReader();
+			// 	reader.onload = () => {
+			// 		const base64 = reader.result as string;
+			// 		const rect = this.canvas!.getBoundingClientRect();
+			// 		const x = (e.clientX - rect.left) / (rect.width / this.camera.w) + this.camera.x;
+			// 		const y = (e.clientY - rect.top) / (rect.height / this.camera.h) + this.camera.y;
+			// 		this.uploadCustomImage(base64, file.type, x, y);
+			// 	};
+			// 	reader.readAsDataURL(file);
+			// });
+
+			// CUSTOM_IMAGES_DISABLED: overlay cleanup on leave
+			// this.onLeft.subscribe(() => {
+			// 	this.imageOverlayElements.forEach((el) => el.remove());
+			// 	this.imageOverlayElements.clear();
+			// });
 		}
 
 		this.resized = true;
@@ -1331,9 +1370,7 @@ export class PonyTownGame implements Game {
 			const vec = (x || y) ? dirToVector(dir) : { x: 0, y: 0 };
 			const walk = input.isMovementFromButtons ? (this.settings.browser.walkByDefault ? !shift : shift) : false;
 			const flags = getMovementFlag(x, y, walk);
-			// apply server-provided speed multiplier if present (default 1)
-			// apply optional server-specified speed multiplier
-		const speed = flagsToSpeed(flags) * (player.speedMultiplier || 1);
+		const speed = flagsToSpeed(flags, player);
 			const vx = vec.x * speed;
 			const vy = vec.y * speed;
 
@@ -1614,6 +1651,7 @@ export class PonyTownGame implements Game {
 			updateEntitiesCoverLifted(this.map, player, !!this.settings.account.seeThroughObjects, delta);
 			updateEntitiesWithNames(this.map, this.hover, player);
 			updateEntitiesTriggers(this.map, player, this);
+			// this.updateCustomImages(); // CUSTOM_IMAGES_DISABLED
 		}
 
 		input.end();
@@ -1705,6 +1743,11 @@ export class PonyTownGame implements Game {
 	private updateTileSets() {
 		this.tileSets = updateTileSets(this.paletteManager, this.tileSets, this.season, this.map.type);
 	}
+
+	// CUSTOM_IMAGES_DISABLED: all custom image methods below
+	// private updateCustomImages() { ... }
+	// private updateCustomImageBounds(entity: any) { ... }
+	// async uploadCustomImage(...) { ... }
 	draw() {
 		redrawActionButtons(this.actionsChanged);
 		this.actionsChanged = false;

@@ -3,6 +3,7 @@ ng-template(#gameCharacterModal)
 
 #app-game.app-game([hidden]="!playing" [class.ui-disabled]="account?.settings?.disableUI")
 	canvas#canvas.unselectable.pixelart
+	#image-overlay.unselectable
 	span#stats.d-none.d-sm-inline
 	ng-container(*ngIf="!canUseTier4Profiles")
 		pony-box#pony-box(*ngIf="selected" [pony]="selected" [dragEnabled]="false" [dragging]="false" (sendMessage)="messageToPony(chatBox, $event)" (openFriendsList)="openFriendsList()")

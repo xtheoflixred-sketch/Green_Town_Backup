@@ -12,27 +12,37 @@
 				style="display: block; width: 500px; position: absolute; top: 36px; left: 0;")
 				.px-2
 
-					//- name
-					div
-						.row.form-group.mb-2
-							label.col-12.col-form-label
-								.float-right
-									button.btn.btn-xs.btn-dark.ml-1(
-										(click)="showEntitiesInfo()"
-										title="Show info")
-										| info
+				//- name
+				div
+					.row.form-group.mb-2
+						label.col-12.col-form-label
+							.float-right
+								button.btn.btn-xs.btn-warning.ml-1(
+									(click)="holdSelectedItem()"
+									title="Hold item")
+									| Hold
 
-									button.btn.btn-xs.btn-secondary.ml-1(
-										(click)="duplicateEntities()"
-										title="Duplicate entities")
-										fa-icon([icon]="duplicateIcon")
+								button.btn.btn-xs.btn-warning.ml-1(
+									(click)="becomeSelectedItem()"
+									title="Become (teleport to entity)")
+									| Become
 
-									button.btn.btn-xs.btn-danger.ml-1(
-										(click)="deleteEntities()"
-										title="Delete entities")
-										fa-icon([icon]="deleteIcon")
+								button.btn.btn-xs.btn-dark.ml-1(
+									(click)="showEntitiesInfo()"
+									title="Show info")
+									| info
 
-								| {{entityName}}
+								button.btn.btn-xs.btn-secondary.ml-1(
+									(click)="duplicateEntities()"
+									title="Duplicate entities")
+									fa-icon([icon]="duplicateIcon")
+
+								button.btn.btn-xs.btn-danger.ml-1(
+									(click)="deleteEntities()"
+									title="Delete entities")
+									fa-icon([icon]="deleteIcon")
+
+							| {{entityName}}
 
 					//- position
 					div(*ngIf="singleEntity")
@@ -104,6 +114,97 @@
 									[(ngModel)]="entityLightSpriteY"
 									type="number")
 
+				//- custom image controls — DISABLED
+				//- div(*ngIf="isCustomImageEntity")
+				//- 	.row.form-group.mb-2
+				//- 		label.col-5.col-form-label
+				//- 			| image
+				//- 		.col-7
+				//- 			.input-group.input-group-sm
+				//- 				input.form-control(
+				//- 					[(ngModel)]="entityCustomImageUrl"
+				//- 					placeholder="image url"
+				//- 					readonly)
+				//- 				.input-group-append
+				//- 					label.btn.btn-sm.btn-secondary.mb-0(
+				//- 						style="cursor:pointer")
+				//- 						| upload
+				//- 						input(
+				//- 							type="file"
+				//- 							accept="image/*,.psd"
+				//- 							style="display:none"
+				//- 							(change)="onImageFileSelected(fileInput.files[0])")
+				//- 	.row.form-group.mb-2
+				//- 		label.col-5.col-form-label
+				//- 			| scale ({{entityCustomImageScale | number:'1.0-2'}})
+				//- 		.col-7.py-2
+				//- 			slider-bar(
+				//- 				[(value)]="entityCustomImageScale"
+				//- 				[min]="0.1"
+				//- 				[max]="5")
+				//- 	.row.form-group.mb-2
+				//- 		label.col-5.col-form-label
+				//- 			| opacity ({{entityCustomImageOpacity | number:'1.0-2'}})
+				//- 		.col-7.py-2
+				//- 			slider-bar(
+				//- 				[(value)]="entityCustomImageOpacity"
+				//- 				[min]="0"
+				//- 				[max]="1")
+				//- 	.row.form-group.mb-2
+				//- 		label.col-5.col-form-label
+				//- 			| layer
+				//- 		.col-7
+				//- 			select.form-control(
+				//- 				[(ngModel)]="entityCustomImageZOrder")
+				//- 				option(value="below") Below players
+				//- 				option(value="above") Above players
+
+				//- entity info box
+				div(*ngIf="singleEntity")
+					.row.form-group.mb-2
+						label.col-4.col-form-label name
+						.col-8
+							input.form-control([(ngModel)]="entityNameInput" maxlength="30")
+					.row.form-group.mb-2
+						label.col-4.col-form-label message color
+						.col-8
+							color-picker([(color)]="entityMessageColor" openUp="true")
+					.row.form-group.mb-2
+						label.col-4.col-form-label message
+						.col-8
+							textarea.form-control([(ngModel)]="entityMessageInput" rows="2" maxlength="100")
+					.row.form-group.mb-2
+						.col-12.text-right
+							button.btn.btn-xs.btn-warning((click)="saveEntityName()")
+								| Save
+
+				//- tint color (always)
+				div(*ngIf="singleEntity")
+					.row.form-group.mb-2
+						label.col-5.col-form-label tint color
+						.col-4
+							color-picker([(color)]="entitySpriteTint")
+						.col-3.text-right
+							button.btn.btn-xs.btn-warning((click)="entitySpriteTint = '#ffffff'") default
+
+				//- scale (non-customImage only)
+				div(*ngIf="singleEntity && !isCustomImageEntity")
+					.row.form-group.mb-2
+						label.col-5.col-form-label scale ({{entityScale | number:'1.0-2'}})
+						.col-4.py-2
+							slider-bar([(value)]="entityScale" [min]="0.1" [max]="5")
+						.col-3.text-right
+							button.btn.btn-xs.btn-warning((click)="entityScale = 1") default
+
+				//- opacity (non-customImage only)
+				div(*ngIf="singleEntity && !isCustomImageEntity")
+					.row.form-group.mb-2
+						label.col-5.col-form-label opacity ({{entityOpacity | number:'1.0-2'}})
+						.col-4.py-2
+							slider-bar([(value)]="entityOpacity" [min]="0" [max]="1")
+						.col-3.text-right
+							button.btn.btn-xs.btn-warning((click)="entityOpacity = 1") default
+
 			.input-group.input-group-sm
 				input.form-control(
 					[(ngModel)]="editorEntity"
@@ -149,6 +250,17 @@
 				(click)="toggleSelecting()"
 				title="Select entities")
 				fa-icon([icon]="selectIcon")
+
+			//- CUSTOM_IMAGES_DISABLED: upload button
+			//- button.btn.btn-sm.btn-default.ml-1(
+			//- 	(click)="fileInput.click()"
+			//- 	title="Upload custom image")
+			//- 	fa-icon([icon]="uploadIcon")
+			//- input.d-none(
+			//- 	#fileInput
+			//- 	type="file"
+			//- 	accept="image/*,.psd"
+			//- 	(change)="onImageFileSelected(fileInput.files[0])")
 
 			.dropdown.ml-1(dropdown)
 				button.btn.btn-sm.btn-default.dropdown-toggle(dropdownToggle)

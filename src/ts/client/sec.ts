@@ -29,7 +29,7 @@ export function savePlayerPosition() {
 }
 
 export function restorePlayerPosition() {
-	if (currentPlayer) {
+	if (currentPlayer && !currentPlayer.noclip) {
 		if (currentPlayer.x !== setX || currentPlayer.y !== setY) {
 			currentPlayer.x = setX;
 			currentPlayer.y = setY;

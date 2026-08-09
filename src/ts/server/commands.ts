@@ -64,6 +64,14 @@ const freeBunnies = new WeakMap<IClient, ServerEntity[]>();
 const bunnyOptions = new WeakMap<IClient, { count: number; radius: number; mode: 'circle' | 'stay' | 'free'; shape: 'none' | 'circle' | 'triangle' | 'square' | 'diamond' | 'heart' }>();
 const armyBattleStates = new WeakMap<IClient, { attacker: IClient; defender: IClient; attackerBunnies: ServerEntity[]; defenderBunnies: ServerEntity[]; settings: GameServerSettings; completed: boolean; outcome: 'attacker' | 'defender' | 'draw'; }>();
 
+function resetMovementTracking(client: IClient) {
+	client.lastX = client.pony.x;
+	client.lastY = client.pony.y;
+	client.lastVX = 0;
+	client.lastVY = 0;
+	client.lastTime = Date.now();
+}
+
 function getBunnyOptions(client: IClient) {
 	let options = bunnyOptions.get(client);
 
@@ -1454,29 +1462,32 @@ export function createCommands(world: World): Command[] {
 				throw new UserError(`Map "${id}" not found or instance mismatch`);
 			}
 		}, false, 'Mod'),
-		command(['speed'], '/speed - manage player movement speed', 'mod', ({}, client, message) => {
-			const parts = (message || '').trim().split(/\s+/);
-			const arg = parts[0];
+		command(['speed'], '/speed [0.1-7] - изменить скорость', 'mod', ({}, client, message) => {
+			if (!client.pony) return;
 
-			if (!arg || arg.toLowerCase() === 'reset') {
+			const input = (message || '').trim();
+
+			if (!input || input.toLowerCase() === 'reset') {
 				client.pony.speedMultiplier = 1;
 				client.speedMultiplier = 1;
 				updateEntityOptions(client.pony, { speedMultiplier: 1 });
-				saySystem(client, 'Speed reset to 1x');
+				resetMovementTracking(client);
+				saySystem(client, 'Скорость сброшена на 1x');
 				return;
 			}
 
-			const value = parseFloat(arg);
+			const value = parseFloat(input);
 
-			if (isNaN(value) || value <= 0 || value > 4) {
-				saySystem(client, 'Invalid speed. Provide number > 0 and <= 4, or "reset"');
+			if (isNaN(value) || value < 0.1 || value > 7) {
+				saySystem(client, 'Использование: /speed [0.1-7] или /speed reset');
 				return;
 			}
 
 			client.pony.speedMultiplier = value;
 			client.speedMultiplier = value;
 			updateEntityOptions(client.pony, { speedMultiplier: value });
-			saySystem(client, `Speed set to ${value}x`);
+			resetMovementTracking(client);
+			saySystem(client, `Скорость установлена на ${value}x`);
 		}, false, 'Mod'),
 		command(['scale'], '/scale <value|reset> - manage player pony size (0.1-10)', 'mod', ({}, client, message) => {
 			const parts = (message || '').trim().split(/\s+/);

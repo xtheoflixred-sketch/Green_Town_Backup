@@ -5,6 +5,7 @@ import {
 } from '../common/interfaces';
 import { clamp, contains, intersect, toInt, hasFlag } from '../common/utils';
 import { BLACK, WHITE, OUTLINE_COLOR, getMessageColor, PARTY_COLOR, MESSAGE_COLOR, FRIENDS_COLOR, CHAT_HOVER_BUBBLE_COLOR } from '../common/colors';
+import { parseColorFast } from '../common/color';
 import { tileWidth, tileHeight, tileElevation, PONY_TYPE } from '../common/constants';
 import {
 	HAlign, VAlign, TextOptions, lineBreak, drawTextAligned, measureText, drawText, drawOutlinedText
@@ -166,7 +167,12 @@ export function drawBaloon(
 
 	if (intersect(0, 0, bounds.w, bounds.h, drawX - w / 2, y - h / 2, w, h)) {
 		const palette = getMessagePalette(type, palettes.mainFont);
-		const color = palette ? WHITE : getMessageColor(type);
+		let color = palette ? WHITE : getMessageColor(type);
+
+		if (says.color && type === MessageType.Chat) {
+			color = parseColorFast(says.color) | 0xff;
+		}
+
 		const options: TextOptions = {
 			palette: palette || palettes.mainFont.white,
 			emojiPalette: palettes.mainFont.emoji,
@@ -577,6 +583,7 @@ export function drawNames(
 			const nameOffsetBase = 12;
 			const bounds = e.interactBounds || e.bounds;
 			const chatBounds = e.chatBounds || bounds;
+			const scale = (e as any).entityScale || 1;
 
 			const isHovered = chatBounds !== undefined && bounds !== undefined && contains(e.x, e.y, bounds, hover);
 			const tag = (isHidden(e) && drawHidden) ? 'hidden' : e.tag;
@@ -584,7 +591,7 @@ export function drawNames(
 			if (renderMode !== DrawNameRenderMode.Hidden) {
 				const { x, y } = worldToScreen(camera, e);
 				const nameOffset = nameOffsetBase - getChatHeight(e);
-				const chatOffsetY = (chatBounds || bounds || { x: 0, y: 0 }).y;
+				const chatOffsetY = (chatBounds || bounds || { x: 0, y: 0 }).y * scale;
 				const flags = DrawNameFlags.None |
 					(isPartyMember(e, party) ? DrawNameFlags.Party : 0) |
 					(isFriend(e) ? DrawNameFlags.Friend : 0);
@@ -609,11 +616,12 @@ function getChatBalloonLift(entity: Entity, player: Pony | undefined, hover: Poi
 export function getChatBallonXY(e: Entity, player: Pony | undefined, camera: Camera, hover?: Point): Point {
 	const bounds = e.interactBounds || e.bounds;
 	const chatBounds = e.chatBounds || bounds;
+	const scale = (e as any).entityScale || 1;
 	const screen = worldToScreen(camera, e);
 	const baseOffset = 12 - getChatHeight(e);
 	const liftOffset = getChatBalloonLift(e, player, hover);
-	const yy = screen.y + (chatBounds ? chatBounds.y : 0) - (baseOffset + liftOffset);
-	const x = screen.x + toInt(e.chatX);
+	const yy = screen.y + (chatBounds ? chatBounds.y * scale : 0) - (baseOffset + liftOffset);
+	const x = screen.x + (chatBounds ? (chatBounds.x * scale) + (chatBounds.w * scale / 2) : 0) + toInt(e.chatX);
 	const y = yy + toInt(e.chatY);
 	return { x, y };
 }
@@ -647,7 +655,17 @@ function getVisibleBubbles(entity: Entity, hidePublic: boolean) {
 			if (party === partyBubbles) {
 				const hovered = !!screenHover && containsScreenPoint(getBaloonBodyRect(says, x, yy, camera), screenHover);
 				const shouldHighlight = hovered && (!canHighlightBubble || canHighlightBubble(entity));
-				drawBaloon(batch, says, x, yy, camera, palettes, showPointer, shouldHighlight ? CHAT_HOVER_BUBBLE_COLOR : BLACK);
+				const scale = (entity as any).entityScale || 1;
+				if (scale !== 1) {
+					batch.save();
+					batch.translate(x, yy);
+					batch.scale(scale, scale);
+					batch.translate(-x, -yy);
+					drawBaloon(batch, says, x, yy, camera, palettes, showPointer, shouldHighlight ? CHAT_HOVER_BUBBLE_COLOR : BLACK);
+					batch.restore();
+				} else {
+					drawBaloon(batch, says, x, yy, camera, palettes, showPointer, shouldHighlight ? CHAT_HOVER_BUBBLE_COLOR : BLACK);
+				}
 			}
 		}
 	}
@@ -666,7 +684,14 @@ function getVisibleBubbles(entity: Entity, hidePublic: boolean) {
 
 		const { x, y } = getChatBallonXY(entity, player, camera, hover);
 		const message = getTypingIndicatorFrame(Date.now());
-		const { h } = getBaloonLayout({ message, created: Date.now(), type: MessageType.Chat }, chatBounds);
+		const scale = (entity as any).entityScale || 1;
+		const scaledChatBounds = chatBounds ? {
+			x: chatBounds.x * scale,
+			y: chatBounds.y * scale,
+			w: chatBounds.w * scale,
+			h: chatBounds.h * scale,
+		} : chatBounds;
+		const { h } = getBaloonLayout({ message, created: Date.now(), type: MessageType.Chat }, scaledChatBounds);
 		// Draw typing indicator as a small message balloon
 		drawBaloon(batch, { message, created: Date.now(), type: MessageType.Chat, timer: 1, total: 1 }, x, y - h - 5, chatBounds, palettes, false);
 	}

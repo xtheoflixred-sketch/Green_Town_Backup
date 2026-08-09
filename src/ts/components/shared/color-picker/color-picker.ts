@@ -20,6 +20,7 @@ export class ColorPicker {
 	@Input() indicatorColor = '';
 	@Input() label?: string = undefined;
 	@Input() labelledBy?: string = undefined;
+	@Input() openUp = false;
 	@Output() colorChange = new EventEmitter<string>();
 	@Output() colorChangeStart = new EventEmitter<void>();
 	@Output() colorChangeEnd = new EventEmitter<string>();

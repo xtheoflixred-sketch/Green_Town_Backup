@@ -103,6 +103,15 @@ div(*ngIf="account")
 				button.btn.btn-sm.btn-danger.ml-1((click)="remove()" [disabled]="!canRemove" title="Delete account")
 					fa-icon([icon]="trashIcon" [fixedWidth]="true")
 
+			h5 Flags
+			.mb-2
+				.form-check(*ngFor="let f of flags")
+					input.form-check-input(
+						type="checkbox"
+						[checked]="hasFlag(f.value)"
+						(change)="toggleFlag(f.value, $event.target.checked)")
+					label.form-check-label {{f.label}}
+
 			.d-flex.justify-content-between.align-items-start
 				h5
 					| Notes
