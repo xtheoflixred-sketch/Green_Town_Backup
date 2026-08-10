@@ -869,6 +869,32 @@ export const floorLampTurquoise = createFloorLamp('floor-lamp-turquoise', sprite
 export const floorLampWhite = createFloorLamp('floor-lamp-white', sprites.Floor_lamp_white, 0xe8e8e8ff);
 export const floorLampYellow = createFloorLamp('floor-lamp-yellow', sprites.Floor_lamp_yellow, 0x9b7a12ff);
 
+// plush toys
+export const plushAalik = doodad(n('plush-aalik'), sprites.Plush_Aalik, Math.floor(sprites.Plush_Aalik.color!.w / 2), sprites.Plush_Aalik.color!.h - 1, 0,
+	mixColliderRect(-12, -5, 24, 5),
+	mixFlags(EntityFlags.StaticY));
+export const plushDel = doodad(n('plush-del'), sprites.Plush_Del, Math.floor(sprites.Plush_Del.color!.w / 2), sprites.Plush_Del.color!.h - 1, 0,
+	mixColliderRect(-12, -5, 24, 5),
+	mixFlags(EntityFlags.StaticY));
+export const plushHimig = doodad(n('plush-himig'), sprites.Plush_Himig, Math.floor(sprites.Plush_Himig.color!.w / 2), sprites.Plush_Himig.color!.h - 1, 0,
+	mixColliderRect(-12, -5, 24, 5),
+	mixFlags(EntityFlags.StaticY));
+export const plushKokosik = doodad(n('plush-kokosik'), sprites.Plush_Kokosik, Math.floor(sprites.Plush_Kokosik.color!.w / 2), sprites.Plush_Kokosik.color!.h - 1, 0,
+	mixColliderRect(-12, -5, 24, 5),
+	mixFlags(EntityFlags.StaticY));
+export const plushKrif = doodad(n('plush-krif'), sprites.Plush_Krif, Math.floor(sprites.Plush_Krif.color!.w / 2), sprites.Plush_Krif.color!.h - 1, 0,
+	mixColliderRect(-12, -5, 24, 5),
+	mixFlags(EntityFlags.StaticY));
+export const plushLucka = doodad(n('plush-lucka'), sprites.Plush_Lucka, Math.floor(sprites.Plush_Lucka.color!.w / 2), sprites.Plush_Lucka.color!.h - 1, 0,
+	mixColliderRect(-12, -5, 24, 5),
+	mixFlags(EntityFlags.StaticY));
+export const plushMeavi = doodad(n('plush-meavi'), sprites.Plush_Meavi, Math.floor(sprites.Plush_Meavi.color!.w / 2), sprites.Plush_Meavi.color!.h - 1, 0,
+	mixColliderRect(-12, -5, 24, 5),
+	mixFlags(EntityFlags.StaticY));
+export const plushSofa = doodad(n('plush-sofa'), sprites.Plush_Sofa, Math.floor(sprites.Plush_Sofa.color!.w / 2), sprites.Plush_Sofa.color!.h - 1, 0,
+	mixColliderRect(-12, -5, 24, 5),
+	mixFlags(EntityFlags.StaticY));
+
 export const curvedLog = doodad(n('curved-log'), sprites.curved_log, 14, -5, 0, mixColliderRect(-13, 70, 26, 10), mixFlags(EntityFlags.StaticY));
 
 export const wallMap = doodad(n('wall-map'), sprites.wall_map, 20, 51, 0, mixFlags(EntityFlags.StaticY));
@@ -2685,6 +2711,14 @@ export const placeableEntities: { type: number; name: string; }[] = [
 	{ type: woodenFenceBeamV1.type, name: 'Wooden fence beam (vertical) 1' },
 	{ type: woodenFenceBeamV2.type, name: 'Wooden fence beam (vertical) 2' },
 	{ type: woodenFenceBeamV3.type, name: 'Wooden fence beam (vertical) 3' },
+	{ type: plushAalik.type, name: 'Plush Aalik' },
+	{ type: plushDel.type, name: 'Plush Del' },
+	{ type: plushHimig.type, name: 'Plush Himig' },
+	{ type: plushKokosik.type, name: 'Plush Kokosik' },
+	{ type: plushKrif.type, name: 'Plush Krif' },
+	{ type: plushLucka.type, name: 'Plush Lucka' },
+	{ type: plushMeavi.type, name: 'Plush Meavi' },
+	{ type: plushSofa.type, name: 'Plush Sofa' },
 
 ];
 
