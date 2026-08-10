@@ -331,7 +331,8 @@ page-loader(*ngIf="!playing")
 						.col-sm-8
 							sprite-selection(
 								[(selected)]="info.eyeOpennessLeft" [sprites]="eyesLeft" [fill]="info.eyeColorLeft" [darken]="darken"
-								[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="5" aria-labelledby="left-eye")
+								[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="5"
+								(selectedChange)="changed()" aria-labelledby="left-eye")
 
 					.row.form-group
 						label.col-sm-4.col-form-label Right iris
@@ -499,13 +500,15 @@ page-loader(*ngIf="!playing")
 						.col-sm-8
 							sprite-selection(
 								[(selected)]="info.fangs" [sprites]="fangs" [fill]="info.nose.fills" [darken]="darken"
-								[outline]="info.nose.outlines" [circle]="info.coatFill" aria-labelledby="fangs")
+								[outline]="info.nose.outlines" [circle]="info.coatFill"
+								(selectedChange)="changed()" aria-labelledby="fangs")
 					.row.form-group
 						label#expression.col-sm-4.col-form-label(for="#expression-selection") Expression
 						.col-sm-8
 							sprite-selection#expression-selection(
 								[(selected)]="info.muzzle" [sprites]="muzzles" [fill]="info.nose.fills" [darken]="darken"
-								[outline]="info.nose.outlines" [circle]="info.coatFill" [limit]="9" aria-labelledby="expression")
+								[outline]="info.nose.outlines" [circle]="info.coatFill" [limit]="9"
+								(selectedChange)="changed()" aria-labelledby="expression")
 					hr
 					set-selection(
 						label="Facial hair" [base]="maneFill" [set]="info.facialHair" [sets]="facialHair" [darken]="darken"

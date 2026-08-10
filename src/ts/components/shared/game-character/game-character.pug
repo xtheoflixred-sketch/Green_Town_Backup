@@ -335,26 +335,24 @@
 								.col-sm-8
 									sprite-selection(
 										[(selected)]="info.eyeOpennessLeft" [sprites]="eyesLeft" [fill]="info.eyeColorLeft" [darken]="darken"
-										[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="5" aria-labelledby="left-eye")
-					.row.form-group
-						.col-sm-4.col-lock-box
-							label#irises {{info.lockIrises ? 'Irises' : 'Right iris'}}
-							check-box.lock-box(
-								[(checked)]="info.lockIrises" [icon]="lockIcon" (checkedChange)="irisChanged($event)"
-								label="Lock both irises" title="Lock both irises")
-						.col-sm-8
-							sprite-selection(
-								[(selected)]="state.expression.rightIris" [sprites]="irisesRight" [fill]="info.eyeColorRight"
-								[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
-								(selectedChange)="irisChanged(info.lockIrises)" aria-labelledby="irises")
-					.row.form-group(*ngIf="!info.lockIrises")
-						.col-sm-4
-							label#left-iris Left iris
-						.col-sm-8
-							sprite-selection(
-								[(selected)]="state.expression.leftIris" [sprites]="irisesLeft" [fill]="info.eyeColorLeft"
-								[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
-								aria-labelledby="left-iris")
+										[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="5"
+										(selectedChange)="changed()" aria-labelledby="left-eye")
+
+							.row.form-group
+								label.col-sm-4.col-form-label Right iris
+								.col-sm-8
+									sprite-selection(
+										[selected]="state.expression ? state.expression.rightIris : 0" [sprites]="irisesRight" [fill]="info.eyeColorRight"
+										[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
+										(selectedChange)="setRightIris($event)" aria-labelledby="right-iris")
+
+							.row.form-group
+								label.col-sm-4.col-form-label Left iris
+								.col-sm-8
+									sprite-selection(
+										[selected]="state.expression ? state.expression.leftIris : 0" [sprites]="irisesLeft" [fill]="info.eyeColorLeft"
+										[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
+										(selectedChange)="setLeftIris($event)" aria-labelledby="left-iris")
 
 							.row.form-group
 								.col-sm-4.col-lock-box
@@ -504,13 +502,15 @@
 								.col-sm-8
 									sprite-selection(
 										[(selected)]="info.fangs" [sprites]="fangs" [fill]="info.nose.fills" [darken]="darken"
-										[outline]="info.nose.outlines" [circle]="info.coatFill" aria-labelledby="fangs")
+										[outline]="info.nose.outlines" [circle]="info.coatFill"
+										(selectedChange)="changed()" aria-labelledby="fangs")
 							.row.form-group
 								label#expression.col-sm-4.col-form-label(for="#expression-selection") Expression
 								.col-sm-8
 									sprite-selection#expression-selection(
 										[(selected)]="info.muzzle" [sprites]="muzzles" [fill]="info.nose.fills" [darken]="darken"
-										[outline]="info.nose.outlines" [circle]="info.coatFill" [limit]="9" aria-labelledby="expression")
+										[outline]="info.nose.outlines" [circle]="info.coatFill" [limit]="9"
+										(selectedChange)="changed()" aria-labelledby="expression")
 							hr
 							set-selection(
 								label="Facial hair" [base]="maneFill" [set]="info.facialHair" [sets]="facialHair" [darken]="darken"

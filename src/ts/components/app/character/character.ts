@@ -577,6 +577,14 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		if (!this.state.expression) {
 			this.state.expression = createExpression(Eye.Neutral, Eye.Neutral, Muzzle.Smile, Iris.Forward, Iris.Forward, ExpressionExtra.None);
 		}
+
+		// sync expression state from saved info (eye openness, muzzle)
+		if (this.state.expression && this.info) {
+			const right = (this.info.eyeOpennessRight != null ? this.info.eyeOpennessRight : Eye.Neutral) as Eye;
+			const left = (this.info.eyeOpennessLeft != null ? this.info.eyeOpennessLeft : Eye.Neutral) as Eye;
+			const muzzle = (this.info.muzzle != null ? this.info.muzzle : Muzzle.Smile) as Muzzle;
+			this.state.expression = { ...this.state.expression, right, left, muzzle };
+		}
 		if (this.model.account) {
 			this.tags.push(...getAvailableTags(this.model.account)
 				.filter(t => !/^sup[1-4]$/.test(t.id) && t.id !== 'hidden'));
@@ -905,6 +913,16 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 			this.info.headTurn = 0;
 		}
 
+		// sync expression state from info so preview uses the correct eye/muzzle values
+		if (this.state.expression) {
+			const right = (this.info.eyeOpennessRight != null ? this.info.eyeOpennessRight : Eye.Neutral) as Eye;
+			const left = (this.info.eyeOpennessLeft != null ? this.info.eyeOpennessLeft : Eye.Neutral) as Eye;
+			const muzzle = (this.info.muzzle != null ? this.info.muzzle : Muzzle.Smile) as Muzzle;
+			if (this.state.expression.right !== right || this.state.expression.left !== left || this.state.expression.muzzle !== muzzle) {
+				this.state.expression = { ...this.state.expression, right, left, muzzle };
+			}
+		}
+
 		if (!this.syncTimeout) {
 			this.syncTimeout = requestAnimationFrame(() => {
 				this.syncTimeout = undefined;
@@ -1039,6 +1057,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		if (locked) {
 			this.info.eyeOpennessLeft = this.info.eyeOpennessRight;
 		}
+		this.changed();
 	}
 	eyelashLockChanged(locked: boolean) {
 		if (locked) {
