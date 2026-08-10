@@ -21,7 +21,10 @@ const couchTypes = new Set([
 const benchTypes = new Set([
 	entities.bench1.type, entities.benchSeat.type, entities.benchSeatH.type,
 ]);
-const surfaceTypes = new Set([...tableTypes, ...couchTypes, ...benchTypes]);
+const surfaceTypes = new Set<number>();
+tableTypes.forEach(type => surfaceTypes.add(type));
+couchTypes.forEach(type => surfaceTypes.add(type));
+benchTypes.forEach(type => surfaceTypes.add(type));
 const fruitTypes = new Set(entities.fruits.map(f => f.type));
 
 function isSurface(entity: ServerEntity): boolean {
