@@ -26,7 +26,7 @@
     "webpack-admin": "npm run webpack-prod -- --env.admin",
     "webpack-stats": "npm run webpack-prod -- --env.debug --json > stats.json",
     "webpack-verbose": "npm run webpack-prod -- --verbose",
-    "wds": "webpack-dev-server --config webpack.dev.js --progress --color --debug --port 8091 --local",
+    "wds": "node --max_old_space_size=8192 node_modules/webpack-dev-server/bin/webpack-dev-server.js --config webpack.dev.js --progress --color --debug --port 8091 --local",
     "build": "gulp build",
     "build-sprites": "gulp sprites && npm run build",
     "build-beta": "npm run build -- --beta --tools",

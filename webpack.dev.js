@@ -15,7 +15,7 @@ module.exports = merge(common, {
 		'bootstrap-admin': './ts/bootstrap-admin',
 		'bootstrap-tools': './ts/bootstrap-tools',
 	},
-	devtool: 'cheap-eval-source-map',
+	devtool: false,
 	devServer: {
 		host: '0.0.0.0',
 		port: 8090,
