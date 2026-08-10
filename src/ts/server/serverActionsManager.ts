@@ -110,7 +110,7 @@ export function createServerActionsFactory(
 	async function createServerActions(client: ClientActions & SocketClient & ClientExtensions & IClient) {
 		const { account } = client.tokenData as TokenData;
 		const [friendIds, hideIds] = await Promise.all([findFriendIds(account._id), findHideIds(account._id)]);
-		createClientAndPony(client, friendIds, hideIds, server, world, statesCounter);
+		await createClientAndPony(client, friendIds, hideIds, server, world, statesCounter);
 
 		return new ServerActions(
 			client, world, notifications, party, supporterInvites, holdItemService, getSettings, server, say, move, hiding, statesCounter,

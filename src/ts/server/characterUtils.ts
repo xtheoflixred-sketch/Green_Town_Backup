@@ -2,7 +2,7 @@ import { repeat } from 'lodash';
 import { toByteArray } from 'base64-js';
 import { encodeString } from 'ag-sockets/dist/utf8';
 import { PonyOptions, EntityState, UpdateFlags } from '../common/interfaces';
-import { ICharacter, IAccount, Character, MongoQuery, queryCharacter } from './db';
+import { ICharacter, IAccount, Character, MongoQuery, queryCharacter, findCharacterById } from './db';
 import { isForbiddenName } from '../common/security';
 import { supporterLevel } from '../common/adminUtils';
 import { CharacterFlags, CharacterState, ServerConfig, CharacterStateFlags } from '../common/adminInterfaces';
@@ -69,12 +69,19 @@ export async function updateCharacterState(characterId: string, serverId: string
 	await Character.updateOne({ _id: characterId }, { [`state.${serverId}`]: state }).exec();
 }
 
-export function getAndFixCharacterState(
+export async function getAndFixCharacterState(
 	server: ServerConfig, character: ICharacter, world: World, states: CounterService<CharacterState>
-): CharacterState {
+): Promise<CharacterState> {
 	const map = world.getMainMap();
-	const savedState = last(states.get(character._id.toString()).items) || getCharacterState(character, server.id, map);
-	const state = { ...defaultCharacterState, ...savedState };
+	const savedState = last(states.get(character._id.toString()).items);
+
+	if (savedState) {
+		return { ...defaultCharacterState, ...savedState };
+	}
+
+	const freshCharacter = await findCharacterById(character._id.toString());
+	const dbState = freshCharacter && freshCharacter.state && freshCharacter.state[server.id];
+	const state = { ...defaultCharacterState, ...(dbState || getCharacterState(character, server.id, map)) };
 
 	if (hasFlag(character.flags, CharacterFlags.RespawnAtSpawn)) {
 		Object.assign(state, { map: map.id, ...randomPoint(map.spawnArea) });

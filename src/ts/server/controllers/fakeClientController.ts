@@ -142,7 +142,7 @@ async function joinFakeClient(token: any, server: ServerConfig, world: World): P
 		removeNotification() { },
 	};
 
-	createClientAndPony(client as IClient, [], [], server, world, mockCharacterStates);
+	await createClientAndPony(client as IClient, [], [], server, world, mockCharacterStates);
 
 	world.joinClientToQueue(client as IClient);
 

@@ -59,13 +59,13 @@ export function getCounter(client: IClient, key: keyof AccountState) {
 	return toInt(client.account.state && client.account.state[key]);
 }
 
-export function createClientAndPony(
+export async function createClientAndPony(
 	client: IClient, friends: string[], hides: string[], server: ServerConfig, world: World, states: CounterService<CharacterState>
 ) {
 	const { account, character } = client.tokenData as TokenData;
 	const origin = client.originalRequest && getOriginFromHTTP(client.originalRequest);
 	const reporter = create(server, account._id, character._id, origin);
-	const state = getAndFixCharacterState(server, character, world, states);
+	const state = await getAndFixCharacterState(server, character, world, states);
 
 	client.characterState = state;
 	const pony = createPony(account, character, state);
