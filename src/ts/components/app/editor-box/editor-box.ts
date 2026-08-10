@@ -669,7 +669,6 @@ export class EditorBox {
 		this.game.send(server => server.editorAction({ type: 'list' }));
 	}
 	openEntityPicker() {
-		this.entitySearch = '';
 		this.pendingEditorEntity = this.editorEntity;
 		this.entityPickerModalRef = this.modalService.show(this.entityPickerModalTpl, {
 			class: 'modal-lg',

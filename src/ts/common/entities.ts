@@ -2,9 +2,10 @@ import { compact } from 'lodash';
 import * as sprites from '../generated/sprites';
 import {
 	Entity, PaletteManager, Rect, ServerFlags, PaletteRenderable, ColorShadow, EntityDescriptor, EntityOptions,
-	CreateEntityMethod, CreateEntity, EntityFlags, MixinEntity, EntityWorldState, defaultWorldState, ColorExtra, InteractAction
+	CreateEntityMethod, CreateEntity, EntityFlags, MixinEntity, EntityWorldState, defaultWorldState, ColorExtra, InteractAction,
+	SpriteBatch
 } from './interfaces';
-import { tileWidth, tileHeight, ENTITY_TYPE_LIMIT, WATER_FPS, PONY_TYPE, WATER_HEIGHT } from './constants';
+import { tileWidth, tileHeight, ENTITY_TYPE_LIMIT, WATER_FPS, PONY_TYPE, WATER_HEIGHT, LIGHT_VOLUME_SCALE } from './constants';
 import { CLOUD_SHADOW_COLOR, WHITE } from './colors';
 import {
 	mixDrawSpider, setPaletteManager, AnimatedRenderable,
@@ -16,6 +17,7 @@ import {
 } from './mixins';
 import { times, repeat, flatten, hasFlag } from './utils';
 import { withAlphaFloat } from './color';
+import { toScreenX, toScreenYWithZ } from './positionUtils';
 import { rect } from './rect';
 import { mockPaletteManager } from './ponyInfo';
 
@@ -753,23 +755,59 @@ const floorLampSpriteWidth = 28;
 const floorLampSpriteHeight = 74;
 const floorLampOriginX = Math.floor(floorLampSpriteWidth / 2);
 const floorLampOriginY = floorLampSpriteHeight - 6;
-const floorLampGlowScale = 2.5;
+const floorLampGlowScale = 1.6;
 
-function floorLampGlowBoost(base: any) {
-	base.lightScaleAdjust = floorLampGlowScale;
-}
 
 function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: number) {
-	// light_lamp is 59x88 — center on the shade (lamp origin is near the base)
+	// light_lamp
 	const lightSpriteOffsetX = 30;
 	const lightSpriteOffsetY = 72;
 
-	return doodad(n(name), sprite, floorLampOriginX, floorLampOriginY, 0,
+	const bloomColor = withAlphaFloat(lightColor, 0.12);
+	const mainW = 120;
+	const mainH = 120;
+	const mainDx = 0;
+	const mainDy = 45;
+	const bloomW = 180;
+	const bloomH = 180;
+	const bloomDx = 0;
+	const bloomDy = 35;
+
+	return registerMix(n(name),
+		mixDraw(sprite, floorLampOriginX, floorLampOriginY, 0),
 		mixColliderRect(-10, -11, 20, 14),
 		mixCover(-14, -56, 28, 44),
-		mixLight(lightColor, 0, 45, 180, 180),
 		mixLightSprite(sprites.light_lamp, lightColor, lightSpriteOffsetX, lightSpriteOffsetY),
-		floorLampGlowBoost);
+		base => {
+			if (!SERVER || TESTS) {
+				base.lightOn = true;
+				base.lightColor = lightColor;
+				base.lightScale = 1;
+				base.lightTarget = 1;
+				base.lightScaleAdjust = floorLampGlowScale;
+				const s = base.lightScaleAdjust * LIGHT_VOLUME_SCALE;
+				base.lightBounds = rect(
+					-(mainDx + mainW * s / 2), -(mainDy + mainH * s / 2),
+					mainW * s, mainH * s
+				);
+				base.drawLight = function (batch: SpriteBatch) {
+					if (!this.lightOn)
+						return;
+					const x = toScreenX(this.x);
+					const y = toScreenYWithZ(this.y, this.z);
+					const ms = (this.lightScaleAdjust || 1) * LIGHT_VOLUME_SCALE;
+					const mw = mainW * ms;
+					const mh = mainH * ms;
+					batch.drawImage(lightColor, -1, -1, 2, 2,
+						x - (mainDx + mw / 2), y - (mainDy + mh / 2), mw, mh);
+					const bs = 0.95 + 0.05 * Math.sin(Date.now() * 0.0015);
+					const bw2 = bloomW * bs;
+					const bh2 = bloomH * bs;
+					batch.drawImage(bloomColor, -1, -1, 2, 2,
+						x - (bloomDx + bw2 / 2), y - (bloomDy + bh2 / 2), bw2, bh2);
+				};
+			}
+		});
 }
 
 export const floorLampRed = createFloorLamp('floor-lamp-red', sprites.Floor_lamp_red, 0xc43d3dff);
