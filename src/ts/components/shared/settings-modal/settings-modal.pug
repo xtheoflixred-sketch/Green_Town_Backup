@@ -242,22 +242,6 @@
 			div(*tabContent)
 
 				.form-group
-					label#chat-bubble-limit-label
-						| Chat bubble limit
-
-					div
-						slider-bar.mr-2.mb-2(
-							[(value)]="chatBubbleLimitValue"
-							[min]="minChatBubbleLimit"
-							[max]="maxChatBubbleLimit"
-							[step]="1"
-							(changed)="setChatBubbleLimit($event)"
-							style="max-width: 300px"
-							labelledBy="chat-bubble-limit-label")
-
-						| {{chatBubbleLimitValue}} bubbles
-
-				.form-group
 					custom-checkbox(
 						[(checked)]="account.showSeeThroughObjectsButtonInSettingsBox"
 						help="Show the See through obstacles button in the settings box")
@@ -465,6 +449,24 @@
 
 		tab(title="Chat" [icon]="chatIcon")
 			div(*tabContent)
+
+
+				.form-group
+					label#chat-bubble-limit-label
+						| Chat bubble limit
+
+					div
+						slider-bar.mr-2.mb-2(
+							[(value)]="chatBubbleLimitValue"
+							[min]="minChatBubbleLimit"
+							[max]="maxChatBubbleLimit"
+							[step]="1"
+							(changed)="setChatBubbleLimit($event)"
+							style="max-width: 300px"
+							labelledBy="chat-bubble-limit-label")
+
+						| {{chatBubbleLimitValue}} bubbles
+
 
 				.form-group
 					custom-checkbox(
