@@ -289,10 +289,6 @@ export class World {
 		}
 
 		if (DEVELOPMENT) {
-			if (entity.update) {
-				console.error('Entity update() method is only for client-side use');
-			}
-
 			if (entity.id && this.entityById.has(entity.id)) {
 				console.error(`Entity already added to the world ${getEntityTypeName(entity.type)} [${entity.id}]`);
 			}
