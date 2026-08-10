@@ -755,7 +755,7 @@ const floorLampSpriteWidth = 28;
 const floorLampSpriteHeight = 74;
 const floorLampOriginX = Math.floor(floorLampSpriteWidth / 2);
 const floorLampOriginY = floorLampSpriteHeight - 6;
-const floorLampGlowScale = 1.1;
+const floorLampGlowScale = 1.3;
 
 
 function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: number) {
@@ -777,7 +777,7 @@ function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: nu
 		mixDraw(sprite, floorLampOriginX, floorLampOriginY, 0),
 		mixColliderRect(-10, -11, 20, 14),
 		mixCover(-14, -56, 28, 44),
-		mixLightSprite(sprites.light_lamp, withAlphaFloat(lightColor, 0.5), lightSpriteOffsetX, lightSpriteOffsetY),
+		mixLightSprite(sprites.light_lamp, withAlphaFloat(lightColor, 0.7), lightSpriteOffsetX, lightSpriteOffsetY),
 		base => {
 			if (!SERVER || TESTS) {
 				base.lightOn = true;
