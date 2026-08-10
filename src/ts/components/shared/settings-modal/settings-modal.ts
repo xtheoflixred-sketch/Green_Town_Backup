@@ -365,6 +365,14 @@ export class SettingsModal implements OnInit, OnDestroy {
 			this.account.showTypingIndicator = true;
 		}
 
+		if (this.account.showSeeThroughObjectsButtonInSettingsBox === undefined) {
+			this.account.showSeeThroughObjectsButtonInSettingsBox = true;
+		}
+
+		if (this.account.showDisableUIButtonInSettingsBox === undefined) {
+			this.account.showDisableUIButtonInSettingsBox = true;
+		}
+
 		if (this.account.visibleTestingMessages === undefined) {
 			this.account.visibleTestingMessages = false;
 		}

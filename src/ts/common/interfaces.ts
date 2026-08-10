@@ -751,6 +751,8 @@ export interface AccountSettings {
 	chatlogOpacity?: number;
 	seeThroughObjects?: boolean;
 	disableUI?: boolean;
+	showSeeThroughObjectsButtonInSettingsBox?: boolean;
+	showDisableUIButtonInSettingsBox?: boolean;
 	chatlogRange?: number;
 	chatBubbleLimit?: number;
 	showChatBubbleProfiles?: boolean;

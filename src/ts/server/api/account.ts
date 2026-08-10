@@ -164,6 +164,14 @@ function fixAccountSettings(settings: AccountSettings | undefined, level: number
 			fixed.disableUI = !!settings.disableUI;
 		}
 
+		if (settings.showSeeThroughObjectsButtonInSettingsBox !== undefined) {
+			fixed.showSeeThroughObjectsButtonInSettingsBox = !!settings.showSeeThroughObjectsButtonInSettingsBox;
+		}
+
+		if (settings.showDisableUIButtonInSettingsBox !== undefined) {
+			fixed.showDisableUIButtonInSettingsBox = !!settings.showDisableUIButtonInSettingsBox;
+		}
+
 		if (settings.filterWords !== undefined) {
 			fixed.filterWords = `${settings.filterWords}`;
 		}

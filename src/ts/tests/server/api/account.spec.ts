@@ -307,6 +307,28 @@ describe('api account', () => {
 			});
 		});
 
+		it('persists settings-box visibility toggles', async () => {
+			const save = stub();
+			const acc = { _id: genObjectId(), save, settings: undefined as any };
+			findAccount.resolves(acc);
+
+			await updateSettings(account({ _id: acc._id }), {
+				showSeeThroughObjectsButtonInSettingsBox: true,
+				showDisableUIButtonInSettingsBox: true,
+			});
+
+			expect(acc.settings).eql({
+				showSeeThroughObjectsButtonInSettingsBox: true,
+				showDisableUIButtonInSettingsBox: true,
+			});
+			assert.calledWith(updateOne, { _id: acc._id }, {
+				settings: {
+					showSeeThroughObjectsButtonInSettingsBox: true,
+					showDisableUIButtonInSettingsBox: true,
+				}
+			});
+		});
+
 		it('preserves always show tags setting', async () => {
 			const save = stub();
 			const acc = { _id: genObjectId(), save, settings: undefined as any };

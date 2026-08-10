@@ -242,24 +242,6 @@
 			div(*tabContent)
 
 				.form-group
-					custom-checkbox(
-						[(checked)]="account.showChatBubbleProfiles"
-						help="Open a player's profile by clicking their chat bubble")
-						| Open profiles from other players' chat bubbles
-
-				.form-group
-					custom-checkbox(
-						[(checked)]="account.showOwnChatBubbleProfile"
-						help="Open your own profile by clicking your chat bubble")
-						| Open your profile from your chat bubble
-
-				//.form-group
-					custom-checkbox(
-						[(checked)]="account.chatlogOfflineSave"
-						help="Save your chat log when you disconnect and restore it if you rejoin within 24 hours")
-						| Auto save chat log on disconnect
-
-				.form-group
 					label#chat-bubble-limit-label
 						| Chat bubble limit
 
@@ -274,6 +256,19 @@
 							labelledBy="chat-bubble-limit-label")
 
 						| {{chatBubbleLimitValue}} bubbles
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.showSeeThroughObjectsButtonInSettingsBox"
+						help="Show the See through obstacles button in the settings box")
+					| Show "See through obstacles" in settings box
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.showDisableUIButtonInSettingsBox"
+						help="Show the Disable UI button in the settings box")
+					| Show "Disable UI" in settings box
+
 
 				.form-group.unselectable.ms-4
 				label.me-2 Item interactions
@@ -470,6 +465,24 @@
 
 		tab(title="Chat" [icon]="chatIcon")
 			div(*tabContent)
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.showChatBubbleProfiles"
+						help="Open a player's profile by clicking their chat bubble")
+						| Open profiles from other players' chat bubbles
+
+				.form-group
+					custom-checkbox(
+						[(checked)]="account.showOwnChatBubbleProfile"
+						help="Open your own profile by clicking your chat bubble")
+						| Open your profile from your chat bubble
+
+				//.form-group
+					custom-checkbox(
+						[(checked)]="account.chatlogOfflineSave"
+						help="Save your chat log when you disconnect and restore it if you rejoin within 24 hours")
+						| Auto save chat log on disconnect
 
 				.form-group
 					custom-checkbox(

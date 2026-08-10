@@ -105,6 +105,14 @@ export class SettingsBox implements OnInit, OnDestroy {
 		const level = Math.max(1, Math.min(4, this.model.supporter));
 		return `supporter-${level}`;
 	}
+    get showSeeThroughButtonInSettingsBox() {
+        return this.settings.showSeeThroughObjectsButtonInSettingsBox !== false;
+    }
+
+    get showDisableUIButtonInSettingsBox() {
+        return this.settings.showDisableUIButtonInSettingsBox !== false;
+    }
+
     get seeThroughButtonText() {
         const label = this.settings.seeThroughObjects ? 'Hide obstacles' : 'Show obstacles';
         return !this.isMobile ? `${label} (F4)` : label;
