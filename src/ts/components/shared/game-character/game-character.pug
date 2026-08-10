@@ -336,6 +336,25 @@
 									sprite-selection(
 										[(selected)]="info.eyeOpennessLeft" [sprites]="eyesLeft" [fill]="info.eyeColorLeft" [darken]="darken"
 										[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="5" aria-labelledby="left-eye")
+					.row.form-group
+						.col-sm-4.col-lock-box
+							label#irises {{info.lockIrises ? 'Irises' : 'Right iris'}}
+							check-box.lock-box(
+								[(checked)]="info.lockIrises" [icon]="lockIcon" (checkedChange)="irisChanged($event)"
+								label="Lock both irises" title="Lock both irises")
+						.col-sm-8
+							sprite-selection(
+								[(selected)]="state.expression.rightIris" [sprites]="irisesRight" [fill]="info.eyeColorRight"
+								[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
+								(selectedChange)="irisChanged(info.lockIrises)" aria-labelledby="irises")
+					.row.form-group(*ngIf="!info.lockIrises")
+						.col-sm-4
+							label#left-iris Left iris
+						.col-sm-8
+							sprite-selection(
+								[(selected)]="state.expression.leftIris" [sprites]="irisesLeft" [fill]="info.eyeColorLeft"
+								[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
+								aria-labelledby="left-iris")
 
 							.row.form-group
 								.col-sm-4.col-lock-box

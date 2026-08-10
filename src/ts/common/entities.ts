@@ -772,13 +772,16 @@ function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: nu
 		floorLampGlowBoost);
 }
 
-export const floorLampYellow = createFloorLamp('floor-lamp-yellow', sprites.Floor_lamp_yellow, 0x9b7a12ff);
-export const floorLampOrange = createFloorLamp('floor-lamp-orange', sprites.Floor_lamp_orange, 0xb55d14ff);
-export const floorLampGreen = createFloorLamp('floor-lamp-green', sprites.Floor_lamp_green, 0x4d8a20ff);
-export const floorLampGray = createFloorLamp('floor-lamp-gray', sprites.Floor_lamp_gray, 0x7a7a7aff);
-export const floorLampPink = createFloorLamp('floor-lamp-pink', sprites.Floor_lamp_pink, 0xc95c93ff);
-export const floorLampTurquoise = createFloorLamp('floor-lamp-turquoise', sprites.Floor_lamp_turquoise, 0x2ca7a7ff);
+export const floorLampRed = createFloorLamp('floor-lamp-red', sprites.Floor_lamp_red, 0xc43d3dff);
 export const floorLampBlue = createFloorLamp('floor-lamp-blue', sprites.Floor_lamp_blue, 0x3c6ed9ff);
+export const floorLampGray = createFloorLamp('floor-lamp-gray', sprites.Floor_lamp_gray, 0x7a7a7aff);
+export const floorLampGreen = createFloorLamp('floor-lamp-green', sprites.Floor_lamp_green, 0x4d8a20ff);
+export const floorLampOrange = createFloorLamp('floor-lamp-orange', sprites.Floor_lamp_orange, 0xb55d14ff);
+export const floorLampPink = createFloorLamp('floor-lamp-pink', sprites.Floor_lamp_pink, 0xc95c93ff);
+export const floorLampPurple = createFloorLamp('floor-lamp-purple', sprites.Floor_lamp_purple, 0x8146baff);
+export const floorLampTurquoise = createFloorLamp('floor-lamp-turquoise', sprites.Floor_lamp_turquoise, 0x2ca7a7ff);
+export const floorLampWhite = createFloorLamp('floor-lamp-white', sprites.Floor_lamp_white, 0xe8e8e8ff);
+export const floorLampYellow = createFloorLamp('floor-lamp-yellow', sprites.Floor_lamp_yellow, 0x9b7a12ff);
 
 export const curvedLog = doodad(n('curved-log'), sprites.curved_log, 14, -5, 0, mixColliderRect(-13, 70, 26, 10), mixFlags(EntityFlags.StaticY));
 
@@ -2461,22 +2464,25 @@ export const placeableEntities: { type: number; name: string; }[] = [
 	{ type: table2.type, name: 'Large table' },
 	{ type: table3.type, name: 'Long table' },
 	{ type: couch.type, name: 'Couch (red)' },
-	{ type: couchBlue.type, name: 'Couch (blue)' },
-	{ type: couchGray.type, name: 'Couch (gray)' },
-	{ type: couchGreen.type, name: 'Couch (green)' },
 	{ type: couchOrange.type, name: 'Couch (orange)' },
-	{ type: couchPink.type, name: 'Couch (pink)' },
-	{ type: couchPurple.type, name: 'Couch (purple)' },
-	{ type: couchTurquoise.type, name: 'Couch (turquoise)' },
-	{ type: couchWhite.type, name: 'Couch (white)' },
 	{ type: couchYellow.type, name: 'Couch (yellow)' },
-	{ type: floorLampYellow.type, name: 'Floor lamp (yellow)' },
+	{ type: couchGreen.type, name: 'Couch (green)' },
+	{ type: couchTurquoise.type, name: 'Couch (turquoise)' },
+	{ type: couchBlue.type, name: 'Couch (blue)' },
+	{ type: couchPurple.type, name: 'Couch (purple)' },
+	{ type: couchPink.type, name: 'Couch (pink)' },
+	{ type: couchGray.type, name: 'Couch (gray)' },
+	{ type: couchWhite.type, name: 'Couch (white)' },
+	{ type: floorLampRed.type, name: 'Floor lamp (red)' },
 	{ type: floorLampOrange.type, name: 'Floor lamp (orange)' },
+	{ type: floorLampYellow.type, name: 'Floor lamp (yellow)' },
 	{ type: floorLampGreen.type, name: 'Floor lamp (green)' },
-	{ type: floorLampGray.type, name: 'Floor lamp (gray)' },
-	{ type: floorLampPink.type, name: 'Floor lamp (pink)' },
 	{ type: floorLampTurquoise.type, name: 'Floor lamp (turquoise)' },
 	{ type: floorLampBlue.type, name: 'Floor lamp (blue)' },
+	{ type: floorLampPurple.type, name: 'Floor lamp (purple)' },
+	{ type: floorLampPink.type, name: 'Floor lamp (pink)' },
+	{ type: floorLampGray.type, name: 'Floor lamp (gray)' },
+	{ type: floorLampWhite.type, name: 'Floor lamp (white)' },
 	{ type: curvedLog.type, name: 'Curved log' },
 	{ type: lanternOn.type, name: 'Lantern' },
 	{ type: pumpkin.type, name: 'Pumpkin' },

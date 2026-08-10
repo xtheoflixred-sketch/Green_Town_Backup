@@ -5,6 +5,7 @@ import { clamp } from 'lodash';
 import { PLAYER_NAME_MAX_LENGTH, PLAYER_DESC_MAX_LENGTH } from '../../../common/constants';
 import {
 	PonyInfo, PonyObject, PonyState, SocialSiteInfo, ColorExtraSet, ColorExtra, CharacterTag, PonyEye, Eye, Muzzle,
+	Entity, defaultWorldState,
 	Iris, ExpressionExtra, PonySupportChatType
 } from '../../../common/interfaces';
 import { findById, toInt, cloneDeep, delay } from '../../../common/utils';
@@ -27,12 +28,14 @@ import { precompressPony, compressPonyString, decompressPony, decompressPonyStri
 import { saveCanvas } from '../../../client/canvasUtils';
 import { drawPony } from '../../../client/ponyDraw';
 import { getProviderIcon } from '../../shared/sign-in-box/sign-in-box';
-import { faPlay, faLock, faRedo, faSave, faCode, faInfoCircle, faPaintBrush, faHorseHead, faRetweet, faSearch, faUndo, faEraser, faSlash, faFont, faStar } from '../../../client/icons';
+import { faPlay, faLock, faRedo, faSave, faCode, faInfoCircle, faPaintBrush, faHorseHead, faRetweet, faSearch, faUndo, faEraser, faSlash, faFont, faStar, faHandHolding } from '../../../client/icons';
 import { isFileSaverSupported, createExpression, readFileAsText } from '../../../client/clientUtils';
 import { isMobile } from '../../../client/data';
 import { emptyTag, getAvailableTags } from '../../../common/tags';
 import { ButtMarkEditorState } from '../../shared/butt-mark-editor/butt-mark-editor';
 import { parseColorWithAlpha } from '../../../common/color';
+import { createAnEntity } from '../../../common/entities';
+import { mockPaletteManager } from '../../../common/ponyInfo';
 
 const frontHoofTitles = ['', 'Fetlocks', 'Paws', 'Claws', ''];
 const backHoofTitles = ['', 'Fetlocks', 'Paws', '', ''];
@@ -65,6 +68,7 @@ interface CharacterUndoState {
 	hidePreviewName: boolean;
 	hidePreviewTag: boolean;
 	showBackground: boolean;
+	previewHoldItem: boolean;
 }
 
 @Component({
@@ -100,6 +104,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	readonly tagIcon = faCode;
 	readonly slashIcon = faSlash;
 	readonly starIcon = faStar;
+	readonly holdItemIcon = faHandHolding;
 	readonly maxNameLength = PLAYER_NAME_MAX_LENGTH;
 	readonly maxDescLength = PLAYER_DESC_MAX_LENGTH;
 	readonly horns = horns;
@@ -136,6 +141,28 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	readonly eyelashes: ColorExtraSet = sprites.eyeLeft[1]!.map(eyeSprite);
 	readonly eyesLeft: ColorExtraSet = sprites.eyeLeft.map(e => e && e[0]).map(eyeSprite);
 	readonly eyesRight: ColorExtraSet = sprites.eyeRight.map(e => e && e[0]).map(eyeSprite);
+	private cachedIrisesLeftType = -1;
+	private cachedIrisesRightType = -1;
+	private cachedIrisesLeft?: ColorExtraSet;
+	private cachedIrisesRight?: ColorExtraSet;
+	get irisesLeft(): ColorExtraSet {
+		const eyeType = this.info.eyeOpennessLeft || 1;
+		if (eyeType !== this.cachedIrisesLeftType) {
+			const eye = sprites.eyeLeft[eyeType] && sprites.eyeLeft[eyeType]![0];
+			this.cachedIrisesLeft = eye ? eye.irises.map((_, iris) => createEyeSprite(eye, iris, sprites.defaultPalette)) : undefined;
+			this.cachedIrisesLeftType = eyeType;
+		}
+		return this.cachedIrisesLeft;
+	}
+	get irisesRight(): ColorExtraSet {
+		const eyeType = this.info.eyeOpennessRight || 1;
+		if (eyeType !== this.cachedIrisesRightType) {
+			const eye = sprites.eyeRight[eyeType] && sprites.eyeRight[eyeType]![0];
+			this.cachedIrisesRight = eye ? eye.irises.map((_, iris) => createEyeSprite(eye, iris, sprites.defaultPalette)) : undefined;
+			this.cachedIrisesRightType = eyeType;
+		}
+		return this.cachedIrisesRight;
+	}
 	readonly noses = noses;
 	readonly heads = sprites.head1[1];
 	readonly buttMarkState: ButtMarkEditorState = {
@@ -156,7 +183,10 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	fixed = false;
 	previewExtra = false;
 	previewMagic = false;
+	previewHoldItem = true;
 	previewPony: PonyObject | undefined = undefined;
+	private previewHoldItemType = 0;
+	private previewHoldItemStateKey = '';
 	sites: SocialSiteInfo[] = [];
 	error?: string;
 	canSaveFiles = isFileSaverSupported();
@@ -299,7 +329,8 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		return !!this.info.previewBackground && this.info.previewBackground !== '90ee90';
 	}
 	get hasCustomPreviewSettings() {
-		return this.previewScale !== 3 || !!this.info.headTurned || !!this.info.flip || this.hidePreviewName || this.hidePreviewTag;
+		return this.previewScale !== 3 || !!this.info.headTurned || !!this.info.flip || this.hidePreviewName || this.hidePreviewTag
+			|| (this.canPreviewHoldItem && !this.previewHoldItem);
 	}
 	get hasCustomBlushColor() {
 		return !!this.info.blushColor && this.info.blushColor !== 'ff89ae';
@@ -319,7 +350,46 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		this.info.flip = false;
 		this.hidePreviewName = false;
 		this.hidePreviewTag = false;
+		this.previewHoldItem = true;
+		this.syncPreviewHoldItem();
 		this.changed();
+	}
+	get currentHoldItemType() {
+		const player = (window as any).game && (window as any).game.player;
+		return player && typeof player.hold === 'number' ? player.hold : 0;
+	}
+	get canPreviewHoldItem() {
+		return this.currentHoldItemType > 0;
+	}
+	get isPreviewingHoldItem() {
+		return this.canPreviewHoldItem && this.previewHoldItem;
+	}
+	togglePreviewHoldItem() {
+		if (!this.canPreviewHoldItem) return;
+		this.previewHoldItem = !this.previewHoldItem;
+		this.syncPreviewHoldItem();
+		this.renderChanged();
+	}
+	private syncPreviewHoldItem() {
+		const type = this.currentHoldItemType;
+		if (type !== this.previewHoldItemType) {
+			this.previewHoldItemType = type;
+			if (!type) this.previewHoldItem = false;
+		}
+		const stateKey = `${type}:${this.isPreviewingHoldItem}`;
+		if (stateKey === this.previewHoldItemStateKey) return;
+		this.previewHoldItemStateKey = stateKey;
+
+		if (!this.isPreviewingHoldItem) {
+			this.state.holding = undefined;
+			return;
+		}
+
+		try {
+			this.state.holding = createAnEntity(type, 0, 0, 0, {}, mockPaletteManager, defaultWorldState) as Entity;
+		} catch {
+			this.state.holding = undefined;
+		}
 	}
 	resetEffects() {
 		this.info.blush = false;
@@ -504,6 +574,9 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		return SLEEVED_ACCESSORIES.indexOf(type) !== -1;
 	}
 	ngOnInit() {
+		if (!this.state.expression) {
+			this.state.expression = createExpression(Eye.Neutral, Eye.Neutral, Muzzle.Smile, Iris.Forward, Iris.Forward, ExpressionExtra.None);
+		}
 		if (this.model.account) {
 			this.tags.push(...getAvailableTags(this.model.account)
 				.filter(t => !/^sup[1-4]$/.test(t.id) && t.id !== 'hidden'));
@@ -512,6 +585,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		this.sites = this.model.sites.filter(s => !!s.name);
 		this.updateMuzzles();
 		this.syncPreviewHeadTurnState();
+		this.syncPreviewHoldItem();
 		this.tryRestoreAutosaveDraft();
 
 		let last = Date.now();
@@ -528,11 +602,24 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 			}, 1000 / 24);
 		});
 	}
+	setRightIris(iris: Iris) {
+		if (this.state.expression) {
+			this.state.expression.rightIris = iris;
+			this.renderChanged();
+		}
+	}
+	setLeftIris(iris: Iris) {
+		if (this.state.expression) {
+			this.state.expression.leftIris = iris;
+			this.renderChanged();
+		}
+	}
 	ngOnDestroy() {
 		clearInterval(this.interval);
 		this.accountChangedSubscription && this.accountChangedSubscription.unsubscribe();
 	}
 	ngDoCheck() {
+		this.syncPreviewHoldItem();
 		if (!this.applyingUndoRedo && !this.suppressUndoCapture && !this.colorDragActive) {
 			this.captureUndoStep();
 		}
@@ -632,6 +719,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 			hidePreviewName: this.hidePreviewName,
 			hidePreviewTag: this.hidePreviewTag,
 			showBackground: this.showBackground,
+			previewHoldItem: this.previewHoldItem,
 		};
 	}
 	private getUndoStateKey(state: CharacterUndoState) {
@@ -681,6 +769,8 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		this.hidePreviewName = state.hidePreviewName;
 		this.hidePreviewTag = state.hidePreviewTag;
 		this.showBackground = state.showBackground;
+		this.previewHoldItem = state.previewHoldItem;
+		this.syncPreviewHoldItem();
 		this.updateMuzzles();
 	}
 	undo() {

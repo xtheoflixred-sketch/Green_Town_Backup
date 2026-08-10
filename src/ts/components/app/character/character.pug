@@ -334,6 +334,22 @@ page-loader(*ngIf="!playing")
 								[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="5" aria-labelledby="left-eye")
 
 					.row.form-group
+						label.col-sm-4.col-form-label Right iris
+						.col-sm-8
+							sprite-selection(
+								[selected]="state.expression ? state.expression.rightIris : 0" [sprites]="irisesRight" [fill]="info.eyeColorRight"
+								[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
+								(selectedChange)="setRightIris($event)" aria-labelledby="right-iris")
+
+					.row.form-group
+						label.col-sm-4.col-form-label Left iris
+						.col-sm-8
+							sprite-selection(
+								[selected]="state.expression ? state.expression.leftIris : 0" [sprites]="irisesLeft" [fill]="info.eyeColorLeft"
+								[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
+								(selectedChange)="setLeftIris($event)" aria-labelledby="left-iris")
+
+					.row.form-group
 						.col-sm-4.col-lock-box
 							label#eyeshadow-label Eyeshadow
 
@@ -908,6 +924,8 @@ page-loader(*ngIf="!playing")
 										fa-icon([icon]="horseHeadIcon")
 									button([class]="info.flip ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Flip character' : 'Flip: A ← / D →'" aria-label="Flip character" (click)="toggleFlip()")
 										fa-icon([icon]="flipIcon")
+									button([class]="!canPreviewHoldItem ? 'btn btn-default' : (isPreviewingHoldItem ? 'btn btn-primary' : 'btn btn-default')" type="button" [disabled]="!canPreviewHoldItem" [tooltip]="canPreviewHoldItem ? 'Show or hide held item' : 'No held item'" aria-label="Show or hide held item" (click)="togglePreviewHoldItem()")
+										fa-icon([icon]="holdItemIcon")
 									button([class]="hidePreviewName ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Show or hide name' : 'Show or hide name (Y)'" aria-label="Hide name" (click)="toggleHidePreviewName()")
 										span.fa-layers
 											fa-icon([icon]="nameIcon")
