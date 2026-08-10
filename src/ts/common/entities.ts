@@ -755,7 +755,7 @@ const floorLampSpriteWidth = 28;
 const floorLampSpriteHeight = 74;
 const floorLampOriginX = Math.floor(floorLampSpriteWidth / 2);
 const floorLampOriginY = floorLampSpriteHeight - 6;
-const floorLampGlowScale = 1.3;
+const floorLampGlowScale = 1.6;
 
 
 function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: number) {
@@ -763,13 +763,13 @@ function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: nu
 	const lightSpriteOffsetX = 30;
 	const lightSpriteOffsetY = 72;
 
-	const bloomColor = withAlphaFloat(lightColor, 0.08);
-	const mainW = 110;
-	const mainH = 110;
+	const bloomColor = withAlphaFloat(lightColor, 0.12);
+	const mainW = 120;
+	const mainH = 120;
 	const mainDx = 0;
 	const mainDy = 45;
-	const bloomW = 160;
-	const bloomH = 160;
+	const bloomW = 180;
+	const bloomH = 180;
 	const bloomDx = 0;
 	const bloomDy = 35;
 
@@ -777,7 +777,7 @@ function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: nu
 		mixDraw(sprite, floorLampOriginX, floorLampOriginY, 0),
 		mixColliderRect(-10, -11, 20, 14),
 		mixCover(-14, -56, 28, 44),
-		mixLightSprite(sprites.light_lamp, withAlphaFloat(lightColor, 0.7), lightSpriteOffsetX, lightSpriteOffsetY),
+		mixLightSprite(sprites.light_lamp, lightColor, lightSpriteOffsetX, lightSpriteOffsetY),
 		base => {
 			if (!SERVER || TESTS) {
 				base.lightOn = true;
