@@ -235,7 +235,7 @@ export function isFacingRight(entity: Entity) {
 }
 
 export function mirrorEntity(entity: Entity) {
-	if (!entity || (!entity.state && !entity.bounds && !entity.colliders && !entity.interactBounds && !entity.pickableX && !entity.pickableY)) {
+	if (!entity) {
 		return;
 	}
 

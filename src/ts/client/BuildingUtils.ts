@@ -283,7 +283,7 @@ export function updateBuildingPreviews(game: any, player: any, hover: any, serve
 		addChatBubble(game.map, game.player, { message: wallHeightName, type: MessageType.System, total, timer: total, created: Date.now() });
 	}
 
-	if (hasFlag(game.map.flags, MapFlags.EditableEntities) || isEditorHammerActive(game, player) || isEditorBroomActive(game, player) || isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player)) {
+	if (hasFlag(game.map.flags, MapFlags.EditableEntities) || player.hold === scrapAlignTool.type || isEditorHammerActive(game, player) || isEditorBroomActive(game, player) || isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player)) {
 		if (isEditorBroomActive(game, player)) {
 			game.highlightEntity = pickAnyEntities(game.map, hover).find(entity => entity.type !== PONY_TYPE && isRemovableEntity(entity));
 			return;
@@ -524,7 +524,7 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		(BETA && game.editor.tile !== -1) ||
 		(player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles)) ||
 		(player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) ||
-		(player.hold === scrapAlignTool.type && hasFlag(game.map.flags, MapFlags.EditableEntities)) ||
+		(player.hold === scrapAlignTool.type) ||
 		isEditorSawActive(game, player) ||
 		holdingRemoveTool || holdingPlaceTool
 	)) {
@@ -549,7 +549,7 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		const x = hover.x | 0;
 		const y = hover.y | 0;
 		server.changeTile(x, y, houseTiles[game.placeTile].type);
-	} else if (player.hold === scrapAlignTool.type && game.highlightEntity && editableMap) {
+	} else if (player.hold === scrapAlignTool.type && game.highlightEntity) {
 		const id = game.highlightEntity.id;
 		if (game.highlightEntity.type !== PONY_TYPE && game.highlightEntity.type !== toggleWallsTool.type) {
 			game.send((s: any) => s.editorAction({ type: 'mirror', entities: [id] }));

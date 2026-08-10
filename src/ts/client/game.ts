@@ -1489,7 +1489,7 @@ export class PonyTownGame implements Game {
 							   : !!this.settings.account.showChatBubbleProfiles;
 						   if (canOpenBubbleProfile) {
 							   this.select(chatEntity as Pony);
-						   } else if (pickedEntity && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
+						   } else if (pickedEntity && !holdingScrapTool && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
 							   if (pickedEntity.type === PONY_TYPE) {
 								   this.select(pickedEntity as Pony);
 							   } else if (entityInRange(pickedEntity, player)) {
@@ -1533,7 +1533,7 @@ export class PonyTownGame implements Game {
 								   setElevation(this.map, hover.x, hover.y, clamp(this.editor.elevation === 'up' ? value + 1 : value - 1, 0, 10));
 							   }
 						   }
-					   } else if (pickedEntity && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
+					   } else if (pickedEntity && !holdingScrapTool && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
 						   if (pickedEntity.type === PONY_TYPE) {
 							   this.select(pickedEntity as Pony);
 						   } else if (entityInRange(pickedEntity, player)) {

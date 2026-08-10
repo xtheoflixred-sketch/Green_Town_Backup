@@ -936,7 +936,6 @@ export class ServerActions implements IServerActions, SocketServer {
 		const isPlayerMirror =
 			action.type === 'mirror' &&
 			Array.isArray(action.entities) &&
-			hasFlag(this.map.flags, MapFlags.EditableEntities) &&
 			this.pony.options!.hold === entities.scrap.type;
 
 		if (!isModEditor && !isPlayerRopeMove && !isPlayerMirror) {
@@ -981,7 +980,6 @@ export class ServerActions implements IServerActions, SocketServer {
 				if (
 					entity &&
 					entity.type !== PONY_TYPE &&
-					hasFlag(entity.state, EntityState.Editable) &&
 					this.map.regions.some(r => includes(r.entities, entity))
 				) {
 					mirrorEntity(entity);
