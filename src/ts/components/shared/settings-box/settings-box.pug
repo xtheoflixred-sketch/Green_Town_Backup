@@ -145,11 +145,11 @@ ng-template(#testModal)
 				| Unhide players (temporary)
 
 			a.dropdown-item.mb-1(*ngIf="showSeeThroughButtonInSettingsBox" (click)="toggleSeeThrough()")
-				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				fa-icon.mr-2([icon]="checkIcon" [class]="settings.seeThroughObjects ? '' : 'text-muted'" [fixedWidth]="true")
 				| {{ seeThroughButtonText }}
 
 			a.dropdown-item.mb-1(*ngIf="showDisableUIButtonInSettingsBox" (click)="toggleDisableUI()")
-				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				fa-icon.mr-2([icon]="checkIcon" [class]="settings.disableUI ? '' : 'text-muted'" [fixedWidth]="true")
 				| {{ disableUIButtonText }}
 
 			a.dropdown-item.mb-1((click)="openGameCharacter()")

@@ -9,7 +9,7 @@ import { isMobile } from '../../../client/data';
 import { Dropdown } from '../directives/dropdown';
 import {
 	emptyIcon, faCog, faSearch, faSignOutAlt, faVolumeOff, faVolumeUp, faVolumeDown, faPlus, faMinus,
-	faStepForward, faPause, faPlay, faChevronUp, faChevronDown, faStar, faClock,
+	faStepForward, faPause, faPlay, faChevronUp, faChevronDown, faStar, faClock, faCheck,
 } from '../../../client/icons';
 import { SettingsService } from '../../services/settingsService';
 import { Audio } from '../../services/audio';
@@ -30,6 +30,7 @@ export class SettingsBox implements OnInit, OnDestroy {
 	readonly volumeDownIcon = faVolumeDown;
 	readonly volumeUpIcon = faVolumeUp;
 	readonly emptyIcon = emptyIcon;
+	readonly checkIcon = faCheck;
 	readonly plusIcon = faPlus;
 	readonly minusIcon = faMinus;
 	readonly backwardIcon = faStepForward;
