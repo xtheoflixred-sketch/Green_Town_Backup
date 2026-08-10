@@ -233,7 +233,7 @@ page-loader(*ngIf="!playing")
 					.row.form-group
 						label.col-sm-4.col-form-label Magic color
 						.col-sm-8
-							color-picker([(color)]="info.magicColor" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()" label="Magic color")
+							color-picker([(color)]="info.magicColor" (colorChangeStart)="beginMagicColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="magicColorChangeDone()" label="Magic color")
 					hr
 					.row.form-group
 						label.col-sm-4.col-form-label Wings sides

@@ -65,7 +65,11 @@ export function updateEntityVelocity(map: WorldMap, entity: Entity, vx: number, 
 }
 
 export function compareEntities(a: Entity, b: Entity) {
-	return (toScreenY(a.y) - toScreenY(b.y))
+	const aOpts = a.options as any;
+	const bOpts = b.options as any;
+	const aY = (a as any).sortY !== undefined ? (a as any).sortY : (aOpts && aOpts.sortY !== undefined ? aOpts.sortY : a.y);
+	const bY = (b as any).sortY !== undefined ? (b as any).sortY : (bOpts && bOpts.sortY !== undefined ? bOpts.sortY : b.y);
+	return (toScreenY(aY) - toScreenY(bY))
 		|| (a.order - b.order)
 		|| (b.id - a.id)
 		|| (toScreenX(a.x) - toScreenX(b.x))

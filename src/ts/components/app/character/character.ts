@@ -851,6 +851,16 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		this.colorDragStartUndoLength = 0;
 		this.renderChanged();
 	}
+
+	beginMagicColorChange() {
+		this.beginColorChange();
+		this.previewMagic = true;
+	}
+
+	magicColorChangeDone() {
+		this.colorChangeDone();
+		this.previewMagic = false;
+	}
 	changed() {
 		this.suppressUndoCapture = false;
 		this.colorDragActive = false;

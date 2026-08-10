@@ -12,6 +12,26 @@ import { mockPaletteManager } from '../common/ponyInfo';
 import { rect } from '../common/rect';
 import { findEntities } from './serverMap';
 
+const tableTypes = new Set([entities.table1.type, entities.table2.type, entities.table3.type]);
+const couchTypes = new Set([
+	entities.couch.type, entities.couchBlue.type, entities.couchGray.type, entities.couchGreen.type,
+	entities.couchOrange.type, entities.couchPink.type, entities.couchPurple.type,
+	entities.couchTurquoise.type, entities.couchWhite.type, entities.couchYellow.type,
+]);
+const benchTypes = new Set([
+	entities.bench1.type, entities.benchSeat.type, entities.benchSeatH.type,
+]);
+const surfaceTypes = new Set([...tableTypes, ...couchTypes, ...benchTypes]);
+const fruitTypes = new Set(entities.fruits.map(f => f.type));
+
+function isSurface(entity: ServerEntity): boolean {
+	return surfaceTypes.has(entity.type);
+}
+
+function isFruitType(type: number): boolean {
+	return fruitTypes.has(type);
+}
+
 function getDropTypeForHeldType(holdType: number) {
 	if (holdType === entities.cloverPick.type) {
 		return entities.cloverPick2.type;
@@ -174,6 +194,10 @@ export function handleItemTriggerInteract(world: World, map: ServerMap, entity: 
 			const picked = findItemOnTrigger(map, entity, x, y);
 
 			if (picked) {
+				if (isSurface(entity) && !isFruitType(picked.type)) {
+					return false;
+				}
+
 				if (client.shadowed) {
 					pushRemoveEntityToClient(client, picked);
 				} else {
@@ -189,6 +213,10 @@ export function handleItemTriggerInteract(world: World, map: ServerMap, entity: 
 				return true;
 			}
 
+			return false;
+		}
+
+		if (isSurface(entity) && !isFruitType(held)) {
 			return false;
 		}
 
@@ -212,6 +240,9 @@ export function handleItemTriggerInteract(world: World, map: ServerMap, entity: 
 		for (const e of toAdd) {
 			e.x = spawn.x;
 			e.y = spawn.y;
+			if (surfaceTypes.has(entity.type)) {
+				e.options = Object.assign({}, e.options as any, { sortY: entity.y });
+			}
 			ensurePickableEntity(e);
 			e.flags |= EntityFlags.Interactive;
 			e.options = Object.assign({}, e.options as any, { dropHoldType: held });

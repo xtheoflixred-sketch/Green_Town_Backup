@@ -30,6 +30,7 @@ import {
 	sendAction, pushUpdateEntityToClient, fixPosition, isHoldingGrapes
 } from './entityUtils';
 import { handleItemTriggerInteract } from './controllerUtils';
+import { pickEntity } from './mapUtils';
 import { replaceEmojis } from '../client/emoji';
 import { expression, parseExpression } from '../common/expressionUtils';
 import {
@@ -425,6 +426,14 @@ export function interactWith(client: IClient, target: ServerEntity | undefined, 
 				}
 
 				if (handleItemTriggerInteract(world, client.map, trigger, client, x, y)) {
+					return true;
+				}
+			}
+
+			if (!trigger && !target.interact && !target.interactAction && world) {
+				if (distance(pony, target) < (target.interactRange || 1.5)) {
+					world.removeEntity(target, client.map);
+					pickEntity(client, target);
 					return true;
 				}
 			}

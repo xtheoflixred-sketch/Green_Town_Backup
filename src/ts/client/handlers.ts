@@ -807,6 +807,10 @@ function createEntityOrPony(
 
 		entity.state = state;
 
+		if (options && typeof options === 'object') {
+			(entity as any).options = options;
+		}
+
 		if (name) {
 			entity.name = name;
 		}

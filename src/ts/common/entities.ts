@@ -682,73 +682,119 @@ export const barrel = doodad(n('barrel'), sprites.barrel, 13, 27, 0,
 	mixFlags(EntityFlags.Interactive),
 	base => base.interactRange = 3);
 
-export const bench1 = doodad(n('bench-1'), sprites.bench_1, 37, 20, 0, mixColliderRect(-37, -3, 75, 8));
-export const benchSeat = doodad(n('bench-seat'), sprites.bench_seat, 37, 0);
+export const bench1 = doodad(n('bench-1'), sprites.bench_1, 37, 20, 0,
+	mixColliderRect(-37, -3, 75, 8),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-37, -3, 75, 8, itemTriggerArea.type),
+	mixOrder(-1));
+export const benchSeat = doodad(n('bench-seat'), sprites.bench_seat, 37, 0, 0,
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-37, -3, 75, 8, itemTriggerArea.type),
+	mixOrder(-1));
 export const benchBack = doodad(n('bench-back'), sprites.bench_back, 37, 22, 0, mixColliderRect(-37, -3, 75, 8));
-export const benchSeatH = doodad(n('bench-seat-h'), sprites.bench_seath, 11, 0);
+export const benchSeatH = doodad(n('bench-seat-h'), sprites.bench_seath, 11, 0, 0,
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-8, -3, 16, 8, itemTriggerArea.type),
+	mixOrder(-1));
 export const benchBackH = doodad(n('bench-back-h'), sprites.bench_backh, 9, 84, 0, mixColliderRect(-15, -64, 30, 65));
 export const benchBackH2 = doodad(n('bench-back-h2'), sprites.bench_backh2, 6, 84, 0, mixColliderRect(-15, -64, 30, 65));
 
 export const table1 = doodad(n('table-1'), sprites.table_1, 14, 34, 0,
 	mixColliderRect(-18, -22, 37, 23),
-	mixItemTrigger(-18, -22, 37, 23, itemTriggerArea.type));
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-18, -34, 37, 58, itemTriggerArea.type),
+	mixOrder(-1));
 export const table2 = doodad(n('table-2'), sprites.table_2, 24, 29, 0,
 	mixColliderRect(-27, -21, 56, 49),
-	mixItemTrigger(-27, -21, 56, 49, itemTriggerArea.type));
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-27, -29, 56, 59, itemTriggerArea.type),
+	mixOrder(-1));
 export const table3 = doodad(n('table-3'), sprites.table_3, 24, 21, 0,
 	mixColliderRect(-23, -14, 45, 14),
-	mixItemTrigger(-23, -14, 45, 14, itemTriggerArea.type));
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-24, -21, 46, 23, itemTriggerArea.type),
+	mixOrder(-1));
 
-export const couch = doodad(n('couch'), sprites.couch_red, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
-export const couchBlue = doodad(n('couch-blue'), sprites.couch_blue, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
-export const couchGray = doodad(n('couch-gray'), sprites.couch_gray, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
-export const couchGreen = doodad(n('couch-green'), sprites.couch_green, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
-export const couchOrange = doodad(n('couch-orange'), sprites.couch_orange, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
-export const couchPink = doodad(n('couch-pink'), sprites.couch_pink, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
-export const couchPurple = doodad(n('couch-purple'), sprites.couch_purple, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
-export const couchTurquoise = doodad(n('couch-turquoise'), sprites.couch_turquoise, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
-export const couchWhite = doodad(n('couch-white'), sprites.couch_white, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
-export const couchYellow = doodad(n('couch-yellow'), sprites.couch_yellow, 37, 20, 0, mixColliders(
-	collider(-37, 0, 112, 7),
-	collider(-37, 7, 14, 28),
-	collider(61, 7, 14, 28),
-));
+export const couch = doodad(n('couch'), sprites.couch_red, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const couchBlue = doodad(n('couch-blue'), sprites.couch_blue, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const couchGray = doodad(n('couch-gray'), sprites.couch_gray, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const couchGreen = doodad(n('couch-green'), sprites.couch_green, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const couchOrange = doodad(n('couch-orange'), sprites.couch_orange, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const couchPink = doodad(n('couch-pink'), sprites.couch_pink, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const couchPurple = doodad(n('couch-purple'), sprites.couch_purple, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const couchTurquoise = doodad(n('couch-turquoise'), sprites.couch_turquoise, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const couchWhite = doodad(n('couch-white'), sprites.couch_white, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const couchYellow = doodad(n('couch-yellow'), sprites.couch_yellow, 37, 20, 0,
+	mixColliders(
+		collider(-37, 0, 112, 7),
+		collider(-37, 7, 14, 28),
+		collider(61, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
+	mixOrder(-1));
 
 // floor lamps
 const floorLampSpriteWidth = 28;
