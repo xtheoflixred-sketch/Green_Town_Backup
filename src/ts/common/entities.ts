@@ -497,6 +497,7 @@ const lanternCollider = mixColliderRounded(-5, -5, 10, 10, 2, false);
 export const lanternOn = registerMix(n('lantern-on'),
 	mixAnimation(sprites.lantern, 12, 4, 13, { lightSprite: lanternLightSprite }),
 	mixLight(0x916a32ff, 0, 0, 384, 288),
+	mixInteract(-8, -12, 16, 16, 1.5),
 	lanternPickable,
 	lanternCollider);
 
@@ -2689,7 +2690,7 @@ export const placeableEntities: { type: number; name: string; }[] = [
 
 export const fruits = [
 	apple, apple2, appleGreen, appleGreen2, orange, pear, banana,
-	lemon, lime, carrotHeld, mango, grapesGreen[0], grapesPurple[0],
+	lemon, lime, carrotHeld, mango, grapesGreen[0], grapesPurple[0], lanternOn,
 ];
 
 export const tools = [

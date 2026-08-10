@@ -2218,7 +2218,7 @@ export function createCommands(world: World): Command[] {
 			findEntities(client.map, e => !!e.options && e.name === 'debug 2')
 				.forEach(e => sayToAll(e, 'Hello there!', 'Hello there!', MessageType.Chat, settings));
 		}, false, 'Owner'),
-		BETA && command(['hold'], '/hold <name> - hold item', 'staff', ({ }, client, message) => {
+		command(['hold'], '/hold <name> - hold item', 'owner', ({ }, client, message) => {
 			holdItem(client.pony, getEntityType(message));
 		}, false, 'Owner'),
 		BETA && command(['toy'], '/toy <number> - hold toy', 'owner', ({ }, client, message) => {

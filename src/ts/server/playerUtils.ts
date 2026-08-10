@@ -430,7 +430,7 @@ export function interactWith(client: IClient, target: ServerEntity | undefined, 
 				}
 			}
 
-			if (!trigger && !target.interact && !target.interactAction && world) {
+			if (!trigger && !target.interact && !target.interactAction && !target.trigger && world) {
 				if (distance(pony, target) < (target.interactRange || 1.5)) {
 					world.removeEntity(target, client.map);
 					pickEntity(client, target);
