@@ -1005,7 +1005,7 @@ export const plushSofa = doodad(n('plush-sofa'), sprites.Plush_Sofa, Math.floor(
 	mixColliderRect(-12, -5, 24, 5),
 	mixFlags(EntityFlags.StaticY));
 
-export const curvedLog = doodad(n('curved-log'), sprites.curved_log, 14, -5, 0, mixColliderRect(-13, 70, 26, 10), mixFlags(EntityFlags.StaticY));
+export const curvedLog = doodad(n('curved-log'), sprites.curved_log, 14, 20, 0, mixColliderRect(-13, 70, 26, 10), mixFlags(EntityFlags.StaticY));
 
 export const wallMap = doodad(n('wall-map'), sprites.wall_map, 20, 51, 0, mixFlags(EntityFlags.StaticY));
 

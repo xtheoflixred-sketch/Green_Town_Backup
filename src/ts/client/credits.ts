@@ -154,6 +154,12 @@ const BADGES = {
 		color: '#212121',
 		icon: faTiktok,
 	},
+	PR: {
+		id: 'PR',
+		label: 'PR Manager',
+		color: '#212121',
+		icon: faIdBadge,
+	},
 	trialMember: {
 		id: 'trialMember',
 		label: 'Trial Member',
@@ -166,16 +172,23 @@ const BADGES = {
 export const CREDITS: Credit[] = [
 	{
 		name: 'KOKOSIK',
-		badges: [BADGES.owner, BADGES.tiktoker],
-		avatarSkin: 'loreine-pony',
+		badges: [BADGES.owner, BADGES.tiktoker, BADGES.PR ],
+		avatarSkin: 'kokosik-pony',
 		avatarBgColor: 'rgb(134, 118, 98)',
 		links: ['https://www.tiktok.com/@pupirka_67a6?_r=1&_t=ZS-98bHK9s6LTT'],
 	},
 	{
 		name: 'Del',
 		badges: [BADGES.dev, BADGES.gameDesigner, BADGES.wibecoder],
-		avatarSkin: 'kreyser-pony',
+		avatarSkin: 'del-pony',
 		avatarBgColor: 'rgb(43, 46, 53)',
+		links: [],
+	},
+	{
+		name: 'Luka',
+		badges: [BADGES.dev, BADGES.dev_code ],
+		avatarSkin: 'luka-pony',
+		avatarBgColor: 'rgb(138, 97, 124)',
 		links: [],
 	},
 ];
