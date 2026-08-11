@@ -378,6 +378,27 @@
 					title="Editor saw — toggle walls anywhere")
 					fa-icon([icon]="sawIcon")
 
+				button.btn.btn-sm(
+					[class.btn-light]="useEditorScrap"
+					[class.btn-default]="!useEditorScrap"
+					(click)="useEditorScrap = !useEditorScrap"
+					title="Editor scrap — mirror objects")
+					fa-icon([icon]="scrapIcon")
+
+				button.btn.btn-sm(
+					[class.btn-info]="useEditorRecolor"
+					[class.btn-default]="!useEditorRecolor"
+					(click)="useEditorRecolor = !useEditorRecolor"
+					title="Recolor — cycle colors of furniture")
+					fa-icon([icon]="recolorIcon")
+
+				button.btn.btn-sm(
+					[class.btn-success]="useEditorSeason"
+					[class.btn-default]="!useEditorSeason"
+					(click)="useEditorSeason = !useEditorSeason"
+					title="Season — cycle seasons of objects")
+					fa-icon([icon]="seasonIcon")
+
 ng-template(#entityPickerModal)
 	.modal-header.d-sm-block
 		h4.modal-title.d-flex.justify-content-between.w-100

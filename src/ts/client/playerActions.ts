@@ -170,7 +170,6 @@ export function interact(game: PonyTownGame, shift: boolean) {
 	const player = game.player;
 
 	if (player) {
-		const hover = (game as any).hover as Point;
 		const bounds = getInteractBounds(player);
 		const entities = pickEntitiesByRect(game.map, bounds, true, false);
 		const center = centerPoint(bounds);
@@ -178,7 +177,7 @@ export function interact(game: PonyTownGame, shift: boolean) {
 		const entity = closestEntity(pointToWorld(center), entities);
 
 		if (entity && entityInRange(entity, player)) {
-			game.send(server => server.interact(entity.id, hover.x, hover.y));
+			game.send(server => server.interact(entity.id, 0, 0));
 		} else if (player.hold === hammer.type) {
 			game.changePlaceEntity(shift);
 		} else if (player.hold === shovel.type) {
@@ -227,8 +226,24 @@ export function editorSelectEntities(game: PonyTownGame, hover: Point, shift: bo
 	});
 }
 
+let lastEditorDragTime = 0;
+const EDITOR_DRAG_THROTTLE = 50; // ms
+
 export function editorDragEntities(game: PonyTownGame, hover: Point, buttonPressed: boolean) {
 	if (buttonPressed) {
+		const now = Date.now();
+		if (now - lastEditorDragTime < EDITOR_DRAG_THROTTLE) {
+			// Still update local positions for smooth rendering, but skip server send
+			const dx = hover.x - game.editor.draggingStart.x;
+			const dy = hover.y - game.editor.draggingStart.y;
+			game.editor.selectedEntities.forEach(e => {
+				e.x = roundPositionX(e.draggingStart!.x + dx);
+				e.y = roundPositionY(e.draggingStart!.y + dy);
+			});
+			return;
+		}
+		lastEditorDragTime = now;
+
 		const dx = hover.x - game.editor.draggingStart.x;
 		const dy = hover.y - game.editor.draggingStart.y;
 
@@ -236,6 +251,12 @@ export function editorDragEntities(game: PonyTownGame, hover: Point, buttonPress
 			e.x = roundPositionX(e.draggingStart!.x + dx);
 			e.y = roundPositionY(e.draggingStart!.y + dy);
 		});
+
+		game.send(server => server.editorAction({
+			type: 'move',
+			preview: true,
+			entities: game.editor.selectedEntities.map(({ id, x, y }) => ({ id, x, y })),
+		}));
 	} else {
 		game.apply(() => game.editor.draggingEntities = false);
 		game.send(server => server.editorAction({

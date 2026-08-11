@@ -477,8 +477,8 @@ export function mixDrawWindow(
 
 			base.draw = function (batch, options) {
 				const scale = (this as any).entityScale || 1;
-				const baseX = toScreenX(this.x + (this.ox || 0));
-				const baseY = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0));
+				const baseX = Math.round(toScreenX(this.x + (this.ox || 0)));
+				const baseY = Math.round(toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0)));
 				const x = baseX - dx;
 				const y = baseY - dy;
 				const prevAlpha = batch.globalAlpha;
@@ -530,8 +530,6 @@ export function mixDraw(sprite: PaletteRenderable, dx: number, dy: number, palet
 				const scale = (this as any).entityScale || 1;
 				const entityX = toScreenX(this.x + (this.ox || 0));
 				const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0));
-				const x = entityX - dx;
-				const y = entityY - dy;
 				const coverOpacity = 1 - 0.6 * (this.coverLifting || 0);
 				const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
 				const prevAlpha = batch.globalAlpha;
@@ -543,20 +541,29 @@ export function mixDraw(sprite: PaletteRenderable, dx: number, dy: number, palet
 				const outlineColor = options.outlineColor || WHITE;
 				const scaled = beginEntityScaleAtFeet(batch, entityX, entityY, scale);
 
+				batch.save();
+				batch.translate(entityX, entityY);
+
+				if (hasFlag(this.state, EntityState.FacingRight)) {
+					batch.scale(-1, 1);
+				}
+
+				batch.translate(-dx, -dy);
 				batch.globalAlpha = combinedAlpha;
 
 				if (!outlineMode && sprite.shadow !== undefined) {
-					batch.drawSprite(sprite.shadow, options.shadowColor, defaultPalette, x, y);
+					batch.drawSprite(sprite.shadow, options.shadowColor, defaultPalette, 0, 0);
 				}
 
 				batch.globalAlpha = combinedAlpha * coverOpacity;
 
 				if (sprite.color !== undefined) {
 					const color = outlineMode ? outlineColor : tint;
-					batch.drawSprite(sprite.color, color, outlineMode ? (outlinePalette || palette) : palette, x, y);
+					batch.drawSprite(sprite.color, color, outlineMode ? (outlinePalette || palette) : palette, 0, 0);
 				}
 
 				batch.globalAlpha = 1;
+				batch.restore();
 				endEntityScaleAtFeet(batch, scaled);
 			};
 		}
@@ -598,6 +605,7 @@ export function mixDrawSeasonal(setup: MixDrawSeasonal): MixinEntity {
 	return (base, _, worldState) => {
 		base.bounds = bounds;
 		(base as any).spriteBounds = colorBounds;
+		(base as any).isSeasonal = true;
 
 		if (!SERVER || TESTS) {
 			let season = Season.Summer;
@@ -655,8 +663,6 @@ export function mixDrawSeasonal(setup: MixDrawSeasonal): MixinEntity {
 				const scale = (this as any).entityScale || 1;
 				const entityX = toScreenX(this.x + (this.ox || 0));
 				const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0));
-				const x = entityX - dx;
-				const y = entityY - dy;
 				const coverOpacity = 1 - 0.6 * (this.coverLifting || 0);
 				const outlineMode = !!options.outlineMode;
 				const outlineColor = options.outlineColor !== undefined ? options.outlineColor : WHITE;
@@ -667,21 +673,31 @@ export function mixDrawSeasonal(setup: MixDrawSeasonal): MixinEntity {
 				const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
 				const scaled = beginEntityScaleAtFeet(batch, entityX, entityY, scale);
 
-				if (!outlineMode && sprite.shadow !== undefined) {
-					batch.drawSprite(sprite.shadow, options.shadowColor, defaultPalette, x, y);
+				batch.save();
+				batch.translate(entityX, entityY);
+
+				if (hasFlag(this.state, EntityState.FacingRight)) {
+					batch.scale(-1, 1);
 				}
 
+				batch.translate(-dx, -dy);
 				batch.globalAlpha = previousAlpha * coverOpacity * alpha;
 
+				if (!outlineMode && sprite.shadow !== undefined) {
+					batch.drawSprite(sprite.shadow, options.shadowColor, defaultPalette, 0, 0);
+				}
+
 				if (sprite.color !== undefined) {
-					batch.drawSprite(sprite.color, outlineMode ? outlineColor : tint, outlineMode ? (outlinePalette || palette) : palette, x, y);
+					batch.drawSprite(sprite.color, outlineMode ? outlineColor : tint, outlineMode ? (outlinePalette || palette) : palette, 0, 0);
 				}
 
 				batch.globalAlpha = previousAlpha;
+				batch.restore();
 				endEntityScaleAtFeet(batch, scaled);
 
-				if (season !== options.season) {
-					setupSeason(options.season);
+				var effectiveSeason = ((this as any).options && (this as any).options.seasonOverride) || options.season;
+				if (season !== effectiveSeason) {
+					setupSeason(effectiveSeason);
 				}
 			};
 		}
@@ -778,55 +794,57 @@ export function mixDrawDirectionSign(): MixinEntity {
 			const vanishLevel = (this as any).vanishLevel || 0;
 			const alpha = vanishLevel ? 0.5 : (entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1);
 			const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
+			const facingRight = hasFlag(this.state, EntityState.FacingRight);
+
+			batch.save();
+			batch.translate(x, y);
 
 			if (scale !== 1) {
-				batch.save();
-				batch.translate(x, y);
 				batch.scale(scale, scale);
-				batch.translate(-x, -y);
+			}
+
+			if (facingRight) {
+				batch.scale(-1, 1);
 			}
 
 			batch.globalAlpha = prevAlpha * alpha;
 
-			batch.drawSprite(pole.sprite.shadow, options.shadowColor, defaultPalette, x + poleDX, y + pole.dy);
-			leftShadow && batch.drawSprite(shadowLeft, options.shadowColor, defaultPalette, x - 18, y - 1);
-			rightShadow && batch.drawSprite(shadowRight, options.shadowColor, defaultPalette, x + 4, y - 1);
-			upShadow && batch.drawSprite(shadowUp, options.shadowColor, defaultPalette, x + shadowUpDX, y + shadowUpDY);
-			downShadow && batch.drawSprite(shadowDown, options.shadowColor, defaultPalette, x + shadowDownDX, y + shadowDownDY);
+			batch.drawSprite(pole.sprite.shadow, options.shadowColor, defaultPalette, poleDX, pole.dy);
+			leftShadow && batch.drawSprite(shadowLeft, options.shadowColor, defaultPalette, -18, -1);
+			rightShadow && batch.drawSprite(shadowRight, options.shadowColor, defaultPalette, 4, -1);
+			upShadow && batch.drawSprite(shadowUp, options.shadowColor, defaultPalette, shadowUpDX, shadowUpDY);
+			downShadow && batch.drawSprite(shadowDown, options.shadowColor, defaultPalette, shadowDownDX, shadowDownDY);
 
 			for (let i = n.length - 1; i >= 0; i--) {
 				if (n[i] !== -1) {
-					batch.drawSprite(spriteUp, tint, palette, x + upDX, y + pole.dy + upDY + i * upDownStep);
+					batch.drawSprite(spriteUp, tint, palette, upDX, pole.dy + upDY + i * upDownStep);
 				}
 			}
 
-			batch.drawSprite(pole.sprite.color, tint, palette, x + poleDX, y + pole.dy);
+			batch.drawSprite(pole.sprite.color, tint, palette, poleDX, pole.dy);
 
 			for (let i = 0; i < w.length; i++) {
 				if (w[i] !== -1) {
 					const sprite = leftSprites[w[i]];
-					sprite && batch.drawSprite(sprite, tint, palette, x + leftDX, y + pole.dy + plateDY + i * leftRightStep);
+					sprite && batch.drawSprite(sprite, tint, palette, leftDX, pole.dy + plateDY + i * leftRightStep);
 				}
 			}
 
 			for (let i = 0; i < e.length; i++) {
 				if (e[i] !== -1) {
 					const sprite = rightSprites[e[i]];
-					sprite && batch.drawSprite(rightSprites[e[i]], tint, palette, x + rightDX, y + pole.dy + plateDY + i * leftRightStep);
+					sprite && batch.drawSprite(rightSprites[e[i]], tint, palette, rightDX, pole.dy + plateDY + i * leftRightStep);
 				}
 			}
 
 			for (let i = s.length - 1; i >= 0; i--) {
 				if (s[i] !== -1) {
-					batch.drawSprite(spriteDown, tint, palette, x + downDX, y + pole.dy + downDY + i * upDownStep);
+					batch.drawSprite(spriteDown, tint, palette, downDX, pole.dy + downDY + i * upDownStep);
 				}
 			}
 
 			batch.globalAlpha = prevAlpha;
-
-			if (scale !== 1) {
-				batch.restore();
-			}
+			batch.restore();
 		};
 	};
 }
@@ -929,7 +947,7 @@ export function mixDrawShadow(sprite: PaletteRenderable, dx: number, dy: number,
 			base.draw = function (batch: PaletteSpriteBatch, options: DrawOptions) {
 				const scale = (this as any).entityScale || 1;
 				const entityX = toScreenX(this.x + (this.ox || 0));
-				const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z);
+				const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0));
 				const x = entityX - dx;
 				const y = entityY - dy;
 				const color = shadowColor === undefined ? options.shadowColor : shadowColor;

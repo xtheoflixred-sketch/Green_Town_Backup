@@ -589,6 +589,7 @@ export interface Entity extends EntityPart {
 	speedMultiplier?: number;
 	// custom message color set by /msgcolor
 	messageColor?: string;
+	bgColor?: string;
 
 	// custom image
 	customImageUrl?: string;
@@ -1282,6 +1283,9 @@ export const enum Action {
 	SwitchToPickaxeTool,
 	SwitchToSawTool,
 	SwitchToBroomTool,
+	SwitchToScrapTool,
+	SwitchToRecolorTool,
+	SwitchToSeasonTool,
 	Excite,
 	ModalState,
 	Dance1,
@@ -1371,6 +1375,16 @@ export interface EditorMirrorAction {
 	entities: number[];
 }
 
+export interface EditorRecolorAction {
+	type: 'recolor';
+	entities: number[];
+}
+
+export interface EditorSeasonAction {
+	type: 'season';
+	entities: number[];
+}
+
 export interface EditorOtherAction {
 	type: 'undo' | 'clear' | 'list';
 }
@@ -1439,6 +1453,8 @@ export type EditorAction =
 	EditorSetLightSpriteYAction |
 	EditorSetLightScaleAction |
 	EditorMirrorAction |
+	EditorRecolorAction |
+	EditorSeasonAction |
 	EditorOtherAction |
 	EditorTileAction |
 	EditorPartyAction |
@@ -1501,6 +1517,7 @@ export interface PonyObject {
 	site?: string;
 	lastUsed?: string;
 	creator?: string;
+	bgColor?: string;
 }
 
 export interface SpriteSetBase {
@@ -2131,6 +2148,7 @@ export interface PonyEntityOptions {
 export interface EntityVisualOptions {
 	selected?: boolean;
 	coverLifting?: number;
+	seasonOverride?: number;
 }
 
 export interface SpiderEntityOptions {

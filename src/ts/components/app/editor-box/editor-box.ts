@@ -2,7 +2,7 @@ import { Component, ElementRef, NgZone, QueryList, TemplateRef, ViewChild, ViewC
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
 import { uniq } from 'lodash';
 import { entityButtonAction } from '../../../client/buttonActions';
-import { faEdit, faCog, faDrawPolygon, faTrash, emptyIcon, faCheck, faClone, faEraser, faRetweet, faCopy, faWrench, faHammer, faPaintBrush, faUpload } from '../../../client/icons';
+import { faEdit, faCog, faDrawPolygon, faTrash, emptyIcon, faCheck, faClone, faEraser, faRetweet, faCopy, faWrench, faHammer, faPaintBrush, faUpload, faScrewdriver, faPalette, faLeaf } from '../../../client/icons';
 import { PonyTownGame, engines } from '../../../client/game';
 import { StorageService } from '../../services/storageService';
 import { Model, getEntityNameFromType, getEntityNames, getEntityTypesFromName } from '../../services/model';
@@ -28,6 +28,9 @@ export class EditorBox {
 	readonly sawIcon = faWrench;
 	readonly shovelIcon = faPaintBrush;
 	readonly hammerIcon = faHammer;
+	readonly scrapIcon = faScrewdriver;
+	readonly recolorIcon = faPalette;
+	readonly seasonIcon = faLeaf;
 	readonly duplicateIcon = faClone;
 	readonly uploadIcon = faUpload;
 	readonly showFields: Array<{ field: keyof DebugFlags; label: string }> = [
@@ -72,7 +75,9 @@ export class EditorBox {
 	) {
 		this.game.editor.type = this.storage.getItem('editor-entity') || 'rock';
 		this.showEditor = this.storage.getBoolean('show-editor');
-		this.game.editor.useEditorHammer = this.showEditor;
+		if (!this.showEditor) {
+			this.game.editor.useEditorHammer = false;
+		}
 		this.editorEntities = getEntityNames().slice().sort();
 		this.game.editor.entityNames = [...this.editorEntities];
 		const entityTypesByName: { [name: string]: number[]; } = {};
@@ -110,6 +115,9 @@ export class EditorBox {
 		this.game.editor.useEditorRope = false;
 		this.game.editor.useEditorPickaxe = false;
 		this.game.editor.useEditorSaw = false;
+		this.game.editor.useEditorScrap = false;
+		this.game.editor.useEditorRecolor = false;
+		this.game.editor.useEditorSeason = false;
 		this.storage.setItem('editor-entity', value);
 	}
 	get useEditorBroom() {
@@ -122,6 +130,9 @@ export class EditorBox {
 			this.game.editor.useEditorRope = false;
 			this.game.editor.useEditorPickaxe = false;
 			this.game.editor.useEditorSaw = false;
+			this.game.editor.useEditorScrap = false;
+		this.game.editor.useEditorRecolor = false;
+		this.game.editor.useEditorSeason = false;
 			this.game.send(server => server.action(Action.SwitchToBroomTool));
 		} else {
 			this.game.send(server => server.action(Action.Drop));
@@ -137,6 +148,9 @@ export class EditorBox {
 			this.game.editor.useEditorBroom = false;
 			this.game.editor.useEditorPickaxe = false;
 			this.game.editor.useEditorSaw = false;
+			this.game.editor.useEditorScrap = false;
+		this.game.editor.useEditorRecolor = false;
+		this.game.editor.useEditorSeason = false;
 			this.game.send(server => server.action(Action.SwitchToRopeTool));
 		} else {
 			this.game.send(server => server.action(Action.Drop));
@@ -152,6 +166,9 @@ export class EditorBox {
 			this.game.editor.useEditorBroom = false;
 			this.game.editor.useEditorRope = false;
 			this.game.editor.useEditorSaw = false;
+			this.game.editor.useEditorScrap = false;
+		this.game.editor.useEditorRecolor = false;
+		this.game.editor.useEditorSeason = false;
 			this.game.send(server => server.action(Action.SwitchToPickaxeTool));
 		} else {
 			this.game.send(server => server.action(Action.Drop));
@@ -167,7 +184,62 @@ export class EditorBox {
 			this.game.editor.useEditorBroom = false;
 			this.game.editor.useEditorRope = false;
 			this.game.editor.useEditorPickaxe = false;
+			this.game.editor.useEditorScrap = false;
+		this.game.editor.useEditorRecolor = false;
+		this.game.editor.useEditorSeason = false;
 			this.game.send(server => server.action(Action.SwitchToSawTool));
+		} else {
+			this.game.send(server => server.action(Action.Drop));
+		}
+	}
+	get useEditorScrap() {
+		return this.game.editor.useEditorScrap;
+	}
+	set useEditorScrap(value: boolean) {
+		this.game.editor.useEditorScrap = value;
+		if (value) {
+			this.game.editor.useEditorHammer = false;
+			this.game.editor.useEditorBroom = false;
+			this.game.editor.useEditorRope = false;
+			this.game.editor.useEditorPickaxe = false;
+			this.game.editor.useEditorSaw = false;
+			this.game.editor.useEditorRecolor = false;
+			this.game.editor.useEditorSeason = false;
+			this.game.send(server => server.action(Action.SwitchToScrapTool));
+		} else {
+			this.game.send(server => server.action(Action.Drop));
+		}
+	}
+	get useEditorRecolor() {
+		return this.game.editor.useEditorRecolor;
+	}
+	set useEditorRecolor(value: boolean) {
+		this.game.editor.useEditorRecolor = value;
+		if (value) {
+			this.game.editor.useEditorHammer = false;
+			this.game.editor.useEditorBroom = false;
+			this.game.editor.useEditorRope = false;
+			this.game.editor.useEditorPickaxe = false;
+			this.game.editor.useEditorSaw = false;
+			this.game.editor.useEditorScrap = false;
+			this.game.send(server => server.action(Action.SwitchToRecolorTool));
+		} else {
+			this.game.send(server => server.action(Action.Drop));
+		}
+	}
+	get useEditorSeason() {
+		return this.game.editor.useEditorSeason;
+	}
+	set useEditorSeason(value: boolean) {
+		this.game.editor.useEditorSeason = value;
+		if (value) {
+			this.game.editor.useEditorHammer = false;
+			this.game.editor.useEditorBroom = false;
+			this.game.editor.useEditorRope = false;
+			this.game.editor.useEditorPickaxe = false;
+			this.game.editor.useEditorSaw = false;
+			this.game.editor.useEditorScrap = false;
+			this.game.send(server => server.action(Action.SwitchToSeasonTool));
 		} else {
 			this.game.send(server => server.action(Action.Drop));
 		}
@@ -183,6 +255,9 @@ export class EditorBox {
 			this.game.editor.useEditorRope = false;
 			this.game.editor.useEditorPickaxe = false;
 			this.game.editor.useEditorSaw = false;
+			this.game.editor.useEditorScrap = false;
+		this.game.editor.useEditorRecolor = false;
+		this.game.editor.useEditorSeason = false;
 			if (this.game.editor.tile === -1) {
 				this.game.editor.tile = 0;
 			}
@@ -202,6 +277,9 @@ export class EditorBox {
 				this.game.editor.useEditorRope = false;
 				this.game.editor.useEditorPickaxe = false;
 				this.game.editor.useEditorSaw = false;
+				this.game.editor.useEditorScrap = false;
+		this.game.editor.useEditorRecolor = false;
+		this.game.editor.useEditorSeason = false;
 				this.game.send(server => server.action(Action.SwitchToPlaceTool));
 			} else {
 				this.game.send(server => server.action(Action.Drop));
@@ -650,6 +728,9 @@ export class EditorBox {
 				this.game.editor.useEditorRope = false;
 				this.game.editor.useEditorPickaxe = false;
 				this.game.editor.useEditorSaw = false;
+				this.game.editor.useEditorScrap = false;
+		this.game.editor.useEditorRecolor = false;
+		this.game.editor.useEditorSeason = false;
 				this.game.editor.useEditorShovel = false;
 				this.game.editor.tile = -1;
 				this.game.send(server => server.action(Action.Drop));

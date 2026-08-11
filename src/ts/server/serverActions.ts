@@ -11,7 +11,7 @@ import { toInt, formatDuration, includes, clamp, hasFlag, distanceXY, computeFri
 import { banMessage } from '../common/adminUtils';
 import { hasRole } from '../common/accountUtils';
 import * as entities from '../common/entities';
-import { IClient, IgnorePlayer, FindClientByEntityId, AccountService, GetSettings } from './serverInterfaces';
+import { IClient, IgnorePlayer, FindClientByEntityId, AccountService, GetSettings, ServerEntity } from './serverInterfaces';
 import { getModInfo } from './accountUtils';
 import { NotificationService } from './services/notification';
 import { PartyService } from './services/party';
@@ -20,7 +20,7 @@ import { World, findClientByAccountId, findAllOnlineFriends } from './world';
 import { HidingService } from './services/hiding';
 import {
 	createCharacterState, interactWith, useHeldItem, setEntityExpression, getPlayerState, execAction,
-	updateEntityPlayerState, holdToy, holdItem, unholdItem, teleportTo
+	updateEntityPlayerState, holdToy, holdItem, unholdItem,
 } from './playerUtils';
 import { allEntities } from './api/account';
 import { CounterService } from './services/counter';
@@ -922,7 +922,7 @@ export class ServerActions implements IServerActions, SocketServer {
 		this.client.leaveReason = 'leave';
 		this.client.left(LeaveReason.None);
 	}
-	@Method({ binary: [Bin.Obj] })
+	@Method({ rateLimit: '60/s', serverRateLimit: '60/s', binary: [Bin.Obj] })
 	editorAction(action: EditorAction) {
 		const isModEditor = this.server.flags.editor && (this.client.isMod || (this.client.account && hasRole(this.client.account, 'builder')));
 		if (action.type === 'place' || action.type === 'remove' || action.type === 'move' || action.type === 'tile') {
@@ -937,8 +937,16 @@ export class ServerActions implements IServerActions, SocketServer {
 			action.type === 'mirror' &&
 			Array.isArray(action.entities) &&
 			this.pony.options!.hold === entities.scrap.type;
+		const isPlayerRecolor =
+			action.type === 'recolor' &&
+			Array.isArray(action.entities) &&
+			this.pony.options!.hold === entities.recolor.type;
+		const isPlayerSeason =
+			action.type === 'season' &&
+			Array.isArray(action.entities) &&
+			this.pony.options!.hold === entities.season.type;
 
-		if (!isModEditor && !isPlayerRopeMove && !isPlayerMirror) {
+		if (!isModEditor && !isPlayerRopeMove && !isPlayerMirror && !isPlayerRecolor && !isPlayerSeason) {
 			return;
 		}
 
@@ -988,6 +996,66 @@ export class ServerActions implements IServerActions, SocketServer {
 					updateEntity(entity, false);
 					updateRegion(entity, this.client.map);
 					getExpectedRegion(entity, this.client.map).colliderDirty = true;
+				}
+			}
+
+			return;
+		}
+
+		if (!isModEditor && action.type === 'recolor') {
+			if (this.isHouseLocked() || !Array.isArray(action.entities)) {
+				return;
+			}
+
+			for (const id of action.entities) {
+				const entity = this.world.getEntityById(id);
+
+				if (
+					entity &&
+					entity.type !== PONY_TYPE &&
+					this.map.regions.some(r => includes(r.entities, entity))
+				) {
+					const nextType = entities.getNextRecolorType(entity.type);
+
+					if (nextType !== undefined) {
+						const newX = entity.x;
+						const newY = entity.y;
+						const wasEditable = hasFlag(entity.state, EntityState.Editable);
+
+						this.world.removeEntityFromSomeMap(entity);
+						const newEntity = entities.createAnEntity(nextType, 0, newX, newY, {}, mockPaletteManager, this.world) as ServerEntity;
+
+						if (newEntity) {
+							if (wasEditable) {
+								newEntity.state |= EntityState.Editable;
+							}
+							this.world.addEntity(newEntity, this.map);
+						}
+					}
+				}
+			}
+
+			return;
+		}
+
+		if (!isModEditor && action.type === 'season') {
+			if (this.isHouseLocked() || !Array.isArray(action.entities)) {
+				return;
+			}
+
+			for (const id of action.entities) {
+				const entity = this.world.getEntityById(id);
+
+				if (
+					entity &&
+					entity.type !== PONY_TYPE &&
+					this.map.regions.some(r => includes(r.entities, entity))
+				) {
+					const currentSeason = (entity.options && (entity.options as any).seasonOverride) || 0;
+					const seasons = [1, 2, 4, 8];
+					const currentIndex = seasons.indexOf(currentSeason);
+					const nextSeason = seasons[(currentIndex + 1) % seasons.length];
+					updateEntityOptions(entity, { seasonOverride: nextSeason });
 				}
 			}
 
@@ -1045,8 +1113,6 @@ export class ServerActions implements IServerActions, SocketServer {
 								entity.y = y;
 								entity.coverLifting = 0.85;
 								updateEntity(entity, false);
-								updateRegion(entity, this.client.map);
-								getExpectedRegion(entity, this.client.map).colliderDirty = true;
 							}
 						}
 						break;
@@ -1087,7 +1153,7 @@ export class ServerActions implements IServerActions, SocketServer {
 					for (const id of action.entities) {
 						const entity = this.world.getEntityById(id);
 
-						if (entity && entity.type !== PONY_TYPE && hasFlag(entity.state, EntityState.Editable)) {
+						if (entity && entity.type !== PONY_TYPE) {
 							mirrorEntity(entity);
 							entity.coverLifting = 0;
 							entity.selected = false;
@@ -1256,7 +1322,20 @@ export class ServerActions implements IServerActions, SocketServer {
 				for (const id of action.entities) {
 					const entity = this.world.getEntityById(id);
 					if (entity && entity.type !== PONY_TYPE) {
-						teleportTo(this.client, entity.x, entity.y);
+						const entityType = entity.type;
+						const x = this.client.pony.x;
+						const y = this.client.pony.y;
+						const newEntity = createAnEntity(entityType, 0, x, y, {}, mockPaletteManager, this.world) as ServerEntity;
+						if (newEntity) {
+							this.client.tobedPony = this.client.pony;
+							this.client.pony.client = undefined;
+							this.world.removeEntity(this.client.pony, this.client.map);
+							newEntity.client = this.client;
+							this.world.addEntity(newEntity, this.client.map);
+							this.client.pony = newEntity;
+							this.client.safeX = newEntity.x;
+							this.client.safeY = newEntity.y;
+						}
 					}
 				}
 				break;
@@ -1289,6 +1368,52 @@ export class ServerActions implements IServerActions, SocketServer {
 
 					for (const e of entities.slice(0, PARTY_LIMIT - 1)) {
 						this.partyService.invite(this.client, e.client!);
+					}
+
+					break;
+				}
+				case 'recolor': {
+					if (!Array.isArray(action.entities)) break;
+
+					for (const id of action.entities) {
+						const entity = this.world.getEntityById(id);
+
+						if (entity && entity.type !== PONY_TYPE && this.map.regions.some(r => includes(r.entities, entity))) {
+							const nextType = entities.getNextRecolorType(entity.type);
+
+							if (nextType !== undefined) {
+								const newX = entity.x;
+								const newY = entity.y;
+								const wasEditable = hasFlag(entity.state, EntityState.Editable);
+
+								this.world.removeEntityFromSomeMap(entity);
+								const newEntity = entities.createAnEntity(nextType, 0, newX, newY, {}, mockPaletteManager, this.world) as ServerEntity;
+
+								if (newEntity) {
+									if (wasEditable) {
+										newEntity.state |= EntityState.Editable;
+									}
+									this.world.addEntity(newEntity, this.map);
+								}
+							}
+						}
+					}
+
+					break;
+				}
+				case 'season': {
+					if (!Array.isArray(action.entities)) break;
+
+					for (const id of action.entities) {
+						const entity = this.world.getEntityById(id);
+
+						if (entity && entity.type !== PONY_TYPE && this.map.regions.some(r => includes(r.entities, entity))) {
+							const currentSeason = (entity.options && (entity.options as any).seasonOverride) || 0;
+							const seasons = [1, 2, 4, 8];
+							const currentIndex = seasons.indexOf(currentSeason);
+							const nextSeason = seasons[(currentIndex + 1) % seasons.length];
+							updateEntityOptions(entity, { seasonOverride: nextSeason });
+						}
 					}
 
 					break;

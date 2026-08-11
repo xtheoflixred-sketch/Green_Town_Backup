@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener } from '@angular/core';
 import { parseColor, colorToCSS } from '../../../common/color';
 
 @Component({
@@ -14,6 +14,7 @@ export class BitmapBox implements OnChanges {
 	@Input() color = 'red';
 	@Output() colorChange = new EventEmitter<string>();
 	rows?: number[][];
+	dragging = false;
 	ngOnChanges(changes: SimpleChanges) {
 		if (changes.width || changes.height) {
 			this.rows = [];
@@ -38,6 +39,33 @@ export class BitmapBox implements OnChanges {
 				this.colorChange.emit(this.color);
 			}
 		}
+	}
+	paint(index: number) {
+		if (this.bitmap && this.tool === 'brush') {
+			this.bitmap[index] = this.color;
+		} else if (this.bitmap && this.tool === 'eraser') {
+			this.bitmap[index] = '';
+		}
+	}
+	startDraw(index: number) {
+		this.dragging = true;
+		this.draw(index);
+	}
+	dragDraw(index: number) {
+		if (this.dragging) {
+			this.paint(index);
+		}
+	}
+	stopDraw() {
+		this.dragging = false;
+	}
+	@HostListener('document:mouseup')
+	onMouseUp() {
+		this.dragging = false;
+	}
+	@HostListener('document:mouseleave')
+	onMouseLeave() {
+		this.dragging = false;
 	}
 	colorAt(index: number) {
 		return this.bitmap && this.bitmap[index] ? colorToCSS(parseColor(this.bitmap[index])) : '';

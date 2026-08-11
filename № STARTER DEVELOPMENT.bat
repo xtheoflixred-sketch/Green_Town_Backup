@@ -1,5 +1,5 @@
 @echo off
-cd /d "C:\logins\User\Files\User Files\Green Town"
+cd /d "%~dp0"
 
 start cmd /k "npm run wds"
 start cmd /k "npm run ts-watch"

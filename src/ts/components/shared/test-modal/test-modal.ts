@@ -58,6 +58,7 @@ export class TestModal implements OnInit, OnDestroy {
 	}
 
 	cancel() {
+		if (this.done) return;
 		this.done = true;
 		this.settingsService.browser = this.browserBackup;
 		this.close.emit();

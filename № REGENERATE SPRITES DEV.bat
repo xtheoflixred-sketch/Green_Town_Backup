@@ -1,3 +1,3 @@
 @echo off
-cd /d "C:\logins\User\Files\User Files\Bats Town"
+cd /d "%~dp0"
 start cmd /k "npx gulp sprites && npx gulp changelog"

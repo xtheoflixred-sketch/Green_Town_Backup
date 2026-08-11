@@ -1021,6 +1021,18 @@ export function execAction(client: IClient, action: Action, settings: GameServer
 			client.editorBypassWalls = false;
 			holdItem(client.pony, entities.broom.type);
 			break;
+		case Action.SwitchToScrapTool:
+			client.editorBypassWalls = false;
+			holdItem(client.pony, entities.scrap.type);
+			break;
+		case Action.SwitchToRecolorTool:
+			client.editorBypassWalls = false;
+			holdItem(client.pony, entities.recolor.type);
+			break;
+		case Action.SwitchToSeasonTool:
+			client.editorBypassWalls = false;
+			holdItem(client.pony, entities.season.type);
+			break;
 		default:
 			if (isExpressionAction(action)) {
 				expressionAction(client, action);

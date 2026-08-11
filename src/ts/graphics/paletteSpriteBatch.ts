@@ -70,8 +70,8 @@ function pushQuad(
 	const y2 = dy + dh;
 	const x2 = dx + dw;
 
-	const u1 = sx + 0.1;
-	const v1 = sy + 0.1;
+	const u1 = sx;
+	const v1 = sy;
 	const u2 = sx + sw;
 	const v2 = sy + sh;
 

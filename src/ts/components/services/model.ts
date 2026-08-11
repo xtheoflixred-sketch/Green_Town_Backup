@@ -429,7 +429,7 @@ export class Model {
 					pony.info = compressPonyString(pony.ponyInfo);
 				}
 
-				const { id, name, desc, site, tag, supportTag, info, hideSupport, respawnAtSpawn } = pony;
+				const { id, name, desc, site, tag, supportTag, info, hideSupport, respawnAtSpawn } = pony as any;
 
 				if (!fast) {
 					this.pending = true;

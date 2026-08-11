@@ -123,7 +123,7 @@ import {
 import {
 	OFFLINE_PONY, SUPPORTER_PONY, DISCORD_PONY, HOUR, CAMERA_WIDTH_MIN, CAMERA_WIDTH_MAX,
 	CAMERA_HEIGHT_MIN, CAMERA_HEIGHT_MAX, SECOND, TILE_CHANGE_RANGE, MINUTE, PONY_TYPE,
-	REGION_SIZE, tileWidth, tileHeight, ZOOM_PRESETS, getZoomScaleBounds, RENDER_SUPERSAMPLE
+	REGION_SIZE, tileWidth, tileHeight, ZOOM_PRESETS, getZoomScaleBounds
 } from '../common/constants';
 import {
 	ensureAllVisiblePoniesAreDecoded, invalidatePalettes, updateMap, updateEntities,
@@ -131,7 +131,7 @@ import {
 	pickEntities, updateEntitiesTriggers, getElevation, setElevation, createWorldMap
 } from '../common/worldMap';
 import { updateCamera, centerCameraOn, screenToWorld, createCamera } from '../common/camera';
-import { WHITE, BLACK, SHADOW_COLOR, getTileColor, RED, CAVE_LIGHT, CAVE_SHADOW, HOVER_OUTLINE_COLOR, CYAN, GREEN } from '../common/colors';
+import { WHITE, BLACK, SHADOW_COLOR, getTileColor, RED, CAVE_LIGHT, CAVE_SHADOW, HOVER_OUTLINE_COLOR, CYAN } from '../common/colors';
 import { formatHourMinutes, getLightColor, getShadowColor, createLightData } from '../common/timeUtils';
 import { toggleWalls } from '../common/mixins';
 import { getEntityTypeName, woodenWalls, stoneWalls } from '../common/entities';
@@ -169,7 +169,7 @@ import {
 import {
 	updateWallPlaceholder, updateBuildingPreviews, handleDragTool, handleBuildingActionClick, handleEditorBroomClick,
 	handleBuildingRightClick, handleBuildingWheel, changePlaceEntity as changePlaceEntityTool, changePlaceTile as changePlaceTileTool,
-	removeEntitiesTool, placeEntitiesTool, changeTileTool, toggleWallsTool, dragEntityTool, cloneEntityTool, scrapAlignTool,
+	removeEntitiesTool, placeEntitiesTool, changeTileTool, toggleWallsTool, dragEntityTool, cloneEntityTool, scrapAlignTool, recolorTool, seasonTool,
 	handleTilePaintDrag, handleWallPaintDrag, getTilePaintPreviewState, getWallPaintPreviewState, getBuildingDragVisualState, getSelectedWallMaterial, isSelectedWallTall, isEditorSawActive
 } from './BuildingUtils';
 import { fontSmallPal, fontSmall, font, fontMono } from './fonts';
@@ -420,6 +420,9 @@ export class PonyTownGame implements Game {
 		useEditorRope: false,
 		useEditorPickaxe: false,
 		useEditorSaw: false,
+		useEditorScrap: false,
+		useEditorRecolor: false,
+		useEditorSeason: false,
 		useEditorShovel: false,
 		brushSize: 1,
 		tile: -1,
@@ -1443,6 +1446,19 @@ export class PonyTownGame implements Game {
 					editorDragEntities(this, hover, input.isPressed(Key.MOUSE_BUTTON2));
 				}
 
+				if (this.mod) {
+					const hold = player.hold;
+					this.editor.useEditorHammer = hold === placeEntitiesTool.type;
+					this.editor.useEditorBroom = hold === removeEntitiesTool.type;
+					this.editor.useEditorSaw = hold === toggleWallsTool.type;
+					this.editor.useEditorRope = hold === dragEntityTool.type;
+					this.editor.useEditorPickaxe = hold === cloneEntityTool.type;
+					this.editor.useEditorScrap = hold === scrapAlignTool.type;
+					this.editor.useEditorRecolor = hold === recolorTool.type;
+					this.editor.useEditorSeason = hold === seasonTool.type;
+					this.editor.useEditorShovel = hold === changeTileTool.type;
+				}
+
 				updateBuildingPreviews(this, player, hover, server, input);
 
 				if (handleDragTool(this, player, hover, input)) {
@@ -1463,8 +1479,10 @@ export class PonyTownGame implements Game {
 					   const holdingRemoveTool = player.hold === removeEntitiesTool.type;
 					   const holdingPlaceTool = player.hold === placeEntitiesTool.type;
 						   const holdingScrapTool = player.hold === scrapAlignTool.type;
+						   const holdingRecolorTool = player.hold === recolorTool.type;
+						   const holdingSeasonTool = player.hold === seasonTool.type;
 						   const editableMap = hasFlag(this.map.flags, MapFlags.EditableEntities);
-						   const holdingTool = holdingRemoveTool || holdingPlaceTool || holdingScrapTool;
+						   const holdingTool = holdingRemoveTool || holdingPlaceTool || holdingScrapTool || holdingRecolorTool || holdingSeasonTool;
 					   const nowClick = performance.now();
 					   const isDouble = this.lastEyeClickTime > 0 && (nowClick - this.lastEyeClickTime) < 350;
 					   const clickNearSelf = distanceXY(player.x, player.y, hover.x, hover.y) < TILE_CHANGE_RANGE;
@@ -1489,7 +1507,7 @@ export class PonyTownGame implements Game {
 							   : !!this.settings.account.showChatBubbleProfiles;
 						   if (canOpenBubbleProfile) {
 							   this.select(chatEntity as Pony);
-						   } else if (pickedEntity && !holdingScrapTool && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
+					   } else if (pickedEntity && !holdingScrapTool && !holdingRecolorTool && !holdingSeasonTool && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
 							   if (pickedEntity.type === PONY_TYPE) {
 								   this.select(pickedEntity as Pony);
 							   } else if (entityInRange(pickedEntity, player)) {
@@ -1533,7 +1551,7 @@ export class PonyTownGame implements Game {
 								   setElevation(this.map, hover.x, hover.y, clamp(this.editor.elevation === 'up' ? value + 1 : value - 1, 0, 10));
 							   }
 						   }
-					   } else if (pickedEntity && !holdingScrapTool && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
+					   } else if (pickedEntity && !holdingScrapTool && !holdingRecolorTool && !holdingSeasonTool && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
 						   if (pickedEntity.type === PONY_TYPE) {
 							   this.select(pickedEntity as Pony);
 						   } else if (entityInRange(pickedEntity, player)) {
@@ -1804,7 +1822,6 @@ export class PonyTownGame implements Game {
 		const width = camera.w;
 		const height = camera.h;
 		const ratio = integerPixelRatio();
-		const actualScale = this.scale * ratio;
 		const bg = this.bg;
 
 		colorToExistingFloatArray(light, lightColor);
@@ -1824,7 +1841,7 @@ export class PonyTownGame implements Game {
 			drawOptions.engine = this.engine;
 		}
 
-		ortho(this.fboMatrix, 0, gl.drawingBufferWidth / actualScale, gl.drawingBufferHeight / actualScale, 0, 0, 1000, false);
+		ortho(this.fboMatrix, 0, width, height, 0, 0, 1000, false);
 		TIMING && timeEnd();
 
 		TIMING && timeStart('ensureAllVisiblePon...');
@@ -2357,6 +2374,8 @@ export class PonyTownGame implements Game {
 			const brooomHighlight = (showHoverOutline && hoverTool === removeEntitiesTool.type) ? this.highlightEntity : undefined;
 			const editorBroomHighlight = (showHoverOutline && this.editor.useEditorBroom) ? this.highlightEntity : undefined;
 			const scrapHighlight = (showHoverOutline && hoverTool === scrapAlignTool.type) ? this.highlightEntity : undefined;
+			const recolorHighlight = (showHoverOutline && hoverTool === recolorTool.type) ? this.highlightEntity : undefined;
+			const seasonHighlight = (showHoverOutline && hoverTool === seasonTool.type) ? this.highlightEntity : undefined;
 			const ropeHighlight = (showHoverOutline && hoverTool === dragEntityTool.type && !ropeMultiMode) ? this.highlightEntity : undefined;
 			const ropeShiftHighlight = (showHoverOutline && hoverTool === dragEntityTool.type && ropeMultiMode) ? this.highlightEntity : undefined;
 			const editorRopeHighlight = (showHoverOutline && this.editor.useEditorRope && !ropeMultiMode) ? this.highlightEntity : undefined;
@@ -2374,7 +2393,13 @@ export class PonyTownGame implements Game {
 				editorBroomHighlight.outlineColor = 0xff3b30ff;
 			}
 			if (scrapHighlight) {
-				scrapHighlight.outlineColor = GREEN;
+				scrapHighlight.outlineColor = WHITE;
+			}
+			if (recolorHighlight) {
+				recolorHighlight.outlineColor = WHITE;
+			}
+			if (seasonHighlight) {
+				seasonHighlight.outlineColor = WHITE;
 			}
 			if (ropeHighlight) {
 				ropeHighlight.outlineColor = 0xffcc00ff;
@@ -2425,6 +2450,12 @@ export class PonyTownGame implements Game {
 			}
 			if (scrapHighlight) {
 				scrapHighlight.outlineColor = undefined;
+			}
+			if (recolorHighlight) {
+				recolorHighlight.outlineColor = undefined;
+			}
+			if (seasonHighlight) {
+				seasonHighlight.outlineColor = undefined;
 			}
 			if (ropeHighlight) {
 				ropeHighlight.outlineColor = undefined;
@@ -2916,27 +2947,25 @@ export class PonyTownGame implements Game {
 			return;
 		}
 
-		const ss = RENDER_SUPERSAMPLE;
-		const fboW = width * ss;
-		const fboH = height * ss;
+		const maxSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || 4096;
+		let fboW = Math.min(maxSize, Math.max(gl.drawingBufferWidth, Math.ceil(width * integerPixelRatio())));
+		let fboH = Math.min(maxSize, Math.max(gl.drawingBufferHeight, Math.ceil(height * integerPixelRatio())));
+
+		if (maxSize != null && (fboW > maxSize || fboH > maxSize)) {
+			const factor = Math.min(maxSize / fboW, maxSize / fboH);
+			fboW = Math.floor(fboW * factor);
+			fboH = Math.floor(fboH * factor);
+		}
 
 		const hasDepth = frameBuffer.depthStencilRenderbuffer !== null;
 		const isSizeChanged = fboW !== frameBuffer.width || fboH !== frameBuffer.height;
 		const isDepthChanged = hasDepth !== useDepthBuffer;
 
 		if (isSizeChanged || isDepthChanged) {
-			const maxSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
-			const isSizeTooBig = maxSize != null && (fboW > maxSize || fboH > maxSize);
-
-			if (isSizeTooBig) {
-				this.setScale(this.scale + 1); // should not happen, useDepthBuffer is also ignored if it does
-				DEVELOPMENT && console.warn('Cannot resize framebuffer');
-			} else {
-				disposeFrameBuffer(gl, frameBuffer);
-				disposeFrameBuffer(gl, frameBuffer2);
-				createFrameBuffer(gl, frameBuffer, fboW, fboH, useDepthBuffer, null);
-				createFrameBuffer(gl, frameBuffer2, fboW, fboH, false, frameBuffer.depthStencilRenderbuffer);
-			}
+			disposeFrameBuffer(gl, frameBuffer);
+			disposeFrameBuffer(gl, frameBuffer2);
+			createFrameBuffer(gl, frameBuffer, fboW, fboH, useDepthBuffer, null);
+			createFrameBuffer(gl, frameBuffer2, fboW, fboH, false, frameBuffer.depthStencilRenderbuffer);
 		}
 	}
 	private announce(announcement: string) {

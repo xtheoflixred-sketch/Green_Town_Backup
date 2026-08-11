@@ -401,8 +401,8 @@ export function drawPonyEntity(batch: PaletteSpriteBatch, pony: Pony, drawOption
 
 		if (createBatch) {
 			pony.batch = batch.finishBatch();
-			pony.lastX = toScreenX(pony.x);
-			pony.lastY = toScreenYWithZ(pony.y, pony.z);
+			pony.lastX = Math.round(toScreenX(pony.x));
+			pony.lastY = Math.round(toScreenYWithZ(pony.y, pony.z));
 			pony.lastRight = right;
 			pony.lastScale = pony.scale || 1;
 			pony.lastToyScale = pony.scaleToy || 1;
@@ -630,7 +630,7 @@ export function updatePonyEntity(pony: Pony, delta: number, gameTime: number, sa
 
 		if (
 			holdingUpdated ||
-			toScreenX(pony.x) !== pony.lastX || toScreenYWithZ(pony.y, pony.z) !== pony.lastY ||
+			Math.round(toScreenX(pony.x)) !== pony.lastX || Math.round(toScreenYWithZ(pony.y, pony.z)) !== pony.lastY ||
 			pony.lastRight !== right ||
 			pony.zzzEffect.dirty || pony.cryEffect.dirty || pony.sneezeEffect.dirty || pony.holdPoofEffect.dirty ||
 			pony.heartsEffect.dirty || pony.magicEffect.dirty ||
@@ -779,7 +779,7 @@ function updatePonyExpression(pony: Pony, expr: number, safe: boolean) {
 }
 
 function transformBatch(batch: SpriteBatch | PaletteSpriteBatch, entity: Entity) {
-	batch.translate(toScreenX(entity.x), toScreenYWithZ(entity.y, entity.z));
+	batch.translate(Math.round(toScreenX(entity.x)), Math.round(toScreenYWithZ(entity.y, entity.z)));
 	batch.scale(isFacingRight(entity) ? -1 : 1, 1);
 	const scale = (entity as any).entityScale || (entity as any).scale || 1;
 	if (scale !== 1) {

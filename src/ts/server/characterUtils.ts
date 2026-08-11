@@ -75,15 +75,11 @@ export async function getAndFixCharacterState(
 	const map = world.getMainMap();
 	const savedState = last(states.get(character._id.toString()).items);
 
-	if (savedState) {
-		return { ...defaultCharacterState, ...savedState };
-	}
-
 	const freshCharacter = await findCharacterById(character._id.toString());
 	const dbState = freshCharacter && freshCharacter.state && freshCharacter.state[server.id];
-	const state = { ...defaultCharacterState, ...(dbState || getCharacterState(character, server.id, map)) };
+	const state = { ...defaultCharacterState, ...(savedState || dbState || getCharacterState(character, server.id, map)) };
 
-	if (hasFlag(character.flags, CharacterFlags.RespawnAtSpawn)) {
+	if (hasFlag((freshCharacter || character).flags, CharacterFlags.RespawnAtSpawn)) {
 		Object.assign(state, { map: map.id, ...randomPoint(map.spawnArea) });
 	}
 
@@ -256,11 +252,14 @@ export async function swapCharacter(client: IClient, { server }: World, query: M
 	Character.updateOne({ _id: character._id }, { lastUsed: new Date() }).exec()
 		.catch(logger.error);
 
+	const currentAnimation = client.pony.state & EntityState.AnimationMask;
+
 	updateClientCharacter(client, character);
 	updatePony(client.pony, client.account, client.character);
 	updatePonyFromState(client.pony, getCharacterState(character, server.id, client.map));
 	const options = client.pony.options as PonyOptions;
 	options.expr = encodeExpression(undefined);
+	client.pony.state = (client.pony.state & ~EntityState.AnimationMask) | currentAnimation;
 	client.pony.state &= ~EntityState.Magic;
 	pushUpdateEntity({
 		entity: client.pony, options: { hold: 0, toy: 0, ...options },

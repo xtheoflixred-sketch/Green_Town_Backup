@@ -82,7 +82,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	@ViewChild('unsavedCharacterModal', { static: true }) unsavedCharacterModalTpl!: TemplateRef<any>;
 	@Input() inGameMode = false;
 	readonly debug = DEVELOPMENT || BETA;
-	previewScale: number = 3;
+	previewScale: number = 4;
 	showBackground = false;
 	hidePreviewName = false;
 	hidePreviewTag = false;
@@ -329,7 +329,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		return !!this.info.previewBackground && this.info.previewBackground !== '90ee90';
 	}
 	get hasCustomPreviewSettings() {
-		return this.previewScale !== 3 || !!this.info.headTurned || !!this.info.flip || this.hidePreviewName || this.hidePreviewTag
+		return this.previewScale !== 4 || !!this.info.headTurned || !!this.info.flip || this.hidePreviewName || this.hidePreviewTag
 			|| (this.canPreviewHoldItem && !this.previewHoldItem);
 	}
 	get hasCustomBlushColor() {
@@ -345,7 +345,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		return this.model.supporter >= 2;
 	}
 	resetPreview() {
-		this.previewScale = 3;
+		this.previewScale = 4;
 		this.info.headTurned = false;
 		this.info.flip = false;
 		this.hidePreviewName = false;

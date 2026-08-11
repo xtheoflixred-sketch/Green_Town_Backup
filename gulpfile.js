@@ -408,8 +408,8 @@ const music = () => gulp.src(path.join(config.assetsPath, 'assets/music/*.wav'),
 
 const serverDev = cb => {
 	if (!argv.noserver) {
-		const preloadPath = path.join(__dirname, 'src', 'scripts', 'preload.js');
-		const serverPath = path.join(__dirname, 'src', 'scripts', 'server', 'server.js');
+		const preloadPath = './src/scripts/preload.js';
+		const serverPath = './src/scripts/server/server.js';
 		const options = { env: { NODE_OPTIONS: '--inspect' } };
 		const commonArgs = ['-r', preloadPath, serverPath, '--inspect', '--color', '--beta', '--admin'];
 		const server = argv.adm ?

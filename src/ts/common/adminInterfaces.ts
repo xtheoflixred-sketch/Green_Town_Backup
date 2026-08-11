@@ -471,6 +471,7 @@ export interface CharacterBase<ID> extends TimestampsBase {
 	flags: CharacterFlags;
 	lastUsed?: Date;
 	creator?: string;
+	bgColor?: string;
 	state?: { [key: string]: CharacterState | undefined; };
 }
 

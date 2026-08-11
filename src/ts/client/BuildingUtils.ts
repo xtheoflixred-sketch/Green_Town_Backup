@@ -1,9 +1,9 @@
 import {
 	Action, MapFlags, MessageType, TileType, houseTiles, MapType,
 } from '../common/interfaces';
-import { clamp, hasFlag, point } from '../common/utils';
+import { clamp, hasFlag, point, contains } from '../common/utils';
 import { pickAnyEntities, pickEntities, getTile } from '../common/worldMap';
-import { createAnEntity, getEntityType, getEntityTypeName, hammer, broom, saw, rope, pickaxe, poof, poof2, placeableEntities, shovel, scrap } from '../common/entities';
+import { createAnEntity, getEntityType, getEntityTypeName, hammer, broom, saw, rope, pickaxe, poof, poof2, placeableEntities, shovel, scrap, recolor, season, isRecolorable } from '../common/entities';
 import { isOutsideMap } from '../common/collision';
 import { Key } from './input/input';
 import { toggleWall, editorMoveEntities } from './playerActions';
@@ -18,6 +18,8 @@ export const changeTileTool = shovel;
 export const dragEntityTool = rope;
 export const cloneEntityTool = pickaxe;
 export const scrapAlignTool = scrap;
+export const recolorTool = recolor;
+export const seasonTool = season;
 export type WallMaterial = 'wood' | 'stone';
 export type WallHeight = 'low' | 'high';
 
@@ -74,6 +76,11 @@ function isEditorPickaxeActive(game: any, player: any) {
 
 function isRemovableEntity(entity: any) {
 	return entity.type !== poof.type && entity.type !== poof2.type;
+}
+
+function isEntityAtPoint(entity: any, point: any) {
+	const bounds = entity.spriteBounds || entity.interactBounds || entity.bounds;
+	return !!bounds && contains(entity.x, entity.y, bounds, point);
 }
 
 export function isEditorSawActive(game: any, player: any) {
@@ -283,7 +290,7 @@ export function updateBuildingPreviews(game: any, player: any, hover: any, serve
 		addChatBubble(game.map, game.player, { message: wallHeightName, type: MessageType.System, total, timer: total, created: Date.now() });
 	}
 
-	if (hasFlag(game.map.flags, MapFlags.EditableEntities) || player.hold === scrapAlignTool.type || isEditorHammerActive(game, player) || isEditorBroomActive(game, player) || isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player)) {
+	if (hasFlag(game.map.flags, MapFlags.EditableEntities) || player.hold === scrapAlignTool.type || player.hold === recolorTool.type || player.hold === seasonTool.type || isEditorHammerActive(game, player) || isEditorBroomActive(game, player) || isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player)) {
 		if (isEditorBroomActive(game, player)) {
 			game.highlightEntity = pickAnyEntities(game.map, hover).find(entity => entity.type !== PONY_TYPE && isRemovableEntity(entity));
 			return;
@@ -292,7 +299,17 @@ export function updateBuildingPreviews(game: any, player: any, hover: any, serve
 			   if (player.hold === removeEntitiesTool.type || player.hold === dragEntityTool.type) {
 				   game.highlightEntity = pickEntities(game.map, hover, true, false, true).find(isRemovableEntity);
 			   } else if (player.hold === scrapAlignTool.type) {
-				   game.highlightEntity = pickAnyEntities(game.map, hover).find(entity => entity.type !== PONY_TYPE && isRemovableEntity(entity));
+				   game.highlightEntity = game.map.entities
+					   .filter((e: any) => e.type !== PONY_TYPE && isRemovableEntity(e) && isEntityAtPoint(e, hover))
+					   .reverse()[0];
+			   } else if (player.hold === recolorTool.type) {
+				   game.highlightEntity = game.map.entities
+					   .filter((e: any) => e.type !== PONY_TYPE && isRemovableEntity(e) && isRecolorable(e.type) && isEntityAtPoint(e, hover))
+					   .reverse()[0];
+			   } else if (player.hold === seasonTool.type) {
+				   game.highlightEntity = game.map.entities
+					   .filter((e: any) => e.type !== PONY_TYPE && isRemovableEntity(e) && (e as any).isSeasonal && isEntityAtPoint(e, hover))
+					   .reverse()[0];
 			   } else if (player.hold === cloneEntityTool.type || editorDragTool) {
 				   game.highlightEntity = pickAnyEntities(game.map, hover).find(entity => entity.type !== PONY_TYPE && isRemovableEntity(entity));
 		} else if (player.hold === placeEntitiesTool.type || isEditorHammerActive(game, player)) {
@@ -525,6 +542,8 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		(player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles)) ||
 		(player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) ||
 		(player.hold === scrapAlignTool.type) ||
+		(player.hold === recolorTool.type) ||
+		(player.hold === seasonTool.type) ||
 		isEditorSawActive(game, player) ||
 		holdingRemoveTool || holdingPlaceTool
 	)) {
@@ -553,6 +572,16 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		const id = game.highlightEntity.id;
 		if (game.highlightEntity.type !== PONY_TYPE && game.highlightEntity.type !== toggleWallsTool.type) {
 			game.send((s: any) => s.editorAction({ type: 'mirror', entities: [id] }));
+		}
+	} else if (player.hold === recolorTool.type && game.highlightEntity) {
+		const id = game.highlightEntity.id;
+		if (game.highlightEntity.type !== PONY_TYPE) {
+			game.send((s: any) => s.editorAction({ type: 'recolor', entities: [id] }));
+		}
+	} else if (player.hold === seasonTool.type && game.highlightEntity) {
+		const id = game.highlightEntity.id;
+		if (game.highlightEntity.type !== PONY_TYPE) {
+			game.send((s: any) => s.editorAction({ type: 'season', entities: [id] }));
 		}
 	} else if ((player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) || isEditorSawActive(game, player)) {
 		toggleWall(game, hover, isSelectedWallTall(game));
@@ -770,7 +799,7 @@ export function handleBuildingWheel(game: any, input: any) {
 	}
 
 	if (input.isPressed(Key.SHIFT)) {
-		if (hasFlag(game.map.flags, MapFlags.EditableEntities)) {
+		if (hasFlag(game.map.flags, MapFlags.EditableEntities) || game.mod) {
 			const action = input.wheelY < 0 ? Action.SwitchTool : Action.SwitchToolRev;
 			game.send((server: any) => server.action(action));
 		}

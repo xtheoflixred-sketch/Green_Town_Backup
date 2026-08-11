@@ -1563,6 +1563,8 @@ export function createCommands(world: World): Command[] {
 				entity.client = client;
 				world.addEntity(entity, client.map);
 				client.pony = entity;
+				client.safeX = entity.x;
+				client.safeY = entity.y;
 				saySystem(client, 'Transformed into NPC (cat)');
 				return;
 			}
@@ -1586,6 +1588,8 @@ export function createCommands(world: World): Command[] {
 			entity.client = client;
 			world.addEntity(entity, client.map);
 			client.pony = entity;
+			client.safeX = entity.x;
+			client.safeY = entity.y;
 			saySystem(client, `Transformed into ${input}`);
 		}, false, 'Mod'),
 		command(['tp'], '/tp <location|x y|to <player>|here <player>|? - teleport around', 'mod', (_context, client, message) => {

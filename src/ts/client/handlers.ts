@@ -716,7 +716,11 @@ export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, messa
 
 		if (bubbleEntity && !bubbleEntity.fake && game.map.entitiesById.has(bubbleEntity.id)) {
 			const total = typingIndicatorDuration;
-			addChatBubble(game.map, bubbleEntity, { message, type, total, timer: total, created: Date.now() }, getChatBubbleLimit(game.settings.account.chatBubbleLimit));
+			const customColor = (entity as any).messageColor;
+			addChatBubble(game.map, bubbleEntity, {
+				message, type, total, timer: total, created: Date.now(),
+				color: customColor,
+			}, getChatBubbleLimit(game.settings.account.chatBubbleLimit));
 		}
 	} else if (type === MessageType.Dismiss || message === '.') {
 		if (!entity.fake && entity.says) {
@@ -866,6 +870,7 @@ function updateEntityOptionsInternal(entity: Entity, options: Partial<EntityOrPo
 		(game.selected as any).modal = (options as any).modal;
 		game.applyChanges();
 	}
+
 
 	if ('tag' in options && !options.tag) {
 		entity.tag = undefined;

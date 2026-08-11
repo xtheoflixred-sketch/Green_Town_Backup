@@ -339,7 +339,7 @@ page-loader(*ngIf="!playing")
 						.col-sm-8
 							sprite-selection(
 								[selected]="state.expression ? state.expression.rightIris : 0" [sprites]="irisesRight" [fill]="info.eyeColorRight"
-								[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
+								[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="9" [darken]="darken"
 								(selectedChange)="setRightIris($event)" aria-labelledby="right-iris")
 
 					.row.form-group
@@ -347,7 +347,7 @@ page-loader(*ngIf="!playing")
 						.col-sm-8
 							sprite-selection(
 								[selected]="state.expression ? state.expression.leftIris : 0" [sprites]="irisesLeft" [fill]="info.eyeColorLeft"
-								[circle]="info.coatFill" [reverseExtra]="true" [darken]="darken"
+								[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="9" [darken]="darken"
 								(selectedChange)="setLeftIris($event)" aria-labelledby="left-iris")
 
 					.row.form-group
@@ -920,7 +920,6 @@ page-loader(*ngIf="!playing")
 											button.dropdown-item((click)="previewScale = 4; previewScaleDropdown.close(); changed()") x4
 											button.dropdown-item((click)="previewScale = 5; previewScaleDropdown.close(); changed()") x5
 											button.dropdown-item((click)="previewScale = 6; previewScaleDropdown.close(); changed()") x6
-											button.dropdown-item((click)="previewScale = 7; previewScaleDropdown.close(); changed()") x7
 									button([class]="showBackground ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="'Toggle preview background'" aria-label="Background" (click)="toggleBackground()")
 										fa-icon([icon]="paintBrushIcon")
 									button([class]="info.headTurned ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Turn head' : 'Turn head (H)'" aria-label="Turn head" (click)="toggleHeadTurned()")

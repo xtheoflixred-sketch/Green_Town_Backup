@@ -465,6 +465,14 @@ export const scrapHeld = registerMix(n('scrap-held'),
 	mixPickable(29, 42),
 	mixFlags(EntityFlags.Usable));
 
+export const recolor = doodad(n('recolor'), sprites.flower_pick, 5, 8, 0,
+	mixPickable(25, 42),
+	mixFlags(EntityFlags.Usable));
+
+export const season = doodad(n('season-tool'), sprites.leaf_1, 5, 8, 0,
+	mixPickable(25, 42),
+	mixFlags(EntityFlags.Usable));
+
 // jacko lanterns
 
 const jackoLightColor = 0x80281eff;
@@ -716,7 +724,7 @@ export const table3 = doodad(n('table-3'), sprites.table_3, 24, 21, 0,
 	mixItemTrigger(-24, -21, 46, 23, itemTriggerArea.type),
 	mixOrder(-1));
 
-export const couch = doodad(n('couch'), sprites.couch_red, 37, 20, 0,
+export const couchRed = doodad(n('couch-red'), sprites.couch_red, 37, 20, 0,
 	mixColliders(
 		collider(-37, 0, 112, 7),
 		collider(-37, 7, 14, 28),
@@ -797,6 +805,88 @@ export const couchYellow = doodad(n('couch-yellow'), sprites.couch_yellow, 37, 2
 	mixItemTrigger(-23, 0, 84, 7, itemTriggerArea.type),
 	mixOrder(-1));
 
+// armchairs
+export const armchairRed = doodad(n('armchair-red'), sprites.armchair_red, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const armchairBlue = doodad(n('armchair-blue'), sprites.armchair_blue, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const armchairGreen = doodad(n('armchair-green'), sprites.armchair_green, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const armchairOrange = doodad(n('armchair-orange'), sprites.armchair_orange, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const armchairPink = doodad(n('armchair-pink'), sprites.armchair_pink, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const armchairPurple = doodad(n('armchair-purple'), sprites.armchair_purple, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const armchairTurquoise = doodad(n('armchair-turquoise'), sprites.armchair_turquoise, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const armchairWhite = doodad(n('armchair-white'), sprites.armchair_white, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const armchairYellow = doodad(n('armchair-yellow'), sprites.armchair_yellow, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+export const armchairBlack = doodad(n('armchair-black'), sprites.armchair_black, 29, 20, 0,
+	mixColliders(
+		collider(-29, 0, 58, 7),
+		collider(-29, 7, 14, 28),
+		collider(15, 7, 14, 28)),
+	mixFlags(EntityFlags.Interactive),
+	mixItemTrigger(-15, 0, 50, 7, itemTriggerArea.type),
+	mixOrder(-1));
+
 
 // floor lamps
 const floorLampSpriteWidth = 28;
@@ -868,6 +958,26 @@ export const floorLampPurple = createFloorLamp('floor-lamp-purple', sprites.Floo
 export const floorLampTurquoise = createFloorLamp('floor-lamp-turquoise', sprites.Floor_lamp_turquoise, 0x2ca7a7ff);
 export const floorLampWhite = createFloorLamp('floor-lamp-white', sprites.Floor_lamp_white, 0xe8e8e8ff);
 export const floorLampYellow = createFloorLamp('floor-lamp-yellow', sprites.Floor_lamp_yellow, 0x9b7a12ff);
+
+export const recolorCycles: number[][] = [
+	[couchRed.type, couchBlue.type, couchGray.type, couchGreen.type, couchOrange.type, couchPink.type, couchPurple.type, couchTurquoise.type, couchWhite.type, couchYellow.type],
+	[armchairRed.type, armchairBlue.type, armchairGreen.type, armchairOrange.type, armchairPink.type, armchairPurple.type, armchairTurquoise.type, armchairWhite.type, armchairYellow.type, armchairBlack.type],
+	[floorLampRed.type, floorLampBlue.type, floorLampGray.type, floorLampGreen.type, floorLampOrange.type, floorLampPink.type, floorLampPurple.type, floorLampTurquoise.type, floorLampWhite.type, floorLampYellow.type],
+];
+
+export function getNextRecolorType(currentType: number): number | undefined {
+	for (const cycle of recolorCycles) {
+		const index = cycle.indexOf(currentType);
+		if (index !== -1) {
+			return cycle[(index + 1) % cycle.length];
+		}
+	}
+	return undefined;
+}
+
+export function isRecolorable(type: number): boolean {
+	return recolorCycles.some(cycle => cycle.indexOf(type) !== -1);
+}
 
 // plush toys
 export const plushAalik = doodad(n('plush-aalik'), sprites.Plush_Aalik, Math.floor(sprites.Plush_Aalik.color!.w / 2), sprites.Plush_Aalik.color!.h - 1, 0,
@@ -2575,7 +2685,7 @@ export const placeableEntities: { type: number; name: string; }[] = [
 	{ type: table1.type, name: 'Small table' },
 	{ type: table2.type, name: 'Large table' },
 	{ type: table3.type, name: 'Long table' },
-	{ type: couch.type, name: 'Couch (red)' },
+	{ type: couchRed.type, name: 'Couch (red)' },
 	{ type: couchOrange.type, name: 'Couch (orange)' },
 	{ type: couchYellow.type, name: 'Couch (yellow)' },
 	{ type: couchGreen.type, name: 'Couch (green)' },
@@ -2585,6 +2695,15 @@ export const placeableEntities: { type: number; name: string; }[] = [
 	{ type: couchPink.type, name: 'Couch (pink)' },
 	{ type: couchGray.type, name: 'Couch (gray)' },
 	{ type: couchWhite.type, name: 'Couch (white)' },
+	{ type: armchairRed.type, name: 'Armchair (red)' },
+	{ type: armchairOrange.type, name: 'Armchair (orange)' },
+	{ type: armchairYellow.type, name: 'Armchair (yellow)' },
+	{ type: armchairGreen.type, name: 'Armchair (green)' },
+	{ type: armchairTurquoise.type, name: 'Armchair (turquoise)' },
+	{ type: armchairBlue.type, name: 'Armchair (blue)' },
+	{ type: armchairPurple.type, name: 'Armchair (purple)' },
+	{ type: armchairPink.type, name: 'Armchair (pink)' },
+	{ type: armchairBlack.type, name: 'Armchair (black)' },
 	{ type: floorLampRed.type, name: 'Floor lamp (red)' },
 	{ type: floorLampOrange.type, name: 'Floor lamp (orange)' },
 	{ type: floorLampYellow.type, name: 'Floor lamp (yellow)' },
@@ -2742,6 +2861,10 @@ export const tools = [
 	   text: 'Pickaxe: drag & clone objects', textMobile: undefined },
 	{ type: scrap.type,
 	   text: 'Scrap: mirror objects', textMobile: undefined },
+	{ type: recolor.type,
+	   text: 'Recolor: cycle colors of furniture', textMobile: undefined },
+	{ type: season.type,
+	   text: 'Season: cycle seasons of objects', textMobile: undefined },
 ];
 
 export const candies1Types = [candyCane1, candyCane2, cookie, cookiePony].map(e => e.type);

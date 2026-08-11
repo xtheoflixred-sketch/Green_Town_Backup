@@ -1585,6 +1585,10 @@ export function createMainMap(world: World): ServerMap {
 
 	       map.flags |= MapFlags.EdibleGrass;
 
+	if (world.featureFlags.editor) {
+		map.flags |= MapFlags.EditableEntities;
+	}
+
 	// spawns
 
 	map.spawnArea = rect(51, 21, 8, 8);

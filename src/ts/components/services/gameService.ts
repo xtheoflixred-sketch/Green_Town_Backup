@@ -131,7 +131,7 @@ export class GameService {
 						this.gameLoop.cancel();
 					}
 
-					this.game.startup(socket, this.model.isMod);
+					this.game.startup(socket, this.model.isMod || this.model.isBuilder);
 					this.gameLoop = startGameLoop(this.game, e => this.handleGameError(e));
 
 					return this.gameLoop.started

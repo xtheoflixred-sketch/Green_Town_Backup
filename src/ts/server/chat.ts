@@ -112,6 +112,7 @@ export const createSay =
 		}
 
 		if (!command && args === '...') {
+			sayTransientMessage(client, args, type, target, settings);
 			return;
 		}
 

@@ -14,9 +14,13 @@ import { findEntities } from './serverMap';
 
 const tableTypes = new Set([entities.table1.type, entities.table2.type, entities.table3.type]);
 const couchTypes = new Set([
-	entities.couch.type, entities.couchBlue.type, entities.couchGray.type, entities.couchGreen.type,
+	entities.couchRed.type, entities.couchBlue.type, entities.couchGray.type, entities.couchGreen.type,
 	entities.couchOrange.type, entities.couchPink.type, entities.couchPurple.type,
 	entities.couchTurquoise.type, entities.couchWhite.type, entities.couchYellow.type,
+	entities.armchairRed.type, entities.armchairBlue.type, entities.armchairGreen.type,
+	entities.armchairOrange.type, entities.armchairPink.type, entities.armchairPurple.type,
+	entities.armchairTurquoise.type, entities.armchairWhite.type, entities.armchairYellow.type,
+	entities.armchairBlack.type,
 ]);
 const benchTypes = new Set([
 	entities.bench1.type, entities.benchSeat.type, entities.benchSeatH.type,
@@ -159,10 +163,7 @@ function getItemTriggerSpawnPosition(trigger: ServerEntity, x?: number, y?: numb
 		const maxY = minY + bounds.h;
 
 		if (x !== undefined && y !== undefined && x >= minX && x <= maxX && y >= minY && y <= maxY) {
-			return {
-				x,
-				y,
-			};
+			return { x, y };
 		}
 
 		return {

@@ -16,7 +16,7 @@ export const TOBE_ENTITIES = [
 	'direction-sign', 'box', 'box-lanterns', 'box-baskets', 'box-fruits', 'box-gifts',
 	'barrel', 'bench-1', 'bench-seat', 'bench-back', 'bench-seat-h', 'bench-back-h', 'bench-back-h-2',
 	'table-1', 'table-2', 'table-3',
-	'couch', 'couch-blue', 'couch-gray', 'couch-green', 'couch-orange', 'couch-pink', 'couch-purple',
+	'couch-red', 'couch-blue', 'couch-gray', 'couch-green', 'couch-orange', 'couch-pink', 'couch-purple',
 	'couch-turquoise', 'couch-white', 'couch-yellow', 'curved-log',
 	'rock', 'rock-2', 'rock-3', 'rock-b', 'rock-2-b', 'rock-3-b',
 	'water-rock-1', 'water-rock-2', 'water-rock-3', 'water-rock-4', 'water-rock-5',

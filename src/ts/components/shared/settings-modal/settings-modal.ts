@@ -299,6 +299,7 @@ export class SettingsModal implements OnInit, OnDestroy {
 		this.applyBackgroundModeClass();
 	}
 	cancel() {
+		if (this.done) return;
 		this.done = true;
 		this.settingsService.account = this.accountBackup;
 		this.settingsService.browser = this.browserBackup;

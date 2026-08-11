@@ -26,7 +26,7 @@ type LogAccount = (accountId: ID, message: string) => void;
 
 const exclude = [
 	'getEntityType', 'getEntityTypeName', 'createAnEntity', 'createEntity', 'pony',
-	'createBaseEntity', 'getEntityTypesAndNames',
+	'createBaseEntity', 'getEntityTypesAndNames', 'getNextRecolorType', 'isRecolorable',
 ];
 
 export const allEntities = Object.keys(entities)
