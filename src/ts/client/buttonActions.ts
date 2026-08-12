@@ -1,16 +1,16 @@
 import { compact } from 'lodash';
 import {
 	Expression, ExpressionButtonAction, CommandButtonAction, ActionButtonAction, ItemButtonAction,
-	ColorShadow, Eye, Muzzle, Iris, ButtonActionSlot, ExpressionExtra, ButtonAction, ChatType, BodyAnimation,
+	ColorShadow, Eye, Muzzle, Iris, ButtonActionSlot, ExpressionExtra, ButtonAction, ChatType, MessageType, BodyAnimation,
 	Action, isPartyChat, EntityButtonAction, defaultDrawOptions, HeadAnimationProperties
 } from '../common/interfaces';
 import * as sprites from '../generated/sprites';
-import { createExpression } from './clientUtils';
+import { createExpression, getSaysTime } from './clientUtils';
 import { encodeExpression, decodeExpression } from '../common/encoders/expressionEncoder';
 import { PonyTownGame } from './game';
 import { boopAction, dance1Action, upAction, downAction, turnHeadAction, interact } from './playerActions';
 import { ACTIONS_LIMIT, COMMAND_ACTION_TIME_DELAY } from '../common/constants';
-import { cloneDeep, hasFlag } from '../common/utils';
+import { cloneDeep, hasFlag, toInt } from '../common/utils';
 import { boop, defaultHeadFrame, stand, sneeze, yawn, lie, sit, fly, laugh, kiss, excite, dance1 } from './ponyAnimations';
 import { createDefaultPony, syncLockedPonyInfo, toPalette, mockPaletteManager } from '../common/ponyInfo';
 import {
@@ -27,7 +27,8 @@ import { drawTextAligned, HAlign, VAlign } from '../graphics/spriteFont';
 import { fontPal } from '../client/fonts';
 import { isPonyLying, isPonySitting, isPonyStanding, isPonyFlying } from '../common/entityUtils';
 import { canPonyFly } from '../common/pony';
-import { apple2, createAnEntity, getEntityType } from '../common/entities';
+import { apple2, banana, createAnEntity, getEntityType } from '../common/entities';
+import { addChatBubble } from '../common/entityUtils';
 import { fakePaletteManager } from '../common/mixins';
 import { spriteSheetsLoaded } from './spriteUtils';
 import { getEntityTypesFromName } from '../components/services/model';
@@ -124,6 +125,10 @@ const bodyActions = [
 	actionButtonAction('zoom-in', 'Zoom in'),
 	actionButtonAction('drop-toy', 'Drop toy', Action.DropToy),
 	actionButtonAction('drop', 'Drop item', Action.Drop),
+	actionButtonAction('hold-right', 'Right'),
+	actionButtonAction('hold-left', 'Left'),
+	actionButtonAction('hold-down', 'Down'),
+	actionButtonAction('hold-up', 'Up'),
 	actionButtonAction('interact', 'Interact'),
 	actionButtonAction('open', 'Open gift'),
 	actionButtonAction('open-own-profile', 'Open own profile'),
@@ -220,6 +225,11 @@ export function createDefaultButtonActions(): ButtonActionSlot[] {
 		{ action: getActionAction('sleep') },
 
 		{ action: getActionAction('drop-toy') },
+		{ action: getActionAction('drop') },
+		{ action: getActionAction('hold-right') },
+		{ action: getActionAction('hold-left') },
+		{ action: getActionAction('hold-down') },
+		{ action: getActionAction('hold-up') },
 		{ action: getActionAction('open') },
 
 		{ action: getActionAction('switch-tool') },
@@ -367,6 +377,31 @@ function deserializeAction(data: any): ButtonActionSlot {
 
 const lastCommandCalls: { [key: string]: number; } = {};
 
+function adjustHeldItemOffset(game: PonyTownGame, dx: number, dy: number) {
+	const player = game.player;
+	if (!player) {
+		return;
+	}
+
+	const holding = player.ponyState.holding;
+	if (!holding) {
+		const message = 'Нет удерживаемого предмета';
+		const total = getSaysTime(message);
+		addChatBubble(game.map, player, { message, type: MessageType.System, total, timer: total, created: Date.now() });
+		return;
+	}
+
+	const pickableX = toInt(holding.pickableX !== undefined ? holding.pickableX : 37) + dx;
+	const pickableY = toInt(holding.pickableY !== undefined ? holding.pickableY : 50) + dy;
+
+	holding.pickableX = pickableX;
+	holding.pickableY = pickableY;
+
+	const message = `ширина ${pickableX} высота ${pickableY}`;
+	const total = getSaysTime(message);
+	addChatBubble(game.map, player, { message, type: MessageType.System, total, timer: total, created: Date.now() });
+}
+
 export function useAction(game: PonyTownGame, action: ButtonAction | undefined) {
 	if (action) {
 		switch (action.type) {
@@ -428,6 +463,22 @@ export function useAction(game: PonyTownGame, action: ButtonAction | undefined) 
 							game.send(server => server.use());
 							break;
 						}
+					case 'hold-right': {
+						adjustHeldItemOffset(game, 1, 0);
+						break;
+					}
+					case 'hold-left': {
+						adjustHeldItemOffset(game, -1, 0);
+						break;
+					}
+					case 'hold-down': {
+						adjustHeldItemOffset(game, 0, 1);
+						break;
+					}
+					case 'hold-up': {
+						adjustHeldItemOffset(game, 0, -1);
+						break;
+					}
 						default:
 							console.log('Action not supported: ', action.action);
 					}
@@ -631,6 +682,21 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 								const state = { ...createState(), holding: fakePaletteManager(() => apple2(0, 0)) };
 								drawPony(batch, actionPony, state, 20, 40, defaultDrawPonyOptions());
 								batch.drawSprite(sprites.arrow_down, BLACK, defaultPalette, 1, 3);
+								break;
+							}
+							case 'hold-right':
+							case 'hold-left':
+							case 'hold-down':
+							case 'hold-up': {
+								const state = { ...createState(), holding: fakePaletteManager(() => banana(0, 0)) };
+								drawPony(batch, actionPony, state, 20, 40, defaultDrawPonyOptions());
+								const arrow = {
+									'hold-right': sprites.arrow_right,
+									'hold-left': sprites.arrow_left,
+									'hold-down': sprites.arrow_down,
+									'hold-up': sprites.arrow_up,
+								}[action.action];
+								batch.drawSprite(arrow, BLACK, defaultPalette, 1, 3);
 								break;
 							}
 					case 'zoom-out': {

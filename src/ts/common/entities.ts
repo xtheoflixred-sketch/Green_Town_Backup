@@ -456,31 +456,31 @@ export const saw = doodad(n('saw'), sprites.saw, 10, 7, 0,
 	mixPickable(26, 47));
 
 export const forestAxe = doodad(n('forest-axe'), sprites.forest_axe, 10, 8, 0,
-	mixPickable(28, 42));
+	mixPickable(27, 45));
 
 export const sawV2 = doodad(n('saw-v2'), sprites.saw_v2, 10, 7, 0,
-	mixPickable(26, 47));
+	mixPickable(21, 47));
 
 export const spanner = doodad(n('spanner'), sprites.spanner, 10, 8, 0,
-	mixPickable(28, 42));
+	mixPickable(30, 45));
 
 export const doubleEndedWrench = doodad(n('double-ended-wrench'), sprites.double_ended_wrench, 10, 8, 0,
-	mixPickable(28, 42));
+	mixPickable(30, 45));
 
 export const screwdriver = doodad(n('screwdriver'), sprites.screwdriver, 10, 8, 0,
-	mixPickable(28, 42));
+	mixPickable(26, 48));
 
 export const sledgehammer = doodad(n('sledgehammer'), sprites.sledgehammer, 10, 8, 0,
-	mixPickable(28, 42));
+	mixPickable(18, 38));
 
 export const insulatingTape = doodad(n('insulating-tape'), sprites.insulating_tape, 10, 8, 0,
-	mixPickable(28, 42));
+	mixPickable(36, 48));
 
 export const brush = doodad(n('brush'), sprites.brush, 10, 8, 0,
-	mixPickable(28, 42));
+	mixPickable(24, 46));
 
 export const banHammer = doodad(n('ban-hammer'), sprites.ban_hammer, 10, 8, 0,
-	mixPickable(28, 42));
+	mixPickable(19, 37));
 
 export const scrap = doodad(n('scrap'), sprites.scrap, 13, 4, 0,
 	mixPickable(29, 42),
