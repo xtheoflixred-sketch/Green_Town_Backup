@@ -715,20 +715,12 @@ function createEmoteAnimations({ objects2, sprites }: Result, directory: string)
 
 const palettes = [defaultPalette];
 
-function sanitizeSpriteName(name: string) {
-	return name
-		.replace(/[^a-zA-Z0-9_]/g, '_')
-		.replace(/^([0-9])/, '_$1');
-}
-
 function createObject(name: string, value: any) {
-	const exportName = sanitizeSpriteName(name);
-
-	if (!/^[a-z_][a-z0-9_]*(: [a-z]+(\[\])*)?$/i.test(exportName)) {
-		throw new Error(`Invalid sprite name (${exportName})`);
+	if (!/^[a-z_][a-z0-9_]*(: [a-z]+(\[\])*)?$/i.test(name)) {
+		throw new Error(`Invalid sprite name (${name})`);
 	}
 
-	return `export const ${exportName} = ${obj(value, exportName, true)};\n`;
+	return `export const ${name} = ${obj(value, name, true)};\n`;
 }
 
 function encodeArray(items: any[]) {
@@ -826,25 +818,25 @@ function createObj(
 		return `createAnimation(${encodeArray(s.frames)})`;
 	} else if (s.fangs != null) {
 		return `createNose(${s.color}, ${s.colors}, ${s.mouth}, ${s.fangs})`;
-	} else if (s.color != null && s.colors != null && s.extra != null && s.palette) {
+	} else if (s.color && s.colors && s.extra && s.palette) {
 		return `createColorExtraPal(${s.color}, ${s.colors}, ${s.extra}, [${addPalette(s.palette)}])`;
-	} else if (s.color != null && s.colors != null) {
+	} else if (s.color && s.colors) {
 		return `colorPal${s.colors}(${s.color})`;
 	} else if (s.base && s.irises != null) {
 		return `createEye(${s.base}, ${encodeArray(s.irises)}, ${s.shadow}, ${s.shine})`;
-	} else if (s.color != null && s.shadow != null && s.palettes) {
+	} else if (s.color && s.shadow && s.palettes) {
 		return `createColorShadowPalette(${s.color}, ${s.shadow}, ${addPalettes(s.palettes)})`;
-	} else if (s.color != null && s.palettes) {
+	} else if (s.color && s.palettes) {
 		return `createColorPalette(${s.color}, ${addPalettes(s.palettes)})`;
 	} else if (s.sprites && s.palettes) {
 		return `createSpritesPalette(${encodeArray(s.sprites)}, ${addPalettes(s.palettes)})`;
-	} else if (s.color != null && s.palette) {
+	} else if (s.color && s.palette) {
 		return `/* no palettes */ createColorPalette(${s.color}, [${addPalette(s.palette)}])`;
-	} else if (s.color != null && s.shadow != null) {
+	} else if (s.color && s.shadow) {
 		return `createColorShadow(${s.color}, ${s.shadow})`;
-	} else if (s.color != null) {
+	} else if (s.color) {
 		return `createColor(${s.color})`;
-	} else if (s.shadow != null) {
+	} else if (s.shadow) {
 		return `createShadow(${s.shadow})`;
 	} else if (s.topLeft) {
 		return `createButton(${s.border}, ${s.topLeft}, ${s.top}, ${s.topRight}, ${s.left}, ${s.bg},`

@@ -2284,26 +2284,6 @@ export const crystals9 = registerMix(n('crystals-9'),
 	mixCrystalLight,
 	mixColliderRounded(-9, -4, 18, 4, 1));
 
-// new tools
-export const forestAxe = doodad(n('forest-axe'), sprites.forest_axe, 10, 8, 0,
-	mixPickable(28, 42));
-export const sawV2 = doodad(n('saw-v2'), sprites.saw_v2, 10, 8, 0,
-	mixPickable(28, 42));
-export const spanner = doodad(n('spanner'), sprites.spanner, 10, 8, 0,
-	mixPickable(28, 42));
-export const doubleEndedWrench = doodad(n('double-ended-wrench'), sprites.double_ended_wrench, 10, 8, 0,
-	mixPickable(28, 42));
-export const screwdriver = doodad(n('screwdriver'), sprites.screwdriver, 10, 8, 0,
-	mixPickable(28, 42));
-export const sledgehammer = doodad(n('sledgehammer'), sprites.sledgehammer, 10, 8, 0,
-	mixPickable(28, 42));
-export const insulatingTape = doodad(n('insulating-tape'), sprites.insulating_tape, 10, 8, 0,
-	mixPickable(28, 42));
-export const brush = doodad(n('brush'), sprites.brush, 10, 8, 0,
-	mixPickable(28, 42));
-export const banHammer = doodad(n('ban-hammer'), sprites.ban_hammer, 10, 8, 0,
-	mixPickable(28, 42));
-
 export const crystals10 = registerMix(n('crystals-10'),
 	mixDraw(sprites.crystals_10, 5, 12),
 	mixLightSprite(sprites.light_crystals_10, WHITE, 5, 12),
