@@ -560,6 +560,18 @@ export const sheets: (Sheet | Spacer)[] = [
 		],
 	},
 	{
+		...headSheet,
+		name: 'head - ponytails',
+		file: 'ponytails',
+		fieldName: 'ponytail',
+		single: true,
+		wrap: 8,
+		layers: [
+			{ ...bodyLayer, options: { no: NoDraw.CloseEar } },
+			{ name: 'front', set: 'ponytails', options: { no: NoDraw.Behind } },
+		],
+	},
+	{
 		...singleFrameSheet,
 		name: 'head - facial hair',
 		file: 'facial-hair',

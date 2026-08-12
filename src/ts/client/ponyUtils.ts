@@ -88,6 +88,7 @@ const bodyFrames = sprites.body.length;
 
 export const wings = createCompleteSets(sprites.wings, 3 + 10);
 export const tails = createCompleteSets(sprites.tails, 3);
+export const ponytails = sprites.ponytails;
 export const chest = createCompleteSets(sprites.chestAccessories, bodyFrames);
 export const chestBehind = createCompleteSets(sprites.chestAccessoriesBehind, bodyFrames);
 export const backAccessories = createCompleteSets(sprites.backAccessories, bodyFrames);

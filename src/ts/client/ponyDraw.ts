@@ -11,7 +11,7 @@ import * as offsets from '../common/offsets';
 import { defaultHeadAnimation, defaultBodyFrame, defaultHeadFrame } from './ponyAnimations';
 import { toWorldX, toWorldY, toScreenX, toScreenYWithZ } from '../common/positionUtils';
 import {
-	frontHooves, PONY_WIDTH, PONY_HEIGHT, wings, chestBehind, tails, chest, neckAccessories, waistAccessories,
+	frontHooves, PONY_WIDTH, PONY_HEIGHT, wings, chestBehind, tails, ponytails, chest, neckAccessories, waistAccessories,
 	SLEEVED_ACCESSORIES, blinkFrames, flipIris, claws, Sets, backAccessories, SLEEVED_BACK_ACCESSORIES,
 	CHEST_ACCESSORIES_IN_FRONT, flipFaceAccessoryType, flipFaceAccessoryPattern, backLegSleeves,
 	NO_MANE_HEAD_ACCESSORIES, backHoovesInFront, frontHoovesInFront
@@ -409,6 +409,8 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 		}
 
 		drawLocalSet(sprites.backBehindManes, info.backMane, 0, maneBehindOffsetY, WHITE);
+
+		drawLocalSet(ponytails, info.ponytail, 0, maneBehindOffsetY, WHITE);
 
 		if (!state.headTurned) {
 			drawLocalSet(sprites.behindManes, info.mane, 0, maneBehindOffsetY, WHITE);

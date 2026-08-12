@@ -9,12 +9,12 @@ import { getColorCount } from '../client/spriteUtils';
 import * as sprites from '../generated/sprites';
 import { parseColorFast, colorToHexRGB } from './color';
 import {
-	SLEEVED_ACCESSORIES, frontHooves, mergedBackManes, mergedManes, mergedFacialHair,
+	SLEEVED_ACCESSORIES, frontHooves, mergedBackManes, mergedManes, mergedFacialHair, ponytails,
 	mergedBackAccessories, mergedExtraAccessories, mergedHeadAccessories,
 } from '../client/ponyUtils';
 import { CM_SIZE } from './constants';
 
-export const VERSION = 7; // previous: 6
+export const VERSION = 8; // previous: 7
 
 const VERSION_BITS = 6; // max 63
 const COLORS_LENGTH_BITS = 10; // max 1024
@@ -87,7 +87,7 @@ function emptyMarking<T>(set: SpriteSet<T> | undefined): boolean {
 
 function omitMane(info: PonyInfoNumber) {
 	return empty(info.mane) && emptyOrUnlocked(info.backMane)
-		&& emptyOrUnlocked(info.tail) && emptyOrUnlocked(info.facialHair);
+		&& emptyOrUnlocked(info.ponytail) && emptyOrUnlocked(info.tail) && emptyOrUnlocked(info.facialHair);
 }
 
 function omitHead(info: PonyInfoNumber): boolean {
@@ -124,6 +124,7 @@ const setFields: SetDefinition[] = [
 	{ name: 'mane', sets: mergedManes!, preserveOnZero: true, minColors: 1, omit: omitMane },
 	{ name: 'backMane', sets: mergedBackManes! },
 	{ name: 'tail', sets: sprites.tails[0]! },
+	{ name: 'ponytail', sets: ponytails! },
 	{ name: 'horn', sets: sprites.horns! },
 	{ name: 'wings', sets: sprites.wings[0]! },
 	{ name: 'frontHooves', sets: frontHooves[1]!, preserveOnZero: true, minColors: 1, omit: omitFrontHooves },

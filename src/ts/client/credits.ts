@@ -188,7 +188,7 @@ export const CREDITS: Credit[] = [
 		name: 'Luka',
 		badges: [BADGES.dev, BADGES.dev_code ],
 		avatarSkin: 'luka-pony',
-		avatarBgColor: 'rgb(138, 97, 124)',
+		avatarBgColor: 'rgb(159, 95, 199)',
 		links: [],
 	},
 ];

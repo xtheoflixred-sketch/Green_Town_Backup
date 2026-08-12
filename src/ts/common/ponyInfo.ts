@@ -17,7 +17,7 @@ import { parseColorFast, getR, getAlpha, colorFromRGBA, getG, getB, colorToHexRG
 import { BLACK, fillToOutline, fillToOutlineColor, WHITE, TRANSPARENT, fillToOutlineWithDarken } from './colors';
 import {
 	mergedManes, mergedBackManes, mergedFacialHair, mergedEarAccessories, mergedChestAccessories,
-	SLEEVED_ACCESSORIES, mergedBackAccessories, mergedExtraAccessories, mergedHeadAccessories,
+	SLEEVED_ACCESSORIES, mergedBackAccessories, mergedExtraAccessories, mergedHeadAccessories, ponytails,
 } from '../client/ponyUtils';
 
 const MAX_COLORS = 21;
@@ -111,6 +111,7 @@ export function createBasePony(): PonyInfo {
 		mane: spriteSet(0, false),
 		backMane: spriteSet(0),
 		tail: spriteSet(0),
+		ponytail: spriteSet(0),
 		facialHair: spriteSet(0),
 
 		headAccessory: spriteSet(0, false, 'ee82ee'),
@@ -496,6 +497,7 @@ function syncLockedBasePonyInfo<T>(
 	const baseManeOutline = getBaseOutline(info.mane);
 
 	syncLockedSpriteSet<T>(info.backMane, customOutlines, fillToOutline, baseManeFill, baseManeOutline);
+	syncLockedSpriteSet<T>(info.ponytail, customOutlines, fillToOutline, baseManeFill, baseManeOutline);
 	syncLockedSpriteSet<T>(info.tail, customOutlines, fillToOutline, baseManeFill, baseManeOutline);
 	syncLockedSpriteSet<T>(info.facialHair, customOutlines, fillToOutline, baseManeFill, baseManeOutline);
 
@@ -538,12 +540,14 @@ function syncLockedBasePonyInfo<T>(
 		info.eyeColorRight,
 		getFillOf2(info.mane, defaultColor),
 		getFillOf2(info.backMane, defaultColor),
+		getFillOf2(info.ponytail, defaultColor),
 		getFillOf2(info.tail, defaultColor),
 	], [
 			info.coatOutline,
 			info.eyeColorRight,
 			getOutlineOf2(info.mane, defaultColor),
 			getOutlineOf2(info.backMane, defaultColor),
+			getOutlineOf2(info.ponytail, defaultColor),
 			getOutlineOf2(info.tail, defaultColor),
 		]);
 
@@ -765,6 +769,7 @@ export function toPaletteGeneric<T>(
 		mane: toSet(info.mane, mergedManes),
 		backMane: toSet(info.backMane, mergedBackManes),
 		tail: toSet(info.tail, sprites.tails[0]),
+		ponytail: toSet(info.ponytail, ponytails),
 		facialHair: toSet(info.facialHair, mergedFacialHair),
 
 		headAccessory: toSet(info.headAccessory, mergedHeadAccessories),

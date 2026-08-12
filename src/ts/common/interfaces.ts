@@ -1554,6 +1554,7 @@ export interface PonyInfoBase<T, SET> {
 
 	mane: SET | undefined;
 	backMane: SET | undefined;
+	ponytail: SET | undefined;
 	tail: SET | undefined;
 	facialHair: SET | undefined;
 

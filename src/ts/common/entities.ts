@@ -455,6 +455,33 @@ export const broom = doodad(n('broom'), sprites.broom, 16, 6, 0,
 export const saw = doodad(n('saw'), sprites.saw, 10, 7, 0,
 	mixPickable(26, 47));
 
+export const forestAxe = doodad(n('forest-axe'), sprites.forest_axe, 10, 8, 0,
+	mixPickable(28, 42));
+
+export const sawV2 = doodad(n('saw-v2'), sprites.saw_v2, 10, 7, 0,
+	mixPickable(26, 47));
+
+export const spanner = doodad(n('spanner'), sprites.spanner, 10, 8, 0,
+	mixPickable(28, 42));
+
+export const doubleEndedWrench = doodad(n('double-ended-wrench'), sprites.double_ended_wrench, 10, 8, 0,
+	mixPickable(28, 42));
+
+export const screwdriver = doodad(n('screwdriver'), sprites.screwdriver, 10, 8, 0,
+	mixPickable(28, 42));
+
+export const sledgehammer = doodad(n('sledgehammer'), sprites.sledgehammer, 10, 8, 0,
+	mixPickable(28, 42));
+
+export const insulatingTape = doodad(n('insulating-tape'), sprites.insulating_tape, 10, 8, 0,
+	mixPickable(28, 42));
+
+export const brush = doodad(n('brush'), sprites.brush, 10, 8, 0,
+	mixPickable(28, 42));
+
+export const banHammer = doodad(n('ban-hammer'), sprites.ban_hammer, 10, 8, 0,
+	mixPickable(28, 42));
+
 export const scrap = doodad(n('scrap'), sprites.scrap, 13, 4, 0,
 	mixPickable(29, 42),
 	mixFlags(EntityFlags.Usable));
@@ -2865,6 +2892,15 @@ export const tools = [
 	   text: 'Recolor: cycle colors of furniture', textMobile: undefined },
 	{ type: season.type,
 	   text: 'Season: cycle seasons of objects', textMobile: undefined },
+	{ type: forestAxe.type, text: 'Forest Axe', textMobile: undefined },
+	{ type: sawV2.type, text: 'Saw', textMobile: undefined },
+	{ type: spanner.type, text: 'Spanner', textMobile: undefined },
+	{ type: doubleEndedWrench.type, text: 'Double-ended Wrench', textMobile: undefined },
+	{ type: screwdriver.type, text: 'Screwdriver', textMobile: undefined },
+	{ type: sledgehammer.type, text: 'Sledgehammer', textMobile: undefined },
+	{ type: insulatingTape.type, text: 'Insulating Tape', textMobile: undefined },
+	{ type: brush.type, text: 'Brush', textMobile: undefined },
+	{ type: banHammer.type, text: 'Ban Hammer', textMobile: undefined },
 ];
 
 export const candies1Types = [candyCane1, candyCane2, cookie, cookiePony].map(e => e.type);

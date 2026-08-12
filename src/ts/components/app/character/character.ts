@@ -12,6 +12,7 @@ import { findById, toInt, cloneDeep, delay } from '../../../common/utils';
 import {
 	SLEEVED_ACCESSORIES, frontHooves, mergedBackManes, mergedManes, mergedFacialHair, mergedEarAccessories,
 	mergedChestAccessories, mergedFaceAccessories, mergedBackAccessories, mergedExtraAccessories, mergedHeadAccessories,
+	ponytails,
 } from '../../../client/ponyUtils';
 import { defaultPonyState, defaultDrawPonyOptions } from '../../../client/ponyHelpers';
 import { toPalette, getBaseFill, syncLockedPonyInfo } from '../../../common/ponyInfo';
@@ -111,6 +112,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	readonly manes = mergedManes;
 	readonly backManes = mergedBackManes;
 	readonly tails = sprites.tails[0];
+	readonly ponytails = ponytails;
 	readonly wings = wings;
 	readonly ears = ears;
 	readonly facialHair = mergedFacialHair;
@@ -957,6 +959,13 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	copyCoatColorToTail() {
 		if (this.info.tail && this.info.tail.fills) {
 			this.info.tail.fills[0] = this.info.coatFill;
+			this.changed();
+		}
+	}
+
+	copyCoatColorToPonytail() {
+		if (this.info.ponytail && this.info.ponytail.fills) {
+			this.info.ponytail.fills[0] = this.info.coatFill;
 			this.changed();
 		}
 	}

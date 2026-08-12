@@ -695,7 +695,7 @@ export function mixDrawSeasonal(setup: MixDrawSeasonal): MixinEntity {
 				batch.restore();
 				endEntityScaleAtFeet(batch, scaled);
 
-				var effectiveSeason = ((this as any).options && (this as any).options.seasonOverride) || options.season;
+				var effectiveSeason = (this as any).seasonOverride || options.season;
 				if (season !== effectiveSeason) {
 					setupSeason(effectiveSeason);
 				}
