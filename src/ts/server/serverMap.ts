@@ -29,6 +29,12 @@ export interface EntityData {
 	name?: string;
 }
 
+export interface EntityFileEntry {
+	type: string;
+	x: number;
+	y: number;
+}
+
 export interface MapData {
 	width: number;
 	height: number;
@@ -281,6 +287,31 @@ export async function saveMapToFileBinaryAlt(map: ServerMap, fileName: string) {
 	await writeFileAsync(fileName, buffer);
 }
 
+export function parseEntityFile(content: string): EntityFileEntry[] {
+	const entries: EntityFileEntry[] = [];
+
+	for (const rawLine of content.split(/\r?\n/)) {
+		const line = rawLine.trim();
+		if (!line || line.startsWith('#')) {
+			continue;
+		}
+
+		const match = /^([A-Za-z0-9_]+)\s+(-?\d+(?:[.,]\d+)?)\s+(-?\d+(?:[.,]\d+)?)\s*(?:#.*)?$/.exec(line);
+		if (!match) {
+			continue;
+		}
+
+		const [, type, xText, yText] = match;
+		entries.push({
+			type,
+			x: Number(xText.replace(',', '.')),
+			y: Number(yText.replace(',', '.')),
+		});
+	}
+
+	return entries;
+}
+
 export async function saveEntitiesToFile(map: ServerMap, fileName: string) {
 	const lines: string[] = [];
 
@@ -291,6 +322,63 @@ export async function saveEntitiesToFile(map: ServerMap, fileName: string) {
 	}
 
 	await writeFileAsync(fileName, lines.join('\n'), 'utf8');
+}
+
+export async function loadEntitiesFromFile(world: World, map: ServerMap, fileName: string, options: { loadEntitiesAsEditable?: boolean } = {}) {
+	const content = await readFileAsync(fileName, 'utf8');
+	const entries = parseEntityFile(content);
+
+	if (options.loadEntitiesAsEditable) {
+		for (const region of map.regions) {
+			for (const entity of [...region.entities]) {
+				if (hasFlag(entity.state, EntityState.Editable)) {
+					world.removeEntity(entity, map);
+				}
+			}
+		}
+	}
+
+	let loaded = 0;
+
+	for (const { type, x, y } of entries) {
+		const typeNumber = getEntityType(type);
+		if (!typeNumber) {
+			continue;
+		}
+
+		const entity = createAnEntity(typeNumber, 0, x, y, undefined, mockPaletteManager, world);
+		if (options.loadEntitiesAsEditable) {
+			entity.state |= EntityState.Editable;
+		}
+		world.addEntity(entity, map);
+		loaded++;
+	}
+
+	return loaded;
+}
+
+export async function removeEntitiesFromFile(world: World, map: ServerMap, fileName: string) {
+	const content = await readFileAsync(fileName, 'utf8');
+	const entries = parseEntityFile(content);
+	let removed = 0;
+
+	for (const { type, x, y } of entries) {
+		const typeNumber = getEntityType(type);
+		if (!typeNumber) {
+			continue;
+		}
+
+		for (const region of map.regions) {
+			for (const entity of [...region.entities]) {
+				if (entity.type === typeNumber && Math.abs(entity.x - x) < 0.0001 && Math.abs(entity.y - y) < 0.0001) {
+					world.removeEntity(entity, map);
+					removed++;
+				}
+			}
+		}
+	}
+
+	return removed;
 }
 
 export function loadMap(world: World, map: ServerMap, data: MapData, loadOptions: MapLoadOptions) {

@@ -1,6 +1,6 @@
 import '../lib';
 import { expect } from 'chai';
-import { createServerMap } from '../../server/serverMap';
+import { createServerMap, parseEntityFile } from '../../server/serverMap';
 import { getRegion, getRegionGlobal } from '../../common/worldMap';
 import { ServerMap } from '../../server/serverInterfaces';
 
@@ -22,6 +22,18 @@ describe('serverMap', () => {
 
 	it('gets total height of map', () => {
 		expect(map.height).equal(80);
+	});
+
+	describe('parseEntityFile()', () => {
+		it('parses saved entity lines from a text file', () => {
+			const entries = parseEntityFile('flower 3 4\nstone 10 10\n# comment\n\nwoodenWall 2 2');
+
+			expect(entries).eql([
+				{ type: 'flower', x: 3, y: 4 },
+				{ type: 'stone', x: 10, y: 10 },
+				{ type: 'woodenWall', x: 2, y: 2 },
+			]);
+		});
 	});
 
 	describe('getRegion()', () => {

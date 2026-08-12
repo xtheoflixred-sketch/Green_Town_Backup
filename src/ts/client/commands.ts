@@ -124,6 +124,8 @@ export const CLIENT_COMMANDS: ClientCommand[] = [
 	{ name: 'savemap', help: '/savemap <file name> - save map to file' },
 	{ name: 'savemapbin', help: '/savemapbin <file name> - save map to file' },
 	{ name: 'saveentities', help: '/saveentities <file name> - save entities to file' },
+	{ name: 'loadentities', help: '/loadentities <file name> - load entities from file' },
+	{ name: 'removeentities', help: '/removeentities <file name> - remove entities by file' },
 	{ name: 'savehides', help: '/savehides - save hides to file' },
 	{ name: 'throwerror', help: '/throwerror <message> - throw test error' },
 	...((BETA ? [

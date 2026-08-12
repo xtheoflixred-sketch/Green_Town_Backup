@@ -29,8 +29,8 @@ import { sayTo, sayToEveryone, sayToOthers, sayToAll, saySystem } from './chat';
 import { resetTiles } from './serverRegion';
 import { updateAccountState } from './accountUtils';
 import {
-	findEntities, updateMapState, loadMapFromFile, saveMapToFile, saveEntitiesToFile, getSizeOfMap,
-	saveMapToFileBinaryAlt, saveRegionCollider, saveMap, loadMap
+	findEntities, updateMapState, loadMapFromFile, saveMapToFile, saveEntitiesToFile, loadEntitiesFromFile,
+	removeEntitiesFromFile, getSizeOfMap, saveMapToFileBinaryAlt, saveRegionCollider, saveMap, loadMap
 } from './serverMap';
 import { PARTY_LIMIT, tileWidth, tileHeight, MAP_LOAD_SAVE_TIMEOUT } from '../common/constants';
 import { PartyService } from './services/party';
@@ -2185,6 +2185,12 @@ export function createCommands(world: World): Command[] {
 		}, false, 'Owner'),
 		command(['saveentities'], '/saveentities <file name> - save entities to file', 'owner', (_, client, message) => {
 			execWithFileName(client, message, fileName => saveEntitiesToFile(client.map, pathTo('store', `${fileName}.txt`)));
+		}, false, 'Owner'),
+		command(['loadentities'], '/loadentities <file name> - load entities from file', 'owner', ({ world }, client, message) => {
+			execWithFileName(client, message, fileName => loadEntitiesFromFile(world, client.map, pathTo('store', `${fileName}.txt`), { loadEntitiesAsEditable: true }));
+		}, false, 'Owner'),
+		command(['removeentities'], '/removeentities <file name> - remove entities from current map by file', 'owner', ({ world }, client, message) => {
+			execWithFileName(client, message, fileName => removeEntitiesFromFile(world, client.map, pathTo('store', `${fileName}.txt`)));
 		}, false, 'Owner'),
 		command(['savehides'], '/savehides - save hides to file', 'owner', async ({ world }, client) => {
 			const json = world.hidingService.serialize();
