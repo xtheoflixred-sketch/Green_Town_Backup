@@ -284,7 +284,7 @@ page-loader(*ngIf="!playing")
 						button.btn.btn-sm.btn-default((click)="copyCoatColorToPonytail()" [disabled]="info.ponytail.lockFills[0]")
 							| Use body color
 
-					tab(title="tail")
+			tab(title="tail")
 				.character-tab(*tabContent)
 					set-selection(
 						label="Tail" [base]="maneFill" [set]="info.tail" [sets]="tails" [darken]="darken" (change)="changed()")
