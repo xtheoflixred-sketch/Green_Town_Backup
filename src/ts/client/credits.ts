@@ -185,7 +185,7 @@ export const CREDITS: Credit[] = [
 		links: [],
 	},
 	{
-		name: 'Luka',
+		name: 'Trumentalise',
 		badges: [BADGES.dev, BADGES.dev_code ],
 		avatarSkin: 'luka-pony',
 		avatarBgColor: 'rgb(159, 95, 199)',

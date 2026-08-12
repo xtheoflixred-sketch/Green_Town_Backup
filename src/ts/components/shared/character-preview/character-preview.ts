@@ -48,6 +48,7 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 	@Input() tagOnlyNamePlateOffsetY = -1;
 	@Input() namePlateTextY = 11;
 	@Input() tagOnlyNamePlateTextY = -2;
+	@Input() globalBackgroundColor?: string;
 	@ViewChild('canvas', { static: true }) canvas!: ElementRef;
 	private batch?: ContextSpriteBatch;
 	private nameBatch?: ContextSpriteBatch;
@@ -175,7 +176,9 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 			// Force transparent background for batch rendering when noBackground is true
 			bg = TRANSPARENT;
 		} else {
-			bg = this.pony && (this.pony as any).previewBackground ? parseColorFast((this.pony as any).previewBackground) : defaultBg;
+			const ponyBg = this.pony && (this.pony as any).previewBackground ? parseColorFast((this.pony as any).previewBackground) : null;
+			const globalBg = this.globalBackgroundColor ? parseColorFast(this.globalBackgroundColor) : null;
+			bg = ponyBg != null ? ponyBg : (globalBg != null ? globalBg : defaultBg);
 		}
 
 		if (this.pony) {

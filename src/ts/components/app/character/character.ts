@@ -217,6 +217,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	public modalStoredPony?: PonyInfo;
 	public modalPonyName?: string;
 	private accountChangedSubscription?: Subscription;
+	private ponyChangedSubscription?: Subscription;
 	private unsavedChangesModalRef?: BsModalRef;
 	private pendingPlayCallback?: (options?: { pony?: PonyObject; skipSave?: boolean }) => void;
 	constructor(private gameService: GameService, private model: Model, private storage: StorageService, private modalService: BsModalService) {
@@ -271,6 +272,21 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	}
 	get previewInfo() {
 		return this.previewPony ? this.previewPony.ponyInfo : this.pony.ponyInfo;
+	}
+get previewState(): PonyState {
+		if (this.previewPony) {
+			const info = this.previewPony.ponyInfo as PonyInfo & { eyeOpennessRight: number; eyeOpennessLeft: number; muzzle: number };
+			const right: Eye = info.eyeOpennessRight != null ? info.eyeOpennessRight : Eye.Neutral;
+			const left: Eye = info.eyeOpennessLeft != null ? info.eyeOpennessLeft : Eye.Neutral;
+			const muzzle: Muzzle = info.muzzle != null ? info.muzzle : Muzzle.Smile;
+			return {
+				...defaultPonyState(),
+				expression: { right, left, muzzle, extra: ExpressionExtra.None, leftIris: Iris.Forward, rightIris: Iris.Forward },
+				blinkFrame: 1,
+				blushColor: info.blushColor ? parseColorWithAlpha(info.blushColor, 1) : blushColor(parseColorWithAlpha(info.coatFill || '', 1)),
+			};
+		}
+		return this.state;
 	}
 	get previewName() {
 		return this.previewPony ? this.previewPony.name : this.pony.name;
@@ -327,8 +343,28 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	get customOutlines() {
 		return this.info.customOutlines;
 	}
+	private get globalPreviewBackground(): string {
+		return this.storage.getItem('globalPreviewBackground') || '90ee90';
+	}
+	private set globalPreviewBackground(value: string) {
+		if (value === '90ee90') {
+			this.storage.removeItem('globalPreviewBackground');
+		} else {
+			this.storage.setItem('globalPreviewBackground', value);
+		}
+	}
+
 	get hasCustomPreviewBackground() {
-		return !!this.info.previewBackground && this.info.previewBackground !== '90ee90';
+		return this.globalPreviewBackground !== '90ee90';
+	}
+
+	get previewBackgroundColor(): string {
+		return this.globalPreviewBackground;
+	}
+	set previewBackgroundColor(value: string) {
+		this.globalPreviewBackground = value;
+		this.info.previewBackground = value;
+		this.changed();
 	}
 	get hasCustomPreviewSettings() {
 		return this.previewScale !== 4 || !!this.info.headTurned || !!this.info.flip || this.hidePreviewName || this.hidePreviewTag
@@ -602,6 +638,12 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 
 		this.resetUndoHistory();
 		this.accountChangedSubscription = this.model.accountChanged.subscribe(() => this.tryRestoreAutosaveDraft());
+		this.ponyChangedSubscription = this.model.ponyChanged$.subscribe(pony => {
+			if (pony) {
+				this.syncGlobalBackground();
+				this.syncExpressionFromInfo();
+			}
+		});
 
 		return loadAndInitSpriteSheets().then(() => {
 			this.loaded = true;
@@ -627,6 +669,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	ngOnDestroy() {
 		clearInterval(this.interval);
 		this.accountChangedSubscription && this.accountChangedSubscription.unsubscribe();
+		this.ponyChangedSubscription && this.ponyChangedSubscription.unsubscribe();
 	}
 	ngDoCheck() {
 		this.syncPreviewHoldItem();
@@ -775,6 +818,8 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	private applyUndoState(state: CharacterUndoState) {
 		this.deleting = false;
 		this.pony = cloneDeep(state.pony);
+		this.syncGlobalBackground();
+		this.syncExpressionFromInfo();
 		this.previewScale = state.previewScale;
 		this.hidePreviewName = state.hidePreviewName;
 		this.hidePreviewTag = state.hidePreviewTag;
@@ -782,6 +827,12 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		this.previewHoldItem = state.previewHoldItem;
 		this.syncPreviewHoldItem();
 		this.updateMuzzles();
+	}
+
+	private syncGlobalBackground() {
+		if (this.pony && this.pony.ponyInfo) {
+			this.pony.ponyInfo.previewBackground = this.globalPreviewBackground;
+		}
 	}
 	undo() {
 		if (!this.canUndo) return;
@@ -971,7 +1022,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	}
 
 	resetBackground() {
-		// default green (matches GRASS_COLOR = 0x90ee90ff)
+		this.globalPreviewBackground = '90ee90';
 		this.info.previewBackground = '90ee90';
 		this.changed();
 	}
@@ -1167,7 +1218,17 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		if (pony) {
 			this.deleting = false;
 			this.pony = pony;
+			this.syncGlobalBackground();
 			this.resetUndoHistory();
+			this.syncExpressionFromInfo();
+		}
+	}
+	private syncExpressionFromInfo() {
+		if (this.state.expression && this.info) {
+			const right = (this.info.eyeOpennessRight != null ? this.info.eyeOpennessRight : Eye.Neutral) as Eye;
+			const left = (this.info.eyeOpennessLeft != null ? this.info.eyeOpennessLeft : Eye.Neutral) as Eye;
+			const muzzle = (this.info.muzzle != null ? this.info.muzzle : Muzzle.Smile) as Muzzle;
+			this.state.expression = { ...this.state.expression, right, left, muzzle };
 		}
 	}
 
@@ -1221,6 +1282,8 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 			this.pony = cloneDeep(this.pony);
 			this.pony.name = '';
 			this.pony.id = '';
+			this.syncGlobalBackground();
+			this.syncExpressionFromInfo();
 			this.resetUndoHistory();
 		}
 	}
@@ -1377,6 +1440,8 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 			return;
 		}
 		this.pony = cloneDeep(this.restoreDraftCandidate);
+		this.syncGlobalBackground();
+		this.syncExpressionFromInfo();
 		this.resetUndoHistory();
 		this.restoreDraftCandidate = undefined;
 	}
@@ -1387,6 +1452,8 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 			return;
 		}
 		this.pony = cloneDeep(stored);
+		this.syncGlobalBackground();
+		this.syncExpressionFromInfo();
 		this.resetUndoHistory();
 	}
 
