@@ -770,13 +770,13 @@ export function decompressPonyString(info: string, editable = false): PonyInfo {
 		
 		if (editable) {
 			const base = createBasePony();
-			// Merge but preserve locked fill values from base (which may have been BLACK from decompression)
+			// Merge pony into base, preserving pony's values
 			// Use mergeWith so arrays are replaced, not merged index-by-index.
-			const result = mergeWith(base, pony, (_objValue, srcValue) => {
-				if (Array.isArray(srcValue)) {
+			const result = mergeWith(base, pony, (objValue, srcValue) => {
+				if (srcValue !== undefined) {
 					return srcValue;
 				}
-				return undefined;
+				return objValue;
 			});
 			
 			// Restore locked fills in extraAccessory from base, as they're used for dynamic synchronization

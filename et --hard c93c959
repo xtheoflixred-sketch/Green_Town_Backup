@@ -1,0 +1,84 @@
+[33m138b695[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: reset: moving to origin/main
+[33m138b695[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{1}: reset: moving to origin/main
+[33mc93c959[m HEAD@{2}: rebase (abort): returning to refs/heads/main
+[33m138b695[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{3}: pull --rebase origin main (start): checkout 138b6953a7db2f0530270d0a030183a7bbdd9a88
+[33mc93c959[m HEAD@{4}: rebase (abort): returning to refs/heads/main
+[33m138b695[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{5}: pull --rebase origin main (start): checkout 138b6953a7db2f0530270d0a030183a7bbdd9a88
+[33mc93c959[m HEAD@{6}: commit (amend): xx
+[33mb411997[m HEAD@{7}: commit: Fix floor lamp lighting
+[33m7404c06[m HEAD@{8}: merge origin/main: Fast-forward
+[33m18e3cdd[m HEAD@{9}: commit: кресла
+[33m1a356e1[m HEAD@{10}: reset: moving to HEAD
+[33m1a356e1[m HEAD@{11}: merge origin/main: Fast-forward
+[33mf6475e6[m HEAD@{12}: pull --rebase origin main (finish): returning to refs/heads/main
+[33mf6475e6[m HEAD@{13}: pull --rebase origin main (pick): plush
+[33mf1bd2e4[m HEAD@{14}: pull --rebase origin main (start): checkout f1bd2e4f117bca01c8def94b40024b1d92cfea42
+[33mb862a7d[m HEAD@{15}: commit: plush
+[33m07d9e5c[m HEAD@{16}: commit: сс
+[33m45ca89e[m HEAD@{17}: commit: szz
+[33med168b8[m HEAD@{18}: commit: Update from main
+[33ma858696[m HEAD@{19}: pull --rebase origin main (finish): returning to refs/heads/main
+[33ma858696[m HEAD@{20}: pull --rebase origin main (pick): Merge latest main changes
+[33mf408876[m HEAD@{21}: pull --rebase origin main (pick): Revert "Floor lamp: reduce light intensity and make sprite more transparent"
+[33mdecf4a3[m HEAD@{22}: pull --rebase origin main (pick): Revert "Floor lamp: light_lamp alpha 0.7->0.5, glowScale 1.3->1.1"
+[33mbccc8d3[m HEAD@{23}: pull --rebase origin main (pick): Floor lamp: light_lamp alpha 0.7->0.5, glowScale 1.3->1.1
+[33mf57e68f[m HEAD@{24}: pull --rebase origin main (pick): Floor lamp: reduce light intensity and make sprite more transparent
+[33m503c172[m HEAD@{25}: pull --rebase origin main (pick): Fix: spawn position stale on reconnect - async MongoDB fallback in getAndFixCharacterState
+[33m6a5d8ab[m HEAD@{26}: pull --rebase origin main (pick): Floor lamp: softer light with bloom layer; fix search object text reset
+[33m9434a05[m HEAD@{27}: pull --rebase origin main (start): checkout 9434a05dfa4397ac5895f33b0df1a72b68d8e104
+[33m2e81bc6[m HEAD@{28}: commit: Merge latest main changes
+[33m21ec9f4[m HEAD@{29}: revert: Revert "Floor lamp: reduce light intensity and make sprite more transparent"
+[33mbef8541[m HEAD@{30}: revert: Revert "Floor lamp: light_lamp alpha 0.7->0.5, glowScale 1.3->1.1"
+[33maa00864[m HEAD@{31}: commit: Floor lamp: light_lamp alpha 0.7->0.5, glowScale 1.3->1.1
+[33m2a22b57[m HEAD@{32}: commit: Floor lamp: reduce light intensity and make sprite more transparent
+[33m9b69c33[m HEAD@{33}: commit: Fix: spawn position stale on reconnect - async MongoDB fallback in getAndFixCharacterState
+[33m0536c77[m HEAD@{34}: commit: Floor lamp: softer light with bloom layer; fix search object text reset
+[33m26fb720[m HEAD@{35}: commit: '''
+[33m1e056ba[m HEAD@{36}: commit: fix: draw light sprites at front depth to appear on top of entities
+[33m4dcec1f[m HEAD@{37}: merge origin/main: Fast-forward
+[33m660e581[m HEAD@{38}: reset: moving to HEAD
+[33m660e581[m HEAD@{39}: checkout: moving from main to main
+[33m660e581[m HEAD@{40}: checkout: moving from main to main
+[33m660e581[m HEAD@{41}: commit: light
+[33mcddb263[m HEAD@{42}: commit: assets: add floor lamp PSD assets and update couch green
+[33m788a921[m HEAD@{43}: commit: feat: add floor lamp entities with 7 color variants
+[33mb955203[m HEAD@{44}: commit: fix: update waist accessory arrays to 20 fills
+[33m3797f04[m HEAD@{45}: commit: fix: update spriteSet arrays to 20 fills for MAX_COLORS=21
+[33m51871b6[m HEAD@{46}: commit: feat: entity scale support for select outline and chat balloons
+[33mfbe3385[m HEAD@{47}: pull origin main: Fast-forward
+[33ma34760f[m HEAD@{48}: reset: moving to HEAD
+[33ma34760f[m HEAD@{49}: commit: Remove invalid openUp binding from color-picker
+[33mc0df8c8[m HEAD@{50}: commit: Add color picker for /msgcolor and fix /tobe with complete entity list
+[33m8651481[m HEAD@{51}: commit: Add /tobe command and update command dropdown for subcommands
+[33mabaf569[m HEAD@{52}: commit: Add all server commands to command dropdown
+[33md8a778e[m HEAD@{53}: commit: Fix character.pug indentation: restore Options tab structure after bgColor removal
+[33m56451bf[m HEAD@{54}: reset: moving to HEAD
+[33m56451bf[m HEAD@{55}: commit: Remove bgColor feature (not working in Options tab)
+[33m124b231[m HEAD@{56}: commit: Fix: use single-line pug syntax for bgColor color picker
+[33m1b7af35[m HEAD@{57}: commit: Fix bgColor color picker: use correct event names, match previewBackground pattern
+[33m8b2298b[m HEAD@{58}: commit: Fix: handle undefined pony in bgColor getter, remove unsupported showAlpha input
+[33m08f5d38[m HEAD@{59}: commit: Add .psd~ backup files to gitignore
+[33m8fd53f6[m HEAD@{60}: commit (amend): Add bgColor: profile background color feature
+[33maaa7ebd[m HEAD@{61}: commit: Add bgColor: profile background color feature
+[33m3a411f1[m HEAD@{62}: commit (amend): Move disableGrassClick checkbox from Social to Game tab
+[33m8726332[m HEAD@{63}: commit: Move disableGrassClick checkbox from Social to Game tab
+[33me6d6935[m[33m ([m[1;32mfix-fbo-linear-filtering[m[33m)[m HEAD@{64}: merge fix-fbo-linear-filtering: Fast-forward
+[33m7fc13bf[m HEAD@{65}: pull origin main: Fast-forward
+[33mc653d0b[m HEAD@{66}: checkout: moving from fix-fbo-linear-filtering to main
+[33me6d6935[m[33m ([m[1;32mfix-fbo-linear-filtering[m[33m)[m HEAD@{67}: commit (merge): Merge remote-tracking branch into fix-fbo-linear-filtering
+[33m8ce312b[m[33m ([m[1;31morigin/fix-fbo-linear-filtering[m[33m)[m HEAD@{68}: commit: Couch red with colliders, fix chat imports, typing indicator hide delay
+[33m53c1599[m HEAD@{69}: commit: FBO supersample, whisper enum fix, couch entity, pixelated rendering, index.pug fix
+[33mc64c83e[m HEAD@{70}: commit: Fix pose flash on login, typing indicator delays, '...' message bug, performance optimization
+[33mb81d5c3[m HEAD@{71}: commit: add slash command box
+[33m770cd9c[m HEAD@{72}: pull --ff-only: Fast-forward
+[33m94ef555[m HEAD@{73}: reset: moving to HEAD
+[33m94ef555[m HEAD@{74}: reset: moving to HEAD~1
+[33m770cd9c[m HEAD@{75}: commit (amend): fix: пикселизация при отдалении
+[33m33dcb9e[m HEAD@{76}: commit (amend): fix: FBO texture LINEAR filtering to fix pixelation on zoom out
+[33mc653d0b[m HEAD@{77}: checkout: moving from main to fix-fbo-linear-filtering
+[33mc653d0b[m HEAD@{78}: commit: fix: FBO texture LINEAR filtering to fix pixelation on zoom out
+[33m94ef555[m HEAD@{79}: commit: проба пофиксить телегу №1
+[33mfcb2b33[m HEAD@{80}: commit: chore: remove temporary commit_msg.txt
+[33mc9a959e[m HEAD@{81}: commit: ﻿Большое обновление!
+[33m57d39fc[m HEAD@{82}: Branch: renamed refs/heads/master to refs/heads/main
+[33m57d39fc[m HEAD@{84}: commit (initial): Initial commit from local copy
