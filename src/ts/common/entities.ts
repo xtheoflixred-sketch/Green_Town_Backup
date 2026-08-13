@@ -456,7 +456,7 @@ export const saw = doodad(n('saw'), sprites.saw, 10, 7, 0,
 	mixPickable(26, 47));
 
 export const forestAxe = doodad(n('forest-axe'), sprites.forest_axe, 10, 8, 0,
-	mixPickable(27, 45));
+	mixPickable(22, 45));
 
 export const sawV2 = doodad(n('saw-v2'), sprites.saw_v2, 10, 7, 0,
 	mixPickable(21, 47));
@@ -477,7 +477,7 @@ export const insulatingTape = doodad(n('insulating-tape'), sprites.insulating_ta
 	mixPickable(36, 48));
 
 export const brush = doodad(n('brush'), sprites.brush, 10, 8, 0,
-	mixPickable(24, 46));
+	mixPickable(19, 46));
 
 export const banHammer = doodad(n('ban-hammer'), sprites.ban_hammer, 10, 8, 0,
 	mixPickable(19, 38));
@@ -492,12 +492,12 @@ export const scrapHeld = registerMix(n('scrap-held'),
 	mixPickable(29, 42),
 	mixFlags(EntityFlags.Usable));
 
-export const recolor = doodad(n('recolor'), sprites.brush, 5, 8, 0,
-	mixPickable(25, 42),
+export const recolor = doodad(n('recolor-tool'), sprites.brush, 5, 8, 0,
+	mixPickable(19, 38),
 	mixFlags(EntityFlags.Usable));
 
 export const season = doodad(n('season-tool'), sprites.forest_axe, 5, 8, 0,
-	mixPickable(25, 42),
+	mixPickable(22, 45);
 	mixFlags(EntityFlags.Usable));
 
 // jacko lanterns

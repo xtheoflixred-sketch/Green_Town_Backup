@@ -184,6 +184,12 @@ export class SettingsBox implements OnInit, OnDestroy {
 			}
 		});
 
+		this.game.onClock.subscribe(time => {
+			this.zone.run(() => {
+				this.time = time;
+			});
+		});
+
 		this.updateSubscription = interval(100).subscribe(() => {
 			this.updateVisualizerBars();
 			this.syncModalStateFromDom();

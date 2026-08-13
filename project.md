@@ -1566,7 +1566,7 @@ File: .json
   "proxy": false,
   "secret": "<some_random_string_here>",
   "token": "<some_other_random_string_here>",
-  "db": "mongodb://localhost:27017/batstown",
+  "db": "mongodb://localhost:27017/green-town",
   "oauth": {
     "google": {
       "clientID": "<CLIENT_ID_HERE>",

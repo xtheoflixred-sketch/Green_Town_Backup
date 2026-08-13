@@ -11,7 +11,7 @@ import { PonyTownGame } from './game';
 import { boopAction, dance1Action, upAction, downAction, turnHeadAction, interact } from './playerActions';
 import { ACTIONS_LIMIT, COMMAND_ACTION_TIME_DELAY } from '../common/constants';
 import { cloneDeep, hasFlag, toInt } from '../common/utils';
-import { boop, defaultHeadFrame, stand, sneeze, yawn, lie, sit, fly, laugh, kiss, excite, dance1 } from './ponyAnimations';
+import { boop, defaultHeadFrame, stand, sneeze, yawn, lie, sit, laugh, kiss, excite, dance1 } from './ponyAnimations';
 import { createDefaultPony, syncLockedPonyInfo, toPalette, mockPaletteManager } from '../common/ponyInfo';
 import { isFacingRight } from '../common/entityUtils';
 import {
@@ -27,7 +27,6 @@ import { rect, addRects, centerPoint } from '../common/rect';
 import { drawTextAligned, HAlign, VAlign } from '../graphics/spriteFont';
 import { fontPal } from '../client/fonts';
 import { isPonyLying, isPonySitting, isPonyStanding, isPonyFlying } from '../common/entityUtils';
-import { canPonyFly } from '../common/pony';
 import { apple2, banana, createAnEntity, getEntityType } from '../common/entities';
 import { addChatBubble } from '../common/entityUtils';
 import { fakePaletteManager } from '../common/mixins';
@@ -77,9 +76,7 @@ const ACTION_ACTION_BG_DISABLED = toGrayscale(parseColor(ACTION_ACTION_BG));
 const expressionPony = createPony(ACTION_EXPRESSION_BG);
 const actionPony = createPony(ACTION_ACTION_COAT_COLOR);
 const actionPonyWithHorn = createPony(ACTION_ACTION_COAT_COLOR, false, true);
-const actionPonyWithWings = createPony(ACTION_ACTION_COAT_COLOR, true);
 const actionPonyDisabled = createPony(colorToGrayscale(ACTION_ACTION_COAT_COLOR));
-const actionPonyWithWingsDisabled = createPony(colorToGrayscale(ACTION_ACTION_COAT_COLOR), true);
 const defaultPalette = mockPaletteManager.addArray(sprites.defaultPalette);
 export const actionExpressionDefaultPalette = mockPaletteManager.add(Array.from(sprites.defaultPalette));
 expressionPony.defaultPalette = actionExpressionDefaultPalette;
@@ -134,7 +131,6 @@ const bodyActions = [
 	actionButtonAction('open', 'Open gift'),
 	actionButtonAction('open-own-profile', 'Open own profile'),
 	actionButtonAction('dance-1', 'Dance 1'),
-	actionButtonAction('transform-bat', 'Turn into a bat', Action.TransformBat),
 ];
 
 const buildingToolActions = [
@@ -237,7 +233,6 @@ export function createDefaultButtonActions(): ButtonActionSlot[] {
 		{ action: getActionAction('switch-entity') },
 		{ action: getActionAction('switch-entity-rev') },
 		{ action: getActionAction('dance-1') },
-		{ action: getActionAction('transform-bat') },
 
 		// Новый инструмент: верёвка (drag entity tool)
 		{ action: entityButtonAction('rope') },
@@ -247,8 +242,6 @@ export function createDefaultButtonActions(): ButtonActionSlot[] {
 		{ action: itemButtonAction(sprites.apple_1, 5) },
 		{ action: itemButtonAction(sprites.pumpkin_default) },
 		{ action: itemButtonAction(sprites.tree_1, 2) },
-
-		{ action: getActionAction('transform-bat') },
 
 		// special expressions
 		{
@@ -828,11 +821,6 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 								batch.drawSprite(sprites.hammer.color, WHITE, palette, 2, 2);
 								break;
 							}
-							case 'transform-bat': {
-								const state = { ...createState(), animation: fly };
-								drawPony(batch, actionPonyWithWings, state, 0, 30, defaultDrawPonyOptions());
-								break;
-							}
 							default:
 								throw new Error(`Invalid action: ${action.action}`);
 						}
@@ -937,24 +925,11 @@ function drawStand(batch: ContextSpriteBatch) {
 	drawPony(batch, actionPony, state, -1, 15, defaultDrawPonyOptions());
 }
 
-function drawFly(batch: ContextSpriteBatch) {
-	const state = { ...createState(), animation: fly };
-	drawPony(batch, actionPonyWithWings, state, 0, 30, defaultDrawPonyOptions());
-}
-
-function drawFlyDisabled(batch: ContextSpriteBatch) {
-	const state = { ...createState(), animation: fly };
-	batch.drawRect(ACTION_ACTION_BG_DISABLED, 0, 0, 50, 50);
-	drawPony(batch, actionPonyWithWingsDisabled, state, 0, 30, defaultDrawPonyOptions());
-}
-
 function getDrawFuncByName(name: string) {
 	switch (name) {
 		case 'lie': return drawLie;
 		case 'sit': return drawSit;
 		case 'stand': return drawStand;
-		case 'fly': return drawFly;
-		case 'flyDisabled': return drawFlyDisabled;
 		case 'lieDisabled': return drawLieDisabled;
 		default:
 			throw new Error(`Invalid name: ${name}`);
@@ -969,12 +944,10 @@ function getUpDrawFunc(game: PonyTownGame) {
 			return 'sit';
 		} else if (isPonySitting(player)) {
 			return 'stand';
-		} else if (isPonyStanding(player) && canPonyFly(player)) {
-			return 'fly';
 		}
 	}
 
-	return 'flyDisabled';
+	return 'lieDisabled';
 }
 
 function getDownDrawFunc(game: PonyTownGame) {
@@ -993,4 +966,3 @@ function getDownDrawFunc(game: PonyTownGame) {
 	return 'lieDisabled';
 }
 
-}

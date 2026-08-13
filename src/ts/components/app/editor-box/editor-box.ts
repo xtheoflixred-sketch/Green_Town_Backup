@@ -96,6 +96,19 @@ export class EditorBox implements OnInit, OnDestroy {
 		}
 	}
 	ngOnInit() {
+		// Инициализируем placeTile, синхронизированный с editor.tile
+		const currentTile = this.game.editor.tile;
+		if (currentTile !== -1) {
+			const tileIndex = editorTiles.findIndex(t => t.type === currentTile);
+			if (tileIndex >= 0) {
+				this.game.placeTile = tileIndex;
+			} else if (editorTiles.length > 0) {
+				this.game.placeTile = 0;
+				this.game.editor.tile = editorTiles[0].type;
+			}
+		} else {
+			this.game.placeTile = 0;
+		}
 		this._leftSubscription = this.game.onLeft.subscribe(() => this.closeEditor());
 	}
 	ngOnDestroy() {
@@ -115,6 +128,7 @@ export class EditorBox implements OnInit, OnDestroy {
 				this.game.editor.useEditorSeason = false;
 				this.game.editor.useEditorShovel = false;
 				this.game.editor.tile = -1;
+				this.game.placeTile = 0; // Синхронизируем placeTile
 				this.game.editor.selectingEntities = false;
 				this.game.editor.selectedEntities.length = 0;
 				this.storage.setBoolean('show-editor', false);
@@ -286,12 +300,33 @@ export class EditorBox implements OnInit, OnDestroy {
 			this.game.editor.useEditorScrap = false;
 		this.game.editor.useEditorRecolor = false;
 		this.game.editor.useEditorSeason = false;
-			if (this.game.editor.tile === -1) {
-				this.game.editor.tile = 0;
+			// Синхронизируем обе переменные состояния лопаты
+			const currentTile = this.game.editor.tile;
+			if (currentTile === -1) {
+				// Инициализируем на первый валидный tile
+				this.game.placeTile = 0;
+				if (editorTiles.length > 0) {
+					this.game.editor.tile = editorTiles[0].type;
+				} else {
+					this.game.editor.tile = 0;
+				}
+			} else {
+				// Синхронизируем placeTile с текущим editor.tile
+				const tileIndex = editorTiles.findIndex(t => t.type === currentTile);
+				if (tileIndex >= 0) {
+					this.game.placeTile = tileIndex;
+				} else {
+					// Fallback: tile не найден в editorTiles, используем первый
+					this.game.placeTile = 0;
+					if (editorTiles.length > 0) {
+						this.game.editor.tile = editorTiles[0].type;
+					}
+				}
 			}
 			this.game.send(server => server.action(Action.SwitchToTileTool));
 		} else {
 			this.game.editor.tile = -1;
+			this.game.placeTile = 0; // Сбросим на безопасное значение
 			this.game.send(server => server.action(Action.Drop));
 		}
 	}
@@ -329,6 +364,7 @@ export class EditorBox implements OnInit, OnDestroy {
 			       // fallback и логирование
 			       console.warn('[EditorBox] Некорректное значение editorTile:', tile, ' — сброс на -1');
 			       this.game.editor.tile = -1;
+			       this.game.placeTile = 0; // Синхронизируем placeTile при сбросе
 			       return -1;
 		       }
 		       return tile;
@@ -340,11 +376,21 @@ export class EditorBox implements OnInit, OnDestroy {
 			       this.game.editor.tile = -1;
 		       } else {
 			       this.game.editor.tile = value;
-			       const tileIndex = this.game.editor.tile >= 0 ? this.game.editor.tile : 0;
-			   const selectedTile = editorTiles.findIndex(tile => tile.type === tileIndex);
-			   if (selectedTile >= 0) {
-				 this.game.placeTile = selectedTile;
-			   }
+			       // Синхронизируем placeTile: ищем индекс этого type в editorTiles
+			       if (value === -1) {
+			       	   this.game.placeTile = 0; // Безопасный fallback
+			       } else {
+			       	   const selectedTileIndex = editorTiles.findIndex(tile => tile.type === value);
+			       	   if (selectedTileIndex >= 0) {
+			       	   	   this.game.placeTile = selectedTileIndex;
+			       	   } else {
+			       	   	   // Fallback: этого типа нет в editorTiles, используем первый доступный
+			       	   	   if (editorTiles.length > 0) {
+			       	   	   	   this.game.placeTile = 0;
+			       	   	   	   this.game.editor.tile = editorTiles[0].type;
+			       	   	   }
+			       	   }
+			       }
 		       }
 	       }
 	get hasEditor() {

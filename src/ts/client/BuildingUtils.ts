@@ -538,7 +538,6 @@ export function handleDragTool(game: any, player: any, hover: any, input: any): 
 
 export function handleBuildingActionClick(game: any, player: any, hover: any, server: any, holdingRemoveTool: boolean, holdingPlaceTool: boolean, editableMap: boolean) {
 	if (!(
-		(BETA && game.editor.tile !== -1) ||
 		(player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles)) ||
 		(player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) ||
 		(player.hold === scrapAlignTool.type) ||
@@ -551,26 +550,17 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 	}
 
 	const selectedTileType = (() => {
-		const tileIndex = Math.max(0, Math.min(game.placeTile || 0, editorTiles.length - 1));
-		const selectedTile = editorTiles[tileIndex];
+		// Используем правильную таблицу тайлов в зависимости от типа карты
+		const tileArray = game.map.type === MapType.House ? houseTiles : editorTiles;
+		const tileIndex = Math.max(0, Math.min(game.placeTile || 0, tileArray.length - 1));
+		const selectedTile = tileArray[tileIndex];
 		return selectedTile ? selectedTile.type : TileType.Dirt;
 	})();
 
 	const nowClick = performance.now();
 	game.lastEyeClickTime = nowClick;
 
-	if (BETA && game.editor.tile !== -1) {
-		if (game.editor.brushSize > 1) {
-			const x = Math.floor((hover.x - (game.editor.brushSize / 2)));
-			const y = Math.floor((hover.y - (game.editor.brushSize / 2)));
-			server.editorAction({ type: 'tile', x, y, tile: game.editor.tile, size: game.editor.brushSize });
-		} else {
-			const x = hover.x | 0;
-			const y = hover.y | 0;
-			const type = game.editor.tile === getTile(game.map, hover.x, hover.y) ? TileType.Dirt : game.editor.tile;
-			server.changeTile(x, y, type);
-		}
-	} else if (player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles)) {
+	if (player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles)) {
 		const x = hover.x | 0;
 		const y = hover.y | 0;
 		server.changeTile(x, y, selectedTileType);
@@ -625,7 +615,12 @@ export function handleEditorBroomClick(game: any, hover: any): boolean {
 }
 
 export function handleTilePaintDrag(game: any, player: any, hover: any, server: any, input: any) {
-	const canPaintTiles = player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles);
+	// Поддерживаем оба режима: обычный игрок и модератор с лопатой
+	// Для модератора: BETA && useEditorShovel && tile !== -1
+	// Для игрока: player.hold === changeTileTool && EditableTiles flag
+	const isModeratorShovel = BETA && game.editor && game.editor.useEditorShovel && game.editor.tile !== -1;
+	const isPlayerShovel = player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles);
+	const canPaintTiles = isModeratorShovel || isPlayerShovel;
 
 	if (!canPaintTiles) {
 		resetTilePaintDrag();
@@ -633,8 +628,10 @@ export function handleTilePaintDrag(game: any, player: any, hover: any, server: 
 	}
 
 	const selectedTileType = (() => {
-		const tileIndex = Math.max(0, Math.min(game.placeTile || 0, editorTiles.length - 1));
-		const selectedTile = editorTiles[tileIndex];
+		// Используем правильную таблицу тайлов в зависимости от типа карты
+		const tileArray = game.map.type === MapType.House ? houseTiles : editorTiles;
+		const tileIndex = Math.max(0, Math.min(game.placeTile || 0, tileArray.length - 1));
+		const selectedTile = tileArray[tileIndex];
 		return selectedTile ? selectedTile.type : TileType.Dirt;
 	})();
 	const mouseDown = input.isPressed(Key.MOUSE_BUTTON1) || input.isPressed(Key.TOUCH);
