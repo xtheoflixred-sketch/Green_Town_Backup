@@ -1291,7 +1291,6 @@ export const enum Action {
 	Dance1,
 	EditingCharacter,
 	Typing,
-	TransformBat,
 }
 
 export const enum InfoFlags {
