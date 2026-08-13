@@ -456,7 +456,7 @@ export const saw = doodad(n('saw'), sprites.saw, 10, 7, 0,
 	mixPickable(26, 47));
 
 export const forestAxe = doodad(n('forest-axe'), sprites.forest_axe, 10, 8, 0,
-	mixPickable(27, 45));
+	mixPickable(22, 45));
 
 export const sawV2 = doodad(n('saw-v2'), sprites.saw_v2, 10, 7, 0,
 	mixPickable(21, 47));
@@ -477,10 +477,10 @@ export const insulatingTape = doodad(n('insulating-tape'), sprites.insulating_ta
 	mixPickable(36, 48));
 
 export const brush = doodad(n('brush'), sprites.brush, 10, 8, 0,
-	mixPickable(24, 46));
+	mixPickable(19, 46));
 
 export const banHammer = doodad(n('ban-hammer'), sprites.ban_hammer, 10, 8, 0,
-	mixPickable(19, 37));
+	mixPickable(19, 38));
 
 export const scrap = doodad(n('scrap'), sprites.scrap, 13, 4, 0,
 	mixPickable(29, 42),
@@ -492,12 +492,12 @@ export const scrapHeld = registerMix(n('scrap-held'),
 	mixPickable(29, 42),
 	mixFlags(EntityFlags.Usable));
 
-export const recolor = doodad(n('recolor'), sprites.flower_pick, 5, 8, 0,
-	mixPickable(25, 42),
+export const recolor = doodad(n('recolor-tool'), sprites.brush, 5, 8, 0,
+	mixPickable(19, 38),
 	mixFlags(EntityFlags.Usable));
 
-export const season = doodad(n('season-tool'), sprites.leaf_1, 5, 8, 0,
-	mixPickable(25, 42),
+export const season = doodad(n('season-tool'), sprites.forest_axe, 5, 8, 0,
+	mixPickable(22, 45),
 	mixFlags(EntityFlags.Usable));
 
 // jacko lanterns
@@ -2889,18 +2889,9 @@ export const tools = [
 	{ type: scrap.type,
 	   text: 'Scrap: mirror objects', textMobile: undefined },
 	{ type: recolor.type,
-	   text: 'Recolor: cycle colors of furniture', textMobile: undefined },
+	   text: 'Brush: recolor furniture', textMobile: undefined },
 	{ type: season.type,
-	   text: 'Season: cycle seasons of objects', textMobile: undefined },
-	{ type: forestAxe.type, text: 'Forest Axe', textMobile: undefined },
-	{ type: sawV2.type, text: 'Saw', textMobile: undefined },
-	{ type: spanner.type, text: 'Spanner', textMobile: undefined },
-	{ type: doubleEndedWrench.type, text: 'Double-ended Wrench', textMobile: undefined },
-	{ type: screwdriver.type, text: 'Screwdriver', textMobile: undefined },
-	{ type: sledgehammer.type, text: 'Sledgehammer', textMobile: undefined },
-	{ type: insulatingTape.type, text: 'Insulating Tape', textMobile: undefined },
-	{ type: brush.type, text: 'Brush', textMobile: undefined },
-	{ type: banHammer.type, text: 'Ban Hammer', textMobile: undefined },
+	   text: 'Forest Axe: cycle seasons of objects', textMobile: undefined },
 ];
 
 export const candies1Types = [candyCane1, candyCane2, cookie, cookiePony].map(e => e.type);
