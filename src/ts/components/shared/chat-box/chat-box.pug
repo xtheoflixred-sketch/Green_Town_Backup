@@ -10,7 +10,7 @@
 					| {{entity}}
 
 		.msgcolor-picker(*ngIf="showColorPicker" [ngStyle]="colorPickerStyle")
-			color-picker([color]="msgColor" [isOpen]="showColorPicker" (colorChange)="onColorChange($event)")
+			color-picker([color]="msgColor" [isOpen]="showColorPicker" (colorChange)="onColorChange($event)" openUp)
 			button.msgcolor-reset((click)="resetColor()") default
 
 		input.chat-input#chat-input(

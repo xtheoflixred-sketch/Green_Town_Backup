@@ -561,10 +561,14 @@ export class ChatLog implements AfterViewInit, OnDestroy, DoCheck {
 			return;
 		}
 
+		const element = this.chatLog.nativeElement as HTMLElement;
+		element.classList.add('chat-log-closing');
+
 		this.panelController.close(this.readChatLogLayout(), () => {
 			this.renderedOpen = false;
 			this.updateChatlog();
 			this.clearList();
+			element.classList.remove('chat-log-closing');
 		});
 	}
 	private updateChatlog() {

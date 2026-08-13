@@ -134,7 +134,7 @@
 .chat-emoji-button {
 	user-select: none;
 	position: absolute;
-	right: 30px;
+	right: 38px;
 	top: 50%;
 	display: inline-flex;
 	align-items: center;
@@ -208,11 +208,8 @@
 	width: 210px;
 
 	.color-picker .dropdown-menu {
-		bottom: 100%;
-		top: auto;
 		left: 0;
 		right: auto;
-		margin-bottom: 0;
 
 		&::before {
 			border-bottom: none;

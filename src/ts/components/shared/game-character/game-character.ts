@@ -40,15 +40,6 @@ export class GameCharacterModal extends Character implements OnInit, OnDestroy {
 			var game = (window as any).game;
 			if (game && typeof game.send === 'function') {
 				game.send((server: any) => server.actionParam(Action.EditingCharacter, flag));
-				// При открытии Game-Character сбросить modal статус на сервере для полной аналогии с папкой
-				if (flag) {
-					game.send((server: any) => server.actionParam(Action.ModalState, false));
-				}
-			}
-			if (flag) {
-				player.inModal = false;
-				player.modal = false;
-				player.options.modal = false;
 			}
 		}
 	}

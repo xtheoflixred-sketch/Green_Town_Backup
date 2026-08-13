@@ -6,10 +6,19 @@
 /* MODAL */
 /* ====================================================== */
 
+/* Make modal-xl more compact in normal mode, similar to fullscreen */
+.modal-xl .modal-dialog {
+	max-width: 90%;
+	width: 520px;
+	margin: 1.75rem auto;
+	--bs-modal-zindex: 1055;
+	--bs-modal-width: 500px;
+}
+
 .game-character-modal-body {
 	padding: 8px 10px;
 
-	max-height: calc(100vh - 170px);
+	max-height: 560px;
 
 	display: flex;
 	flex-direction: column;

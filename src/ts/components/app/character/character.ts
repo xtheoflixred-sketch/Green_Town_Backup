@@ -757,13 +757,10 @@ get previewState(): PonyState {
 		}
 	}
 	private createUndoPonySnapshot() {
-		const pony = cloneDeep(this.pony);
-
-		if (pony.ponyInfo) {
-			pony.info = compressPonyString(pony.ponyInfo);
+		if (this.pony.ponyInfo) {
+			return { ...this.pony, info: compressPonyString(this.pony.ponyInfo), ponyInfo: undefined } as PonyObject;
 		}
-
-		return pony;
+		return { ...this.pony };
 	}
 	private createUndoState(): CharacterUndoState {
 		return {
@@ -776,7 +773,8 @@ get previewState(): PonyState {
 		};
 	}
 	private getUndoStateKey(state: CharacterUndoState) {
-		return JSON.stringify(state);
+		const ponyInfo = state.pony.ponyInfo || state.pony.info || '';
+		return `${ponyInfo}|${state.previewScale}|${state.hidePreviewName}|${state.hidePreviewTag}|${state.showBackground}|${state.previewHoldItem}`;
 	}
 	private resetUndoHistory() {
 		this.undoHistory = [];
@@ -789,13 +787,33 @@ get previewState(): PonyState {
 		this.currentUndoState = this.createUndoState();
 		this.currentUndoStateKey = this.getUndoStateKey(this.currentUndoState);
 	}
+	private lastUndoCaptureTime = 0;
+	private cachedPonyInfoKey = '';
+	private ponyInfoCacheDirty = false;
 	private captureUndoStep() {
 		if (this.colorDragActive) {
 			return;
 		}
 
+		const now = Date.now();
+		if (now - this.lastUndoCaptureTime < 300) {
+			return;
+		}
+		this.lastUndoCaptureTime = now;
+
+		if (this.ponyInfoCacheDirty) {
+			this.cachedPonyInfoKey = this.pony.ponyInfo ? compressPonyString(this.pony.ponyInfo) : (this.pony.info || '');
+			this.ponyInfoCacheDirty = false;
+		}
+
+		const stateKey = `${this.cachedPonyInfoKey}|${this.previewScale}|${this.hidePreviewName}|${this.hidePreviewTag}|${this.showBackground}|${this.previewHoldItem}`;
+
+		if (stateKey === this.currentUndoStateKey) {
+			return;
+		}
+
 		const currentState = this.createUndoState();
-		const currentStateKey = this.getUndoStateKey(currentState);
+		const currentStateKey = stateKey;
 
 		if (!this.currentUndoState) {
 			this.currentUndoState = currentState;
@@ -818,6 +836,9 @@ get previewState(): PonyState {
 	private applyUndoState(state: CharacterUndoState) {
 		this.deleting = false;
 		this.pony = cloneDeep(state.pony);
+		if (!this.pony.ponyInfo && this.pony.info) {
+			this.pony.ponyInfo = decompressPonyString(this.pony.info, true);
+		}
 		this.syncGlobalBackground();
 		this.syncExpressionFromInfo();
 		this.previewScale = state.previewScale;
@@ -928,6 +949,7 @@ get previewState(): PonyState {
 		this.colorDragStartState = undefined;
 		this.colorDragStartKey = '';
 		this.colorDragStartUndoLength = 0;
+		this.ponyInfoCacheDirty = true;
 		if (!this.applyingUndoRedo) {
 			this.captureUndoStep();
 		}
@@ -1376,16 +1398,29 @@ get previewState(): PonyState {
 		if (!a || !b) {
 			return a === b;
 		}
-		return JSON.stringify(a) === JSON.stringify(b);
+
+		if (a.name !== b.name || a.id !== b.id || a.desc !== b.desc || a.site !== b.site
+			|| a.tag !== b.tag || a.supportTag !== b.supportTag
+			|| a.hideSupport !== b.hideSupport || a.respawnAtSpawn !== b.respawnAtSpawn) {
+			return false;
+		}
+
+		const aInfo = a.ponyInfo ? compressPonyString(a.ponyInfo) : (a.info || '');
+		const bInfo = b.ponyInfo ? compressPonyString(b.ponyInfo) : (b.info || '');
+		return aInfo === bInfo;
 	}
 
 	private tryRestoreAutosaveDraft() {
-		if (!this.pony) {
+		if (!this.pony || !this.pony.ponyInfo) {
 			return;
 		}
 
 		const draft = this.loadAutoSaveDraft(this.pony.id || 'new');
 		if (!draft) {
+			return;
+		}
+
+		if (!draft.ponyInfo && !draft.info) {
 			return;
 		}
 

@@ -250,7 +250,12 @@ export function mirrorEntity(entity: Entity) {
 	};
 
 	mirrorRect(entity.bounds);
-	mirrorRect(entity.collidersBounds);
+
+	if (entity.collidersBounds) {
+		entity.collidersBounds = { ...entity.collidersBounds };
+		mirrorRect(entity.collidersBounds);
+	}
+
 	mirrorRect(entity.interactBounds);
 	mirrorRect(entity.triggerBounds);
 	mirrorRect(entity.lightBounds);
@@ -259,11 +264,7 @@ export function mirrorEntity(entity: Entity) {
 	mirrorRect(entity.coverBounds);
 
 	if (Array.isArray(entity.colliders)) {
-		for (const collider of entity.colliders) {
-			if (collider) {
-				collider.x = -collider.x - collider.w;
-			}
-		}
+		entity.colliders = entity.colliders.map(c => c ? { ...c, x: -c.x - c.w } : c);
 	}
 
 	if (typeof entity.pickableX === 'number') {

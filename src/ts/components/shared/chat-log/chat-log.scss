@@ -121,6 +121,10 @@ $resizer-offset: $resizer-size / 2;
 	transform: translate3d(calc(var(--chat-log-physics-offset-x) * 0.18), calc(var(--chat-log-physics-offset-y) * 0.12), 0);
 }
 
+.chat-log-closing .chat-log-tabs {
+	display: none;
+}
+
 .chat-log-tab {
 	background: $chat-log-bg-faded;
 	padding: 5px 10px 0;

@@ -1,8 +1,24 @@
-import { Component, Input, ViewChild, ElementRef, ChangeDetectionStrategy, Output, EventEmitter, HostBinding } from '@angular/core';
+import { Component, Input, ViewChild, ElementRef, ChangeDetectionStrategy, Output, EventEmitter, HostBinding, NgZone } from '@angular/core';
 import { ButtonAction } from '../../../common/interfaces';
 import { PonyTownGame, actionButtons } from '../../../client/game';
-import { drawAction } from '../../../client/buttonActions';
+import { drawAction, adjustHeldItemOffsetSilent } from '../../../client/buttonActions';
 import { removeItem } from '../../../common/utils';
+
+const HOLD_MOVE_INTERVAL = 200;
+
+function isHoldAction(action: ButtonAction | undefined): boolean {
+	return !!action && action.type === 'action' && typeof action.action === 'string' && action.action.startsWith('hold-');
+}
+
+function getHoldDelta(action: string): [number, number] {
+	switch (action) {
+		case 'hold-right': return [1, 0];
+		case 'hold-left': return [-1, 0];
+		case 'hold-down': return [0, 1];
+		case 'hold-up': return [0, -1];
+		default: return [0, 0];
+	}
+}
 
 @Component({
 	selector: 'action-button',
@@ -29,20 +45,65 @@ export class ActionButton {
 	@ViewChild('canvas', { static: true }) canvas!: ElementRef;
 	dirty = true;
 	private state: any = {};
-	constructor(private game: PonyTownGame) {
+	private holdInterval: any = 0;
+	private heldDown = false;
+	private boundStopHold: () => void;
+	constructor(private game: PonyTownGame, private zone: NgZone) {
+		this.boundStopHold = this.stopHold.bind(this);
 	}
 	ngOnInit() {
 		actionButtons.push(this);
+		document.addEventListener('mouseup', this.boundStopHold);
+		document.addEventListener('touchend', this.boundStopHold);
+		document.addEventListener('touchcancel', this.boundStopHold);
 	}
 	ngOnDestroy() {
+		this.stopHold();
+		document.removeEventListener('mouseup', this.boundStopHold);
+		document.removeEventListener('touchend', this.boundStopHold);
+		document.removeEventListener('touchcancel', this.boundStopHold);
 		removeItem(actionButtons, this);
 	}
 	ngOnChanges() {
 		this.dirty = true;
 	}
 	click() {
-		if (this.action) {
+		if (!this.heldDown && this.action) {
 			this.use.emit(this.action);
+		}
+		this.heldDown = false;
+	}
+	onPointerDown(e: MouseEvent | TouchEvent) {
+		if (!this.action || !isHoldAction(this.action)) {
+			return;
+		}
+
+		const actionName = (this.action as any).action as string;
+		const [dx, dy] = getHoldDelta(actionName);
+
+		if (dx === 0 && dy === 0) {
+			return;
+		}
+
+		e.preventDefault();
+
+		this.heldDown = true;
+
+		// initial move with chat bubble
+		this.use.emit(this.action);
+
+		this.stopHold();
+
+		this.zone.runOutsideAngular(() => {
+			this.holdInterval = setInterval(() => {
+				adjustHeldItemOffsetSilent(this.game, dx, dy);
+			}, HOLD_MOVE_INTERVAL);
+		});
+	}
+	private stopHold() {
+		if (this.holdInterval) {
+			clearInterval(this.holdInterval);
+			this.holdInterval = 0;
 		}
 	}
 	draw() {

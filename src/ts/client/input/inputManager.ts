@@ -18,12 +18,14 @@ export class InputManager {
 	private state: number[];
 	private prevState: number[];
 	private actions: Handler[][];
+	private repeatActions: Handler[][];
 	private anyInputHandlers: Array<() => void> = [];
 	private controllers: InputController[] = [];
 	constructor() {
 		this.state = array(KEYS, 0);
 		this.prevState = array(KEYS, 0);
 		this.actions = times(KEYS, () => []);
+		this.repeatActions = times(KEYS, () => []);
 	}
 	get axisX() {
 		const axisX = this.getRange(Key.GAMEPAD_AXIS1_X);
@@ -84,6 +86,14 @@ export class InputManager {
 		for (const controller of this.controllers) {
 			controller.update();
 		}
+
+		for (let i = 0; i < KEYS; i++) {
+			if (this.state[i] !== 0 && this.repeatActions[i].length) {
+				for (const handler of this.repeatActions[i]) {
+					handler(i, this.state[i]);
+				}
+			}
+		}
 	}
 	end() {
 		for (let i = 0; i < KEYS; i++) {
@@ -115,6 +125,13 @@ export class InputManager {
 	onReleased(inputs: Key[] | Key, handler: () => void) {
 		this.onAction(inputs, (_, v) => {
 			if (v === 0) {
+				handler();
+			}
+		});
+	}
+	setButtonActionRepeat(input: Key, handler: () => void) {
+		this.repeatActions[input].push((_, v) => {
+			if (v !== 0) {
 				handler();
 			}
 		});

@@ -1,5 +1,6 @@
-import { Component, ElementRef, NgZone, QueryList, TemplateRef, ViewChild, ViewChildren } from '@angular/core';
+import { Component, ElementRef, NgZone, QueryList, TemplateRef, ViewChild, ViewChildren, OnInit, OnDestroy } from '@angular/core';
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
+import { Subscription } from 'rxjs';
 import { uniq } from 'lodash';
 import { entityButtonAction } from '../../../client/buttonActions';
 import { faEdit, faCog, faDrawPolygon, faTrash, emptyIcon, faCheck, faClone, faEraser, faRetweet, faCopy, faWrench, faHammer, faPaintBrush, faUpload, faScrewdriver, faPalette, faLeaf } from '../../../client/icons';
@@ -16,7 +17,7 @@ import { CUSTOM_IMAGE_TYPE } from '../../../common/entities';
 	templateUrl: 'editor-box.pug',
 	styleUrls: ['editor-box.scss'],
 })
-export class EditorBox {
+export class EditorBox implements OnInit, OnDestroy {
 	readonly dev = DEVELOPMENT;
 	readonly cogIcon = faCog;
 	readonly editIcon = faEdit;
@@ -66,6 +67,7 @@ export class EditorBox {
 	private _originalChatBounds = new WeakMap<any, any>();
 	private _originalLightBounds = new WeakMap<any, any>();
 	private _originalLightSpriteBounds = new WeakMap<any, any>();
+	private _leftSubscription?: Subscription;
 	constructor(
 		public model: Model,
 		private game: PonyTownGame,
@@ -91,6 +93,32 @@ export class EditorBox {
 
 		for (const entity of this.editorEntities) {
 			this.entityPreviewActions.set(entity, entityButtonAction(entity));
+		}
+	}
+	ngOnInit() {
+		this._leftSubscription = this.game.onLeft.subscribe(() => this.closeEditor());
+	}
+	ngOnDestroy() {
+		this._leftSubscription && this._leftSubscription.unsubscribe();
+	}
+	private closeEditor() {
+		if (this.showEditor) {
+			this.zone.run(() => {
+				this.showEditor = false;
+				this.game.editor.useEditorHammer = false;
+				this.game.editor.useEditorBroom = false;
+				this.game.editor.useEditorRope = false;
+				this.game.editor.useEditorPickaxe = false;
+				this.game.editor.useEditorSaw = false;
+				this.game.editor.useEditorScrap = false;
+				this.game.editor.useEditorRecolor = false;
+				this.game.editor.useEditorSeason = false;
+				this.game.editor.useEditorShovel = false;
+				this.game.editor.tile = -1;
+				this.game.editor.selectingEntities = false;
+				this.game.editor.selectedEntities.length = 0;
+				this.storage.setBoolean('show-editor', false);
+			});
 		}
 	}
 	get editor() {

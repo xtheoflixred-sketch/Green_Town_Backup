@@ -1,5 +1,6 @@
-import { Component, Input, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, ViewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
 import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
+import { Subscription } from 'rxjs';
 import { ButtonAction, Action, EntityPlayerState } from '../../../common/interfaces';
 import { PonyTownGame } from '../../../client/game';
 import { isMobile } from '../../../client/data';
@@ -14,7 +15,7 @@ import { faCog } from '../../../client/icons';
 	templateUrl: 'action-bar.pug',
 	styleUrls: ['action-bar.scss'],
 })
-export class ActionBar {
+export class ActionBar implements OnInit, OnDestroy {
 	@ViewChild('scroller', { static: true }) scroller!: ElementRef;
 	@ViewChild('actionsModal', { static: true }) actionsModal!: ElementRef;
 	@Input() blurred = false;
@@ -25,7 +26,14 @@ export class ActionBar {
 	private _editable = false;
 	private isWaitingForActionsModal = false;
 	private lastModalState?: boolean;
+	private _leftSubscription?: Subscription;
 	constructor(private game: PonyTownGame, private settings: SettingsService, private modalService: BsModalService) {
+	}
+	ngOnInit() {
+		this._leftSubscription = this.game.onLeft.subscribe(() => this.closeActions());
+	}
+	ngOnDestroy() {
+		this._leftSubscription && this._leftSubscription.unsubscribe();
 	}
 	@Input() get editable() {
 		return this._editable;

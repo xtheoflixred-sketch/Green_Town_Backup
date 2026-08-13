@@ -2,8 +2,8 @@
 
 $character-list-width: 300px;
 $character-list-max-width: calc(100vw - 70px);
-$character-list-item-height: 48px;
-$character-list-item-padding: 6px 10px;
+$character-list-item-height: 38px;
+$character-list-item-padding: 3px 10px;
 $character-list-selected-border: $text-muted;
 $character-list-selected-bg: $nav-tabs-link-active-color;
 
@@ -109,7 +109,7 @@ $character-list-selected-bg: $nav-tabs-link-active-color;
   list-style: none;
   font-size: $font-size-base;
   text-align: left;
-	padding-top: 1px;
+	padding-top: 0;
 	max-height: 400px;
 	overflow-x: hidden;
 	overflow-y: auto;
@@ -184,7 +184,7 @@ $character-list-selected-bg: $nav-tabs-link-active-color;
 
 	.character-list-searchable > & {
 		border-top: solid 1px #eee;
-		margin-top: 9px;
+		margin-top: 2px;
 	}
 }
 
