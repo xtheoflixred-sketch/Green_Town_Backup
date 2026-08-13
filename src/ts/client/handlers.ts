@@ -472,9 +472,6 @@ export function handleAction(game: PonyTownGame, id: number, action: Action) {
 			case Action.HoldPoof:
 				doPonyAction(pony, DoAction.HoldPoof);
 				break;
-			case Action.TransformBat:
-				playEffect(game, pony, poof.type); // ← новое: облачко poof при превращении
-				break;
 			case Action.Yawn:
 				if (!hasHeadAnimation(pony)) {
 					setHeadAnimation(pony, yawn);

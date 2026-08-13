@@ -632,12 +632,18 @@ get previewState(): PonyState {
 		this.updateMuzzles();
 		this.syncPreviewHeadTurnState();
 		this.syncPreviewHoldItem();
-		this.tryRestoreAutosaveDraft();
+		if (!this.inGameMode) {
+			this.tryRestoreAutosaveDraft();
+		}
 
 		let last = Date.now();
 
 		this.resetUndoHistory();
-		this.accountChangedSubscription = this.model.accountChanged.subscribe(() => this.tryRestoreAutosaveDraft());
+		this.accountChangedSubscription = this.model.accountChanged.subscribe(() => {
+			if (!this.inGameMode) {
+				this.tryRestoreAutosaveDraft();
+			}
+		});
 		this.ponyChangedSubscription = this.model.ponyChanged$.subscribe(pony => {
 			if (pony) {
 				this.syncGlobalBackground();

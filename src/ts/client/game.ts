@@ -113,7 +113,7 @@ import {
 	EntityState, Pony, Notification, TileType, Action, IServerActions, Season, WorldState, Holiday,
 	TileSets, ChatMessage, PartyInfo, Entity, DrawOptions, Engine, defaultDrawOptions, PonyStateFlags,
 	DoAction, ChatType, WorldStateFlags, DebugFlags, MessageType, AccountSettings, Matrix4,
-	FakeEntity, SelectFlags, WorldMap, MapType, MapFlags, EntityFlags, isValidTile, GraphicsQuality, houseTiles, editorTiles,
+	FakeEntity, SelectFlags, WorldMap, MapType, MapFlags, EntityFlags, isValidTile, GraphicsQuality, houseTiles,
 	Iris, Eye, Muzzle, ExpressionExtra, Expression
 } from '../common/interfaces';
 import { encodeExpression } from '../common/encoders/expressionEncoder';
@@ -2094,10 +2094,7 @@ export class PonyTownGame implements Game {
 
 			   if (x >= 0 && y >= 0 && x < this.map.width && y < this.map.height) {
 				   if (hold === changeTileTool.type && this.tileSets) {
-					   // Используем правильный массив тайлов: houseTiles для дома, editorTiles для модератора
-					   const tileArray = this.map.type === MapType.House ? houseTiles : editorTiles;
-					   const tileIndex = Math.max(0, Math.min(this.placeTile || 0, tileArray.length - 1));
-					   const tileType = tileArray[tileIndex].type;
+					   const tileType = houseTiles[this.placeTile].type;
 					   const tileSetIndex = getTilePreviewTileSetIndex(tileType, this.map.tileTime);
 					   const tileSpriteIndex = getTilePreviewSpriteIndex(tileType);
 					   const tilePreview = getTilePaintPreviewState(this, this.hover);

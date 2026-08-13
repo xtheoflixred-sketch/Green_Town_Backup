@@ -1,5 +1,5 @@
 import {
-	Action, MapFlags, MessageType, TileType, houseTiles, MapType, editorTiles,
+	Action, MapFlags, MessageType, TileType, houseTiles, MapType,
 } from '../common/interfaces';
 import { clamp, hasFlag, point, contains } from '../common/utils';
 import { pickAnyEntities, pickEntities, getTile } from '../common/worldMap';
@@ -72,6 +72,18 @@ function isEditorPickaxeActive(game: any, player: any) {
 	const editorPlayer = player;
 	void editorPlayer;
 	return !!(BETA && game && game.mod && game.editor && game.editor.useEditorPickaxe);
+}
+
+function isEditorShovelActive(game: any, player: any) {
+	const editorPlayer = player;
+	void editorPlayer;
+	return !!(BETA && game && game.mod && game.editor && game.editor.useEditorShovel);
+}
+
+function getSelectedTileType(game: any, player: any) {
+	const tileIndex = clamp(game.placeTile || 0, 0, houseTiles.length - 1);
+	void player;
+	return houseTiles[tileIndex].type;
 }
 
 function isRemovableEntity(entity: any) {
@@ -276,7 +288,7 @@ export function updateWallPlaceholder(game: any, player: any) {
 	const editorSaw = isEditorSawActive(game, player);
 	const wallPreview = (player.hold === toggleWallsTool.type || editorSaw) &&
 		(hasFlag(game.map.flags, MapFlags.EditableWalls) || editorSaw);
-	const tilePreview = player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles);
+	const tilePreview = player.hold === changeTileTool.type && (hasFlag(game.map.flags, MapFlags.EditableTiles) || isEditorShovelActive(game, player));
 	game.showWallPlaceholder = wallPreview || tilePreview;
 }
 
@@ -538,7 +550,8 @@ export function handleDragTool(game: any, player: any, hover: any, input: any): 
 
 export function handleBuildingActionClick(game: any, player: any, hover: any, server: any, holdingRemoveTool: boolean, holdingPlaceTool: boolean, editableMap: boolean) {
 	if (!(
-		(player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles)) ||
+		(BETA && game.editor.tile !== -1 && !isEditorShovelActive(game, player)) ||
+		(player.hold === changeTileTool.type && (hasFlag(game.map.flags, MapFlags.EditableTiles) || isEditorShovelActive(game, player))) ||
 		(player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) ||
 		(player.hold === scrapAlignTool.type) ||
 		(player.hold === recolorTool.type) ||
@@ -549,21 +562,24 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		return false;
 	}
 
-	const selectedTileType = (() => {
-		// Используем правильную таблицу тайлов в зависимости от типа карты
-		const tileArray = game.map.type === MapType.House ? houseTiles : editorTiles;
-		const tileIndex = Math.max(0, Math.min(game.placeTile || 0, tileArray.length - 1));
-		const selectedTile = tileArray[tileIndex];
-		return selectedTile ? selectedTile.type : TileType.Dirt;
-	})();
-
 	const nowClick = performance.now();
 	game.lastEyeClickTime = nowClick;
 
-	if (player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles)) {
+	if (BETA && game.editor.tile !== -1 && !isEditorShovelActive(game, player)) {
+		if (game.editor.brushSize > 1) {
+			const x = Math.floor((hover.x - (game.editor.brushSize / 2)));
+			const y = Math.floor((hover.y - (game.editor.brushSize / 2)));
+			server.editorAction({ type: 'tile', x, y, tile: game.editor.tile, size: game.editor.brushSize });
+		} else {
+			const x = hover.x | 0;
+			const y = hover.y | 0;
+			const type = game.editor.tile === getTile(game.map, hover.x, hover.y) ? TileType.Dirt : game.editor.tile;
+			server.changeTile(x, y, type);
+		}
+	} else if (player.hold === changeTileTool.type && (hasFlag(game.map.flags, MapFlags.EditableTiles) || isEditorShovelActive(game, player))) {
 		const x = hover.x | 0;
 		const y = hover.y | 0;
-		server.changeTile(x, y, selectedTileType);
+		server.changeTile(x, y, getSelectedTileType(game, player));
 	} else if (player.hold === scrapAlignTool.type && game.highlightEntity) {
 		const id = game.highlightEntity.id;
 		if (game.highlightEntity.type !== PONY_TYPE && game.highlightEntity.type !== toggleWallsTool.type) {
@@ -615,25 +631,13 @@ export function handleEditorBroomClick(game: any, hover: any): boolean {
 }
 
 export function handleTilePaintDrag(game: any, player: any, hover: any, server: any, input: any) {
-	// Поддерживаем оба режима: обычный игрок и модератор с лопатой
-	// Для модератора: BETA && useEditorShovel && tile !== -1
-	// Для игрока: player.hold === changeTileTool && EditableTiles flag
-	const isModeratorShovel = BETA && game.editor && game.editor.useEditorShovel && game.editor.tile !== -1;
-	const isPlayerShovel = player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles);
-	const canPaintTiles = isModeratorShovel || isPlayerShovel;
+	const canPaintTiles = player.hold === changeTileTool.type && (hasFlag(game.map.flags, MapFlags.EditableTiles) || isEditorShovelActive(game, player));
 
 	if (!canPaintTiles) {
 		resetTilePaintDrag();
 		return false;
 	}
 
-	const selectedTileType = (() => {
-		// Используем правильную таблицу тайлов в зависимости от типа карты
-		const tileArray = game.map.type === MapType.House ? houseTiles : editorTiles;
-		const tileIndex = Math.max(0, Math.min(game.placeTile || 0, tileArray.length - 1));
-		const selectedTile = tileArray[tileIndex];
-		return selectedTile ? selectedTile.type : TileType.Dirt;
-	})();
 	const mouseDown = input.isPressed(Key.MOUSE_BUTTON1) || input.isPressed(Key.TOUCH);
 	const x = clamp(hover.x | 0, 0, game.map.width - 1);
 	const y = clamp(hover.y | 0, 0, game.map.height - 1);
@@ -655,7 +659,7 @@ export function handleTilePaintDrag(game: any, player: any, hover: any, server: 
 	}
 
 	const rect = tilePaintRect(tilePaintStart, tilePaintCurrent);
-	const targetType = selectedTileType;
+	const targetType = getSelectedTileType(game, player);
 
 	for (let ty = rect.minY; ty <= rect.maxY; ty++) {
 		for (let tx = rect.minX; tx <= rect.maxX; tx++) {
@@ -870,15 +874,18 @@ export function changePlaceEntity(game: any, reverse: boolean) {
 }
 
 export function changePlaceTile(game: any, reverse: boolean) {
-	const tileCycle = editorTiles;
 	if (reverse) {
-		game.placeTile = game.placeTile === 0 ? (tileCycle.length - 1) : (game.placeTile - 1);
+		game.placeTile = game.placeTile === 0 ? (houseTiles.length - 1) : (game.placeTile - 1);
 	} else {
-		game.placeTile = (game.placeTile + 1) % tileCycle.length;
+		game.placeTile = (game.placeTile + 1) % houseTiles.length;
 	}
-	game.editor.tile = tileCycle[game.placeTile].type;
 
-	const { name } = tileCycle[game.placeTile];
+	const { name, type } = houseTiles[game.placeTile];
+
+	if (isEditorShovelActive(game, game.player)) {
+		game.editor.tile = type;
+	}
+
 	const total = getSaysTime(name);
 	addChatBubble(game.map, game.player, { message: name, type: MessageType.System, total, timer: total, created: Date.now() });
 }

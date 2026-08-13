@@ -24,6 +24,7 @@ export class GameCharacterModal extends Character implements OnInit, OnDestroy {
 
 	constructor(gameService: GameService, model: Model, storage: StorageService, modalService: BsModalService) {
 		super(gameService, model, storage, modalService);
+		this.inGameMode = true;
 	}
 
 	get playing() {

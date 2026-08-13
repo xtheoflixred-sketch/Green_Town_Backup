@@ -25,7 +25,7 @@ import {
 import { allEntities } from './api/account';
 import { CounterService } from './services/counter';
 import { decodeExpression, isCancellableExpression } from '../common/encoders/expressionEncoder';
-import { updateEntity, updateEntityOptions, pushUpdateEntityToClient, pushUpdateTileToClient  } from './entityUtils';
+import { updateEntity, updateEntityOptions, pushUpdateEntityToClient, pushUpdateTileToClient } from './entityUtils';
 import { mirrorEntity } from '../common/entityUtils';
 import { SupporterInvitesService } from './services/supporterInvites';
 import { Move } from './move';

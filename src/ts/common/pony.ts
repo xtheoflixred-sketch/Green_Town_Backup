@@ -42,15 +42,6 @@ import { playEffect } from '../client/handlers';
 import * as sprites from '../generated/sprites';
 import { withAlpha } from './color';
 
-let batPalette: Palette | undefined;
-
-function getBatPalette(paletteManager: PaletteManager): Palette {
-	if (!batPalette) {
-		batPalette = paletteManager.addArray(sprites.bat.palette);
-	}
-	return batPalette;
-}
-
 const flyY = 15;
 const lightExtentX = 100;
 const lightExtentY = 70;
@@ -162,9 +153,6 @@ export function releasePony(pony: Pony) {
 }
 
 export function canPonyFly(pony: Pony) {
-	if (pony.options && pony.options.batForm) {
-		return true;
-	}
 	return !!pony.palettePonyInfo && canFly(pony.palettePonyInfo);
 }
 
@@ -289,38 +277,6 @@ export function setHeadAnimation(pony: Pony, headAnimation: HeadAnimation | unde
 }
 
 export function drawPonyEntity(batch: PaletteSpriteBatch, pony: Pony, drawOptions: DrawOptions) {
-	const isBat = !!pony.batForm;
-
-	if (isBat) {
-		console.log('DRAWING AS BAT', pony.id, pony.batForm);
-		if (pony.batch !== undefined) {
-			batch.releaseBatch(pony.batch);
-			pony.batch = undefined;
-		}
-
-		batch.save();
-		transformBatch(batch, pony);
-
-		const animSpeedMultiplier = 1.15; // +15%
-		const frameIndex = Math.floor(drawOptions.gameTime / 1000 * 8 * animSpeedMultiplier) % sprites.bat.frames.length;
-		const frame = sprites.bat.frames[frameIndex];
-		const palette = getBatPalette(pony.paletteManager);
-
-		const tint = pony.palettePonyInfo ? pony.palettePonyInfo.coatPalette.colors[1] : WHITE;
-
-			// Центр тела пони (та же система координат, в которую только что перевели batch)
-		const centerX = bounds.x + bounds.w / 2;
-		const centerY = bounds.y + bounds.h / 2;
-
-		// frame.w/h — размеры конкретного кадра спрайта мыши
-		const drawX = centerX - frame.w / 2;
-		const drawY = centerY - frame.h / 2;
-
-		batch.drawSprite(frame, tint, palette, drawX, drawY);
-		
-		batch.restore();
-		return;
-	}
 	if (pony.discardBatch && pony.batch !== undefined) {
 		batch.releaseBatch(pony.batch);
 		pony.batch = undefined;
