@@ -5,6 +5,10 @@
 	margin: auto;
 	z-index: 200;
 	position: relative; /* allow overlaying controls */
+
+	.form-control {
+		padding-right: 30px;
+	}
 }
 
 character-list {
@@ -21,22 +25,47 @@ character-list {
 	flex-shrink: 0;
 }
 
-.character-emoji-wrap {
+.character-input-wrap {
 	position: relative;
+	flex: 1;
+	min-width: 0;
+}
+
+.character-emoji-wrap {
+	position: absolute;
+	top: 0;
+	right: 15px;
+	bottom: 0;
 	display: flex;
-	flex-shrink: 0;
+	align-items: center;
+	z-index: 5;
+	pointer-events: none;
 }
 
 .character-emoji-button {
 	flex-shrink: 0;
-	border-top-right-radius: 0;
-	border-bottom-right-radius: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	margin: 0;
+	pointer-events: auto;
+	cursor: pointer;
+	-webkit-filter: grayscale(100%);
+	filter: grayscale(100%);
+
+	&:hover {
+		-webkit-filter: grayscale(0);
+		filter: grayscale(0%);
+	}
 }
 
 .character-emoji-wrap .emoji-dropdown {
 	position: absolute;
 	top: calc(100% + 6px);
-	right: 0;
+	right: 29px;
 	left: auto;
 	z-index: 300;
 	pointer-events: auto;

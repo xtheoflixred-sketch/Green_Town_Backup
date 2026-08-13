@@ -421,6 +421,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		name: 'body - neck accessory',
 		file: 'neck-accessory',
 		fieldName: 'neckAccessory',
+		setsWithEmpties: ['neckAccessories'],
+		empties: [0],
 		layers: [
 			{ ...bodyLayer, head: false },
 			{ name: 'front', set: 'neckAccessories' },
@@ -433,6 +435,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		name: 'body - chest accessory',
 		file: 'body-chest-accessory',
 		fieldName: 'chestAccessory',
+		setsWithEmpties: ['chestAccessories'],
+		empties: [0],
 		layers: [
 			{ name: 'behind', set: 'chestAccessoriesBehind', options: { no: NoDraw.Front } },
 			bodyLayer,
@@ -446,10 +450,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		name: 'body - back accessory',
 		file: 'body-back-accessory',
 		fieldName: 'backAccessory',
-		// masks: [
-		// 	{ name: 'backAccessories1', layerName: 'front', mask: 'mask' },
-		// 	{ name: 'backAccessories2', layerName: 'front', mask: 'mask', reverse: true },
-		// ],
+		setsWithEmpties: ['backAccessories'],
+		empties: [0],
 		layers: [
 			bodyLayer,
 			{ name: 'front', set: 'backAccessories', options: { no: NoDraw.Sleeves } },
@@ -461,6 +463,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		name: 'body - waist accessory',
 		file: 'body-waist-accessory',
 		fieldName: 'waistAccessory',
+		setsWithEmpties: ['waistAccessories'],
+		empties: [0],
 		layers: [
 			bodyLayer,
 			{ name: 'front', set: 'waistAccessories' },
@@ -566,6 +570,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		fieldName: 'ponytail',
 		single: true,
 		wrap: 8,
+		setsWithEmpties: ['ponytails'],
+		empties: [0],
 		layers: [
 			{ ...bodyLayer, options: { no: NoDraw.CloseEar } },
 			{ name: 'front', set: 'ponytails', options: { no: NoDraw.Behind } },
@@ -579,6 +585,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		single: true,
 		wrap: 8,
 		paletteOffsetY: 35,
+		setsWithEmpties: ['facialHair'],
+		empties: [0],
 		layers: [
 			{ ...bodyLayer, options: { no: NoDraw.Nose } },
 			{ name: 'front', set: 'facialHairBehind' },
@@ -593,6 +601,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		fieldName: 'earAccessory',
 		single: true,
 		wrap: 8,
+		setsWithEmpties: ['earAccessories'],
+		empties: [0],
 		layers: [
 			{ name: 'behind', set: 'earAccessoriesBehind', options: { no: NoDraw.Front } },
 			{ ...bodyLayer },
@@ -606,6 +616,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		fieldName: 'headAccessory',
 		single: true,
 		wrap: 8,
+		setsWithEmpties: ['headAccessories'],
+		empties: [0],
 		layers: [
 			{ name: '<far ear>', head: true, noFace: true, drawBlack: false, options: { no: NoDraw.CloseEar } },
 			{ name: 'behind', set: 'headAccessoriesBehind' },
@@ -627,6 +639,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		single: true,
 		extra: true,
 		wrap: 8,
+		setsWithEmpties: ['faceAccessories', 'faceAccessories2'],
+		empties: [0],
 		layers: [
 			{ ...bodyLayer, options: { no: NoDraw.CloseEar } },
 			{ name: 'front', set: 'faceAccessories', extra: 'faceAccessory', options: { no: NoDraw.FaceAccessory2 } },
@@ -644,6 +658,8 @@ export const sheets: (Sheet | Spacer)[] = [
 		single: true,
 		wrap: 8,
 		paletteOffsetY: 45,
+		setsWithEmpties: ['extraAccessories'],
+		empties: [0],
 		layers: [
 			{
 				name: 'behind', set: 'extraAccessoriesBehind', options: { extra: true, no: NoDraw.Front },

@@ -11,7 +11,7 @@ import { bitmask, setFlag, findById, distance, hasFlag, distanceXY, invalidEnum,
 import { isChatVisible } from '../common/camera';
 import { createRegion, worldToRegionX, worldToRegionY } from '../common/region';
 import { createAnEntity, poof, poof2, getEntityType } from '../common/entities';
-import { getPonyState, setPonyState, isPonyFlying, addChatBubble, isHidden, getChatBubbleLimit } from '../common/entityUtils';
+import { getPonyState, setPonyState, isPonyFlying, addChatBubble, isHidden, getChatBubbleLimit, isFacingRight } from '../common/entityUtils';
 import {
 	isPony, createPony, setPonyExpression, updatePonyInfo, updatePonyHold, doPonyAction, hasHeadAnimation,
 	setHeadAnimation,
@@ -265,8 +265,19 @@ function updateEntityStateInternal(game: PonyTownGame, entity: Entity, state: En
 	const wasPonyFlying = isPonyFlying(entity);
 	const hadLight = hasDrawLight(entity);
 	const hadLightSprite = hasLightSprite(entity);
+	const wasFacingRight = isFacingRight(entity);
 
 	entity.state = state;
+
+	if (!isPony(entity) && wasFacingRight !== isFacingRight(entity)) {
+		if (entity.collidersBounds) {
+			entity.collidersBounds = { ...entity.collidersBounds };
+			entity.collidersBounds.x = -entity.collidersBounds.x - entity.collidersBounds.w;
+		}
+		if (Array.isArray(entity.colliders)) {
+			entity.colliders = entity.colliders.map(c => c ? { ...c, x: -c.x - c.w } : c);
+		}
+	}
 
 	if (!wasPonyFlying && isPonyFlying(entity) && isPony(entity)) {
 		entity.inTheAirDelay = FLY_DELAY;
@@ -810,6 +821,16 @@ function createEntityOrPony(
 		const entity = createAnEntity(type, id, x, y, options, game.paletteManager, game);
 
 		entity.state = state;
+
+		if (isFacingRight(entity)) {
+			if (entity.collidersBounds) {
+				entity.collidersBounds = { ...entity.collidersBounds };
+				entity.collidersBounds.x = -entity.collidersBounds.x - entity.collidersBounds.w;
+			}
+			if (Array.isArray(entity.colliders)) {
+				entity.colliders = entity.colliders.map(c => c ? { ...c, x: -c.x - c.w } : c);
+			}
+		}
 
 		if (options && typeof options === 'object') {
 			(entity as any).options = options;

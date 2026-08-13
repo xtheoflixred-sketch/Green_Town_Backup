@@ -156,7 +156,7 @@ import {
 	isHidden, updateEntityVelocity, releaseEntity, compareEntities
 } from '../common/entityUtils';
 import { vectorToDir, dirToVector, flagsToSpeed, encodeMovement, isMovingRight } from '../common/movementUtils';
-import { createDefaultButtonActions, useAction, deserializeActions } from './buttonActions';
+import { createDefaultButtonActions, useAction, deserializeActions, adjustHeldItemOffsetSilent } from './buttonActions';
 import { ClientSocketService } from '../components/services/gameService';
 import { attachDebugMethod, initFeatureFlags, updateRangeIndicator, initLogger, log } from './clientUtils';
 import { restorePlayerPosition, savePlayerPosition } from './sec';
@@ -1028,20 +1028,54 @@ export class PonyTownGame implements Game {
 				}
 			});
 
+			const getHoldMoveDelta = (action: string | undefined): [number, number] => {
+				switch (action) {
+					case 'hold-right': return [1, 0];
+					case 'hold-left': return [-1, 0];
+					case 'hold-down': return [0, 1];
+					case 'hold-up': return [0, -1];
+					default: return [0, 0];
+				}
+			};
+
+			const handleHoldMoveRepeat = (action: string | undefined) => {
+				const [dx, dy] = getHoldMoveDelta(action);
+				if (dx !== 0 || dy !== 0) {
+					adjustHeldItemOffsetSilent(this, dx, dy);
+				}
+			};
+
 			[
 				Key.KEY_1, Key.KEY_2, Key.KEY_3, Key.KEY_4, Key.KEY_5, Key.KEY_6,
 				Key.KEY_7, Key.KEY_8, Key.KEY_9, Key.KEY_0, Key.DASH, Key.EQUALS,
-			].forEach((key, index) => this.input.onPressed(key, () => {
-				if (this.actions[index]) {
-					this.zone.run(() => useAction(this, this.actions[index].action));
-				}
-			}));
+			].forEach((key, index) => {
+				this.input.onPressed(key, () => {
+					if (this.actions[index]) {
+						this.zone.run(() => useAction(this, this.actions[index].action));
+					}
+				});
+				this.input.setButtonActionRepeat(key, () => {
+					const slot = this.actions[index];
+					const action = slot ? slot.action : undefined;
+					if (action && action.type === 'action') {
+						handleHoldMoveRepeat(action.action);
+					}
+				});
+			});
 
 			// also bind numpad 0 to the same action as top-row 0 (index 9)
 			this.input.onPressed(Key.NUMPAD_0, () => {
 				const index = 9;
 				if (this.actions[index]) {
 					this.zone.run(() => useAction(this, this.actions[index].action));
+				}
+			});
+			this.input.setButtonActionRepeat(Key.NUMPAD_0, () => {
+				const index = 9;
+				const slot = this.actions[index];
+				const action = slot ? slot.action : undefined;
+				if (action && action.type === 'action') {
+					handleHoldMoveRepeat(action.action);
 				}
 			});
 

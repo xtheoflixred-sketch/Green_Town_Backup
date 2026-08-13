@@ -7,11 +7,13 @@ import { VERSION_ERROR } from '../../../common/errors';
 import { GameService } from '../../services/gameService';
 import { Model, createDefaultPonyObject } from '../../services/model';
 import { Dropdown } from '../directives/dropdown';
-import { faSpinner, faTrash, faTimes, faCheck, faLaughBeam } from '../../../client/icons';
+import { faSpinner, faTrash, faTimes, faCheck } from '../../../client/icons';
 import { focusElementAfterTimeout } from '../../../client/htmlUtils';
 import { delay } from '../../../common/utils';
+import { sample } from 'lodash';
 import { isMobile } from '../../../client/data';
 import { toPalette } from '../../../common/ponyInfo';
+import { emojis } from '../../../client/emoji';
 
 @Component({
 	selector: 'character-select',
@@ -24,7 +26,7 @@ export class CharacterSelect {
 	readonly deleteIcon = faTrash;
 	readonly removeIcon = faTimes;
 	readonly confirmIcon = faCheck;
-	readonly emojiIcon = faLaughBeam;
+	btnEmoji = emojis[0].names[0];
 	showDeleteModal = false;
 	@Input() newButton = false;
 	@Input() editButton = false;
@@ -153,5 +155,11 @@ addEmoji(emoji: string) {
 		} else {
 			this.emojiBoxState = 'none';
 		}
+	}
+
+	onMouseEnterEmojiButton(event: MouseEvent) {
+		if (!event.target) return;
+		const emoji = sample(emojis)!;
+		this.btnEmoji = emoji.names[0];
 	}
 }

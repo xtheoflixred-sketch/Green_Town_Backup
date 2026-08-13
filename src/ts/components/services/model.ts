@@ -151,6 +151,7 @@ export class Model {
 	friends: Friend[] | undefined = undefined;
 	friends$ = new BehaviorSubject<Friend[]>([]);
 	private _pony: PonyObject = createDefaultPonyObject();
+	ponyChanged$ = new BehaviorSubject<PonyObject | null>(null);
 	constructor(
 		private http: HttpClient,
 		private router: Router,
@@ -341,6 +342,7 @@ export class Model {
 		const copy = this.parsePonyObject(pony);
 		copy.ponyInfo && syncLockedPonyInfo(copy.ponyInfo);
 		this._pony = copy;
+		this.ponyChanged$.next(copy);
 	}
 	// account
 	signIn(provider: OAuthProvider) {

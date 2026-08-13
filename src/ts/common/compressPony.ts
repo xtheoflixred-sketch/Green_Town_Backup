@@ -773,9 +773,11 @@ export function decompressPonyString(info: string, editable = false): PonyInfo {
 			// Merge pony into base, preserving pony's values
 			// Use mergeWith so arrays are replaced, not merged index-by-index.
 			const result = mergeWith(base, pony, (objValue, srcValue) => {
+				// If srcValue is defined, use it (prioritize pony values)
 				if (srcValue !== undefined) {
 					return srcValue;
 				}
+				// Otherwise use objValue from base
 				return objValue;
 			});
 			

@@ -914,7 +914,7 @@ function getEyeFrame(base: Eye, expression: Eye, anim: Eye, animationProperties:
 function getMouthFrame(holding: boolean, expression: Expression | undefined, headFrameMuzzle: Muzzle,
 	currentMuzzle: Muzzle | undefined, properties: HeadAnimationProperties) {
 	if (holding) {
-		return Muzzle.Smile;
+		return Muzzle.Neutral;
 	}
 
 	let applyMuzzle = currentMuzzle;

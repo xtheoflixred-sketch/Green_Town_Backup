@@ -13,6 +13,7 @@ import { ACTIONS_LIMIT, COMMAND_ACTION_TIME_DELAY } from '../common/constants';
 import { cloneDeep, hasFlag, toInt } from '../common/utils';
 import { boop, defaultHeadFrame, stand, sneeze, yawn, lie, sit, fly, laugh, kiss, excite, dance1 } from './ponyAnimations';
 import { createDefaultPony, syncLockedPonyInfo, toPalette, mockPaletteManager } from '../common/ponyInfo';
+import { isFacingRight } from '../common/entityUtils';
 import {
 	ACTION_EXPRESSION_EYE_COLOR, ACTION_EXPRESSION_BG, ACTION_ACTION_COAT_COLOR, WHITE, HEARTS_COLOR,
 	ACTION_COMMAND_BG, BLACK, ACTION_ACTION_BG, ACTION_ITEM_BG, blushColor, TRANSPARENT
@@ -405,11 +406,14 @@ function adjustHeldItemOffset(game: PonyTownGame, dx: number, dy: number) {
 		return;
 	}
 
-	const pickableX = toInt(holding.pickableX !== undefined ? holding.pickableX : 37) + dx;
+	const facingRight = isFacingRight(player);
+	const flipX = facingRight ? -1 : 1;
+	const pickableX = toInt(holding.pickableX !== undefined ? holding.pickableX : 37) + dx * flipX;
 	const pickableY = toInt(holding.pickableY !== undefined ? holding.pickableY : 50) + dy;
 
 	holding.pickableX = pickableX;
 	holding.pickableY = pickableY;
+	player.discardBatch = true;
 
 	// Coalesce frequent adjustments: schedule a single system bubble after short debounce.
 	const message = `высота ${pickableY} ширина ${pickableX}`;
@@ -424,6 +428,27 @@ function adjustHeldItemOffset(game: PonyTownGame, dx: number, dy: number) {
 	// 250ms gives immediate feedback while batching rapid presses
 	heldOffsetDebounceTimer = setTimeout(() => flushHeldOffsetMessage(), 250) as unknown as number;
 
+}
+
+export function adjustHeldItemOffsetSilent(game: PonyTownGame, dx: number, dy: number) {
+	const player = game.player;
+	if (!player) {
+		return;
+	}
+
+	const holding = player.ponyState.holding;
+	if (!holding) {
+		return;
+	}
+
+	const facingRight = isFacingRight(player);
+	const flipX = facingRight ? -1 : 1;
+	const pickableX = toInt(holding.pickableX !== undefined ? holding.pickableX : 37) + dx * flipX;
+	const pickableY = toInt(holding.pickableY !== undefined ? holding.pickableY : 50) + dy;
+
+	holding.pickableX = pickableX;
+	holding.pickableY = pickableY;
+	player.discardBatch = true;
 }
 
 export function useAction(game: PonyTownGame, action: ButtonAction | undefined) {

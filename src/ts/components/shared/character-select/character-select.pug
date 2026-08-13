@@ -1,27 +1,22 @@
 .sr-only(#ariaAnnounce aria-live="assertive")
 
 .character-select.input-group
-	input.form-control.text-center(
-		#nameInput
-		type="text"
-		[(ngModel)]="pony.name"
-		[maxlength]="maxNameLength"
-		placeholder="Name of your character"
-		aria-label="Name of your character")
-	.input-group-append
+	.character-input-wrap
+		input.form-control.text-center(
+			#nameInput
+			type="text"
+			[(ngModel)]="pony.name"
+			[maxlength]="maxNameLength"
+			placeholder="Name of your character"
+			aria-label="Name of your character")
 		.character-emoji-wrap(*ngIf="emojiButton")
 			emoji-picker(
 				[display]="emojiBoxState === 'inline-block'"
 				(emojiSelected)="addEmoji($event)"
 				(closed)="emojiBoxState = 'none'"
 				class="emoji-dropdown")
-			button.btn.btn-default.character-emoji-button(
-			*ngIf="emojiButton"
-			(click)="toggleEmojiBox()"
-			tooltip="Toggle Emoji-box"
-			aria-label="Toggle Emoji-box"
-			type="button")
-				fa-icon([icon]="emojiIcon" [fixedWidth]="true")
+			emote-box.character-emoji-button([emote]="btnEmoji" [square]="true" (click)="toggleEmojiBox()" (mouseenter)="onMouseEnterEmojiButton($event)")
+	.input-group-append
 		button.btn.btn-default(*ngIf="newButton" (click)="createNew()" [disabled]="!canNew" aria-label="Create New character")
 			| new
 		button.btn.btn-default(*ngIf="editButton" (click)="edit()" [disabled]="!canEdit" aria-label="Edit character")

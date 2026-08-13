@@ -1,5 +1,6 @@
 button.action-button(
-	(click)="click()" [class.active]="active" [class.no-shadow]="!shadow" [class.rare-item]="rare"
+	(click)="click()" (mousedown)="onPointerDown($event)" (touchstart)="onPointerDown($event)"
+	[class.active]="active" [class.no-shadow]="!shadow" [class.rare-item]="rare"
 	[tooltip]="tooltipText || (action && action.title || '')"
 	[placement]="tooltipPlacement"
 	[containerClass]="tooltipClass"

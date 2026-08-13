@@ -53,12 +53,12 @@
 					.character-preview-box.mx-auto.my-3(
 						(fixToTop)="fixed = $event"
 						[fixToTopOffset]="-40"
-						[style.background]="previewInfo.previewBackground ? '#' + previewInfo.previewBackground : 'var(--grass-color)'"
+						[style.background]="globalPreviewBackground ? '#' + globalPreviewBackground : 'var(--grass-color)'"
 					)
 						character-preview(
 							#characterPreview
 							[pony]="previewInfo"
-							[state]="state"
+							[state]="previewState"
 							[scale]="previewScale"
 							[noBackground]="true"
 							[noShadow]="fixed"
@@ -70,6 +70,7 @@
 							[tagOnlyNamePlateTextY]="11"
 							[extra]="previewExtra"
 							[magic]="previewMagic"
+							[globalBackgroundColor]="globalPreviewBackground"
 							style="z-index: 100"
 						)
 
@@ -953,7 +954,7 @@
 												label="Reset background"
 												title="Reset background")
 										.col-sm-8
-											color-picker(type="text" id="preview-background" [(color)]="info.previewBackground" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()")
+											color-picker(type="text" id="preview-background" [(color)]="previewBackgroundColor" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()")
 
 									.row.form-group
 										label.col-sm-4.col-form-label(for="description")
