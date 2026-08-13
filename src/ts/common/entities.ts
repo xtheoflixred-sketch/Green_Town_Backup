@@ -497,7 +497,7 @@ export const recolor = doodad(n('recolor-tool'), sprites.brush, 5, 8, 0,
 	mixFlags(EntityFlags.Usable));
 
 export const season = doodad(n('season-tool'), sprites.forest_axe, 5, 8, 0,
-	mixPickable(22, 45);
+	mixPickable(22, 45),
 	mixFlags(EntityFlags.Usable));
 
 // jacko lanterns
