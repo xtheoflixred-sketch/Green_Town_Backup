@@ -2,13 +2,13 @@ import { Component, ElementRef, NgZone, QueryList, TemplateRef, ViewChild, ViewC
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
 import { uniq } from 'lodash';
 import { entityButtonAction } from '../../../client/buttonActions';
-import { faEdit, faCog, faDrawPolygon, faTrash, emptyIcon, faCheck, faClone, faEraser, faRetweet, faCopy, faWrench, faHammer, faPaintBrush, faUpload, faScrewdriver, faPalette, faLeaf } from '../../../client/icons';
+import { faEdit, faCog, faDrawPolygon, faTrash, emptyIcon, faCheck, faClone, faEraser, faRetweet, faCopy, faWrench, faHammer, faPaintBrush, faUpload, faScrewdriver } from '../../../client/icons';
 import { PonyTownGame, engines } from '../../../client/game';
 import { StorageService } from '../../services/storageService';
 import { Model, getEntityNameFromType, getEntityNames, getEntityTypesFromName } from '../../services/model';
 import { getAlpha, withAlpha, colorToHexRGB, parseColor } from '../../../common/color';
 import { BLACK } from '../../../common/colors';
-import { Entity, Engine, EngineInfo, DebugFlags, tileTypeNames, EntityButtonAction, Action } from '../../../common/interfaces';
+import { Entity, Engine, EngineInfo, DebugFlags, tileTypeNames, editorTiles, EntityButtonAction, Action } from '../../../common/interfaces';
 import { CUSTOM_IMAGE_TYPE } from '../../../common/entities';
 
 @Component({
@@ -29,8 +29,8 @@ export class EditorBox {
 	readonly shovelIcon = faPaintBrush;
 	readonly hammerIcon = faHammer;
 	readonly scrapIcon = faScrewdriver;
-	readonly recolorIcon = faPalette;
-	readonly seasonIcon = faLeaf;
+	readonly recolorIcon = faPaintBrush;
+	readonly seasonIcon = faHammer;
 	readonly duplicateIcon = faClone;
 	readonly uploadIcon = faUpload;
 	readonly showFields: Array<{ field: keyof DebugFlags; label: string }> = [
@@ -312,6 +312,11 @@ export class EditorBox {
 			       this.game.editor.tile = -1;
 		       } else {
 			       this.game.editor.tile = value;
+			       const tileIndex = this.game.editor.tile >= 0 ? this.game.editor.tile : 0;
+			   const selectedTile = editorTiles.findIndex(tile => tile.type === tileIndex);
+			   if (selectedTile >= 0) {
+				 this.game.placeTile = selectedTile;
+			   }
 		       }
 	       }
 	get hasEditor() {

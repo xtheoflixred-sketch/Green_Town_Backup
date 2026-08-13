@@ -492,11 +492,11 @@ export const scrapHeld = registerMix(n('scrap-held'),
 	mixPickable(29, 42),
 	mixFlags(EntityFlags.Usable));
 
-export const recolor = doodad(n('recolor'), sprites.flower_pick, 5, 8, 0,
+export const recolor = doodad(n('recolor'), sprites.brush, 5, 8, 0,
 	mixPickable(25, 42),
 	mixFlags(EntityFlags.Usable));
 
-export const season = doodad(n('season-tool'), sprites.leaf_1, 5, 8, 0,
+export const season = doodad(n('season-tool'), sprites.forest_axe, 5, 8, 0,
 	mixPickable(25, 42),
 	mixFlags(EntityFlags.Usable));
 
@@ -2889,18 +2889,9 @@ export const tools = [
 	{ type: scrap.type,
 	   text: 'Scrap: mirror objects', textMobile: undefined },
 	{ type: recolor.type,
-	   text: 'Recolor: cycle colors of furniture', textMobile: undefined },
+	   text: 'Brush: recolor furniture', textMobile: undefined },
 	{ type: season.type,
-	   text: 'Season: cycle seasons of objects', textMobile: undefined },
-	{ type: forestAxe.type, text: 'Forest Axe', textMobile: undefined },
-	{ type: sawV2.type, text: 'Saw', textMobile: undefined },
-	{ type: spanner.type, text: 'Spanner', textMobile: undefined },
-	{ type: doubleEndedWrench.type, text: 'Double-ended Wrench', textMobile: undefined },
-	{ type: screwdriver.type, text: 'Screwdriver', textMobile: undefined },
-	{ type: sledgehammer.type, text: 'Sledgehammer', textMobile: undefined },
-	{ type: insulatingTape.type, text: 'Insulating Tape', textMobile: undefined },
-	{ type: brush.type, text: 'Brush', textMobile: undefined },
-	{ type: banHammer.type, text: 'Ban Hammer', textMobile: undefined },
+	   text: 'Forest Axe: cycle seasons of objects', textMobile: undefined },
 ];
 
 export const candies1Types = [candyCane1, candyCane2, cookie, cookiePony].map(e => e.type);

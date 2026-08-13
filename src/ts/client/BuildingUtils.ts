@@ -1,5 +1,5 @@
 import {
-	Action, MapFlags, MessageType, TileType, houseTiles, MapType,
+	Action, MapFlags, MessageType, TileType, houseTiles, MapType, editorTiles,
 } from '../common/interfaces';
 import { clamp, hasFlag, point, contains } from '../common/utils';
 import { pickAnyEntities, pickEntities, getTile } from '../common/worldMap';
@@ -550,6 +550,12 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		return false;
 	}
 
+	const selectedTileType = (() => {
+		const tileIndex = Math.max(0, Math.min(game.placeTile || 0, editorTiles.length - 1));
+		const selectedTile = editorTiles[tileIndex];
+		return selectedTile ? selectedTile.type : TileType.Dirt;
+	})();
+
 	const nowClick = performance.now();
 	game.lastEyeClickTime = nowClick;
 
@@ -567,7 +573,7 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 	} else if (player.hold === changeTileTool.type && hasFlag(game.map.flags, MapFlags.EditableTiles)) {
 		const x = hover.x | 0;
 		const y = hover.y | 0;
-		server.changeTile(x, y, houseTiles[game.placeTile].type);
+		server.changeTile(x, y, selectedTileType);
 	} else if (player.hold === scrapAlignTool.type && game.highlightEntity) {
 		const id = game.highlightEntity.id;
 		if (game.highlightEntity.type !== PONY_TYPE && game.highlightEntity.type !== toggleWallsTool.type) {
@@ -626,6 +632,11 @@ export function handleTilePaintDrag(game: any, player: any, hover: any, server: 
 		return false;
 	}
 
+	const selectedTileType = (() => {
+		const tileIndex = Math.max(0, Math.min(game.placeTile || 0, editorTiles.length - 1));
+		const selectedTile = editorTiles[tileIndex];
+		return selectedTile ? selectedTile.type : TileType.Dirt;
+	})();
 	const mouseDown = input.isPressed(Key.MOUSE_BUTTON1) || input.isPressed(Key.TOUCH);
 	const x = clamp(hover.x | 0, 0, game.map.width - 1);
 	const y = clamp(hover.y | 0, 0, game.map.height - 1);
@@ -647,7 +658,7 @@ export function handleTilePaintDrag(game: any, player: any, hover: any, server: 
 	}
 
 	const rect = tilePaintRect(tilePaintStart, tilePaintCurrent);
-	const targetType = houseTiles[game.placeTile].type;
+	const targetType = selectedTileType;
 
 	for (let ty = rect.minY; ty <= rect.maxY; ty++) {
 		for (let tx = rect.minX; tx <= rect.maxX; tx++) {
@@ -862,13 +873,15 @@ export function changePlaceEntity(game: any, reverse: boolean) {
 }
 
 export function changePlaceTile(game: any, reverse: boolean) {
+	const tileCycle = editorTiles;
 	if (reverse) {
-		game.placeTile = game.placeTile === 0 ? (houseTiles.length - 1) : (game.placeTile - 1);
+		game.placeTile = game.placeTile === 0 ? (tileCycle.length - 1) : (game.placeTile - 1);
 	} else {
-		game.placeTile = (game.placeTile + 1) % houseTiles.length;
+		game.placeTile = (game.placeTile + 1) % tileCycle.length;
 	}
+	game.editor.tile = tileCycle[game.placeTile].type;
 
-	const { name } = houseTiles[game.placeTile];
+	const { name } = tileCycle[game.placeTile];
 	const total = getSaysTime(name);
 	addChatBubble(game.map, game.player, { message: name, type: MessageType.System, total, timer: total, created: Date.now() });
 }
