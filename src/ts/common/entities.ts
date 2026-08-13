@@ -480,7 +480,7 @@ export const brush = doodad(n('brush'), sprites.brush, 10, 8, 0,
 	mixPickable(24, 46));
 
 export const banHammer = doodad(n('ban-hammer'), sprites.ban_hammer, 10, 8, 0,
-	mixPickable(19, 37));
+	mixPickable(19, 38));
 
 export const scrap = doodad(n('scrap'), sprites.scrap, 13, 4, 0,
 	mixPickable(29, 42),

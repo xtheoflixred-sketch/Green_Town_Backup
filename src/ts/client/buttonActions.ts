@@ -377,6 +377,20 @@ function deserializeAction(data: any): ButtonActionSlot {
 
 const lastCommandCalls: { [key: string]: number; } = {};
 
+let heldOffsetDebounceTimer: number | undefined = undefined;
+let heldOffsetPending: { game: PonyTownGame; message: string; total: number } | undefined;
+
+function flushHeldOffsetMessage() {
+	if (!heldOffsetPending) return;
+	const { game, message, total } = heldOffsetPending;
+	addChatBubble(game.map, game.player!, { message, type: MessageType.System, total, timer: total, created: Date.now() });
+	heldOffsetPending = undefined;
+	if (heldOffsetDebounceTimer !== undefined) {
+		clearTimeout(heldOffsetDebounceTimer);
+		heldOffsetDebounceTimer = undefined;
+	}
+}
+
 function adjustHeldItemOffset(game: PonyTownGame, dx: number, dy: number) {
 	const player = game.player;
 	if (!player) {
@@ -397,9 +411,19 @@ function adjustHeldItemOffset(game: PonyTownGame, dx: number, dy: number) {
 	holding.pickableX = pickableX;
 	holding.pickableY = pickableY;
 
-	const message = `ширина ${pickableX} высота ${pickableY}`;
+	// Coalesce frequent adjustments: schedule a single system bubble after short debounce.
+	const message = `высота ${pickableY} ширина ${pickableX}`;
 	const total = getSaysTime(message);
-	addChatBubble(game.map, player, { message, type: MessageType.System, total, timer: total, created: Date.now() });
+
+	// Update pending message and reset debounce timer
+	heldOffsetPending = { game, message, total };
+	if (heldOffsetDebounceTimer !== undefined) {
+		clearTimeout(heldOffsetDebounceTimer);
+	}
+	// Delay showing the bubble to avoid creating many chat objects during rapid changes
+	// 250ms gives immediate feedback while batching rapid presses
+	heldOffsetDebounceTimer = setTimeout(() => flushHeldOffsetMessage(), 250) as unknown as number;
+
 }
 
 export function useAction(game: PonyTownGame, action: ButtonAction | undefined) {
@@ -942,4 +966,6 @@ function getDownDrawFunc(game: PonyTownGame) {
 	}
 
 	return 'lieDisabled';
+}
+
 }
