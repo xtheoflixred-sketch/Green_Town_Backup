@@ -25,7 +25,7 @@ import {
 import { allEntities } from './api/account';
 import { CounterService } from './services/counter';
 import { decodeExpression, isCancellableExpression } from '../common/encoders/expressionEncoder';
-import { updateEntity, updateEntityOptions, pushUpdateEntityToClient, pushUpdateTileToClient, sendAction  } from './entityUtils';
+import { updateEntity, updateEntityOptions, pushUpdateEntityToClient, pushUpdateTileToClient  } from './entityUtils';
 import { mirrorEntity } from '../common/entityUtils';
 import { SupporterInvitesService } from './services/supporterInvites';
 import { Move } from './move';
@@ -396,16 +396,6 @@ export class ServerActions implements IServerActions, SocketServer {
 			case Action.UnhideAllHiddenPlayers:
 				this.hiding.requestUnhideAll(this.client);
 				break;
-			case Action.TransformBat: {
-				if (this.client.isSwitchingMap) return;
-				const next = !(this.pony.options && this.pony.options.batForm);
-				updateEntityOptions(this.pony, {
-					batForm: next,
-					speedMultiplier: next ? 0.6 : 1,
-				});
-				sendAction(this.pony, Action.TransformBat);
-				break;
-			}
 			default:
 				if (this.client.isSwitchingMap) return;
 				execAction(this.client, action, this.getSettings());
@@ -525,13 +515,6 @@ export class ServerActions implements IServerActions, SocketServer {
 						pushUpdateEntityToClient(c, { entity: this.pony, flags: UpdateFlags.Options, options: { modal: param } });
 					}
 				}
-				break;
-			}
-			case Action.TransformBat: {
-				if (this.client.isSwitchingMap) return;
-				const next = !(this.pony.options && this.pony.options.batForm);
-				updateEntityOptions(this.pony, { batForm: next });
-				sendAction(this.pony, Action.TransformBat);
 				break;
 			}
 			case Action.RemoveEntity: {
