@@ -40,7 +40,7 @@ const BLEP: Expression = {
 	muzzle: Muzzle.Blep,
 };
 
-const MENO = 'HBDs7Ow+Pj4TJyczHCDf398A///jQV6zs7P/ZYDh4eGOjo5fWlr/X1/BwcG9vb38/PzLAABkgQcCAQAAAAABklgBPwAAsABqjQjHOc9cUTnlqU6ELBBkqigC4gAsIxIMaYCAKrgAEAmKAhgDQ3vfAAA=';
+const MENO = 'IAzs7Ow+Pj4TJyczHCDf398A///jQV789vb/ZYDZ2dmOjo69vb2zAABkCDggQAAAAGksAJ+AALAAao0Jnd3pCi7y1K5BJhDTUEAuCAWAAAAgOngA';
 
 @Component({
 	selector: 'tiktok-pony',

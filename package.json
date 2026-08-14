@@ -1,7 +1,7 @@
 {
-  "name": "bats-town",
+  "name": "green-town",
   "version": "1.6.0",
-  "description": "Vampire ponies and creepy creatures in a town full of secrets",
+  "description": "Green Town is a private server for Pony Town, a multiplayer online game where players can create and customize their own ponies and interact with others in a virtual world.",
   "main": "pony-town.js",
   "scripts": {
     "start": "node pony-town.js --login --admin --game",

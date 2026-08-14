@@ -184,7 +184,13 @@ export const CREDITS: Credit[] = [
 		avatarBgColor: 'rgb(43, 46, 53)',
 		links: [],
 	},
-	
+	{
+		name: 'Trumentalise',
+		badges: [BADGES.contributor, BADGES.dev_code ],
+		avatarSkin: 'trumentalise-pony',
+		avatarBgColor: 'rgb(159, 95, 199)',
+		links: [],
+	},
 ];
 
 

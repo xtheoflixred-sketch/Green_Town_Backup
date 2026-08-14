@@ -40,7 +40,7 @@ const YAWN: Expression = {
 	muzzle: Muzzle.SmileOpen,
 };
 
-const MENO = 'GBV0io+sSiA6ERFQZKJrH7cftE9x9msm7NNdr0F113/Yolg+THpLj1zjtymXJtJRYWU1NTW/Hh6ULxCvOzs75xuzAAAkAFYQCAAAAAANWAE/AAYADdGAIUx0VjYpUuSMCxrnwQFBAIQQCAAhChGU4YllkAKVAAFKApUAAUoCtAABSgA=';
+const MENO = 'IBZ0io+sSiA6ERH1Hh5QZKJrH7cftE9x9msm7NNdr0F113/Yolg+THpLj1zjtymXJtJRYWXW9vna+P98iZavOzs75xuzAAAkAFoQCAAAAAAMBJYAT8ABgAN0YApjoTWNipbJIwLXPgggKCARggEQmgEghOSdIYCAAQAHIAVsAAK1BWwAArUFqgACtQ==';
 
 @Component({
 	selector: 'telegram-pony',
