@@ -272,7 +272,7 @@
 						(click)="editorTile = i - 1")
 						| {{t}}
 
-			.dropdown.ml-1(dropdown)
+			//.dropdown.ml-1(dropdown)
 				button.btn.btn-sm.btn-default.dropdown-toggle(dropdownToggle)
 					| brush: {{editor.brushSize}}
 
@@ -284,7 +284,7 @@
 					a.dropdown-item((click)="editor.brushSize = 5") 5
 					a.dropdown-item((click)="editor.brushSize = 6") 6
 
-			.dropdown.ml-1(dropdown [autoClose]="false")
+			//.dropdown.ml-1(dropdown [autoClose]="false")
 				button.btn.btn-sm.btn-default.dropdown-toggle(dropdownToggle)
 					| global
 
@@ -313,7 +313,7 @@
 									[min]="0"
 									[max]="255")
 
-			.dropdown.ml-1(dropdown)
+			//.dropdown.ml-1(dropdown)
 				button.btn.btn-sm.btn-default.dropdown-toggle(dropdownToggle)
 					| engine
 
@@ -324,10 +324,10 @@
 						[class.active]="isActiveEngine(e)")
 						| {{e.name}}
 
-			.btn.btn-sm.btn-default.disabled.ml-1(*ngIf="hasElevation")
+			//.btn.btn-sm.btn-default.disabled.ml-1(*ngIf="hasElevation")
 				| elevation: {{editorElevation}}
 
-			.btn.btn-sm.btn-default.disabled.ml-1(*ngIf="hasElevation")
+			//.btn.btn-sm.btn-default.disabled.ml-1(*ngIf="hasElevation")
 				| special: {{editorSpecial}}
 
 	// Нижний ряд — инструменты
@@ -341,7 +341,6 @@
 					(click)="useEditorHammer = !useEditorHammer"
 					title="Editor hammer — add/place any object (LMB)")
 					fa-icon([icon]="hammerIcon")
-					span.badge.badge-dark {{editor.brushSize}}
 
 				button.btn.btn-sm(
 					[class.btn-primary]="useEditorShovel"
@@ -349,6 +348,7 @@
 					(click)="useEditorShovel = !useEditorShovel"
 					title="Editor shovel — edit tiles (LMB)")
 					fa-icon([icon]="shovelIcon")
+					//span.badge.badge-dark {{editor.brushSize}}
 
 				button.btn.btn-sm(
 					[class.btn-danger]="useEditorBroom"

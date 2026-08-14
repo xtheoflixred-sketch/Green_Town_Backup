@@ -493,7 +493,7 @@ export const scrapHeld = registerMix(n('scrap-held'),
 	mixFlags(EntityFlags.Usable));
 
 export const recolor = doodad(n('recolor-tool'), sprites.brush, 5, 8, 0,
-	mixPickable(19, 38),
+	mixPickable(19, 46),
 	mixFlags(EntityFlags.Usable));
 
 export const season = doodad(n('season-tool'), sprites.forest_axe, 5, 8, 0,
