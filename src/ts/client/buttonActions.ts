@@ -377,6 +377,13 @@ const lastCommandCalls: { [key: string]: number; } = {};
 let heldOffsetDebounceTimer: number | undefined = undefined;
 let heldOffsetPending: { game: PonyTownGame; message: string; total: number } | undefined;
 
+function saveHeldItemOffset(player: any, holding: any) {
+	try {
+		const key = `heldOffset:${player.id}:${holding.type}`;
+		localStorage.setItem(key, JSON.stringify({ x: holding.pickableX, y: holding.pickableY }));
+	} catch (_e) { }
+}
+
 function flushHeldOffsetMessage() {
 	if (!heldOffsetPending) return;
 	const { game, message, total } = heldOffsetPending;
@@ -410,6 +417,8 @@ function adjustHeldItemOffset(game: PonyTownGame, dx: number, dy: number) {
 	holding.pickableX = pickableX;
 	holding.pickableY = pickableY;
 	player.discardBatch = true;
+
+	saveHeldItemOffset(player, holding);
 
 	// Coalesce frequent adjustments: schedule a single system bubble after short debounce.
 	const message = `высота ${pickableY} ширина ${pickableX}`;
@@ -445,6 +454,8 @@ export function adjustHeldItemOffsetSilent(game: PonyTownGame, dx: number, dy: n
 	holding.pickableX = pickableX;
 	holding.pickableY = pickableY;
 	player.discardBatch = true;
+
+	saveHeldItemOffset(player, holding);
 }
 
 export function useAction(game: PonyTownGame, action: ButtonAction | undefined) {

@@ -20,6 +20,7 @@ import {
 	isPonySitting, isPonyFlying, isPonyLying, isPonyStanding, isPonyLandedOrCanLand, isIdle, isIdleAnimation,
 	isFacingRight, releaseEntity
 } from './entityUtils';
+import { loadHeldItemOffset } from '../client/ponyUtils';
 import {
 	getAnimation, getAnimationFrame, setAnimatorState, updateAnimator, createAnimator, AnimatorState,
 	resetAnimatorState
@@ -631,9 +632,15 @@ export function updatePonyHold(pony: Pony, game: PonyTownGame) {
 	if (pony.hold !== 0) {
 		if (ponyState.holding === undefined) {
 			ponyState.holding = createAnEntity(pony.hold, 0, 0, 0, options, pony.paletteManager, game);
+			if (pony.id === (game as any).playerId) {
+				loadHeldItemOffset(ponyState.holding, pony.id);
+			}
 		} else if (ponyState.holding.type !== pony.hold) {
 			releaseEntity(ponyState.holding);
 			ponyState.holding = createAnEntity(pony.hold, 0, 0, 0, options, pony.paletteManager, game);
+			if (pony.id === (game as any).playerId) {
+				loadHeldItemOffset(ponyState.holding, pony.id);
+			}
 		}
 
 		if (tint) {

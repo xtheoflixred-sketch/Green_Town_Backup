@@ -2,7 +2,7 @@
     margin-top: 10px;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    gap: 24px;
 }
 
 .page-header-about {
@@ -73,20 +73,34 @@
 
 .team-member {
     position: relative;
-    text-align: center;
+    text-align: left;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding-top: 8px;
+
+    .team-member-inner {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .team-avatar-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-shrink: 0;
+    }
 
     .team-avatar {
         background: #222222;
         border-radius: 12px;
         box-shadow: 0 8px 16px rgba(0,0,0,.5);
         position: relative;
-        width: 160px;
-        height: 160px;
-        margin-bottom: .75rem;
+        width: 100px;
+        height: 100px;
+        flex-shrink: 0;
     }
 
     .avatar-pony {
@@ -111,9 +125,14 @@
         }
     }
 
+    .team-badges-col {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding-top: 4px;
+    }
+
     @media (max-width: 360px) {
-        /* Показываем участников на очень маленьких экранах
-           без изменения размеров аватаров — они остаются 160x160. */
         display: flex;
     }
 
@@ -131,7 +150,7 @@
     b {
         display: block;
         white-space: nowrap;
-        margin: 0 auto;
+        margin: 0;
     }
 
     .text-muted {

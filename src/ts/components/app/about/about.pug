@@ -57,33 +57,34 @@
 		div(*ngIf="credits.length")
 			h2 The Team
 			.mb-4
-				.row.team-members.web-tab
-					.col-md-6(*ngFor="let c of credits")
-						.team-member.team.mt-2
-							.team-avatar(
-								[style.background-color]="c.backgroundColor"
-								[style.background-position]="c.position"
-								style="background-size: cover; width: 100px; height: 100px; position: relative;"
-								(mouseenter)="ponyExcite(characterPreview)"
-								(mouseleave)="ponyReset(characterPreview)"
-							)
-								.avatar-pony
-									team-pony(#characterPreview [pony]="c.pony")
+				.team-members.web-tab
+					.team-member.team.mt-2(*ngFor="let c of credits")
+						.team-member-inner
+							.team-avatar-wrap
+								.team-avatar(
+									[style.background-color]="c.backgroundColor"
+									[style.background-position]="c.position"
+									style="background-size: cover; width: 100px; height: 100px; position: relative;"
+									(mouseenter)="ponyExcite(characterPreview)"
+									(mouseleave)="ponyReset(characterPreview)"
+								)
+									.avatar-pony
+										team-pony(#characterPreview [pony]="c.pony")
 
-							.text-container.text-center
-								.d-flex.name-links.align-items-center.justify-content-center.mb-1
-									b.text-truncate.sno.mb-0 {{c.name}}
-									site-links([links]="c.links")
+								.text-center(style="margin-top:6px;")
+									.d-flex.name-links.align-items-center.justify-content-center
+										b.text-truncate.sno.mb-0 {{c.name}}
+										site-links([links]="c.links")
 
-								.text-badges
-									span.badge(
-										*ngFor="let badge of c.badges"
-										[style.background-color]="badge.color"
-										style="color:white;border-radius:4px;padding:2px 6px;margin-right:4px;font-size:12px;"
-									)
-										ng-container(*ngIf="badge.icon")
-											fa-icon([icon]="badge.icon" size="xs")
-										| {{badge.label}}
+							.team-badges-col
+								span.badge(
+									*ngFor="let badge of c.badges"
+									[style.background-color]="badge.color"
+									style="color:white;border-radius:4px;padding:3px 8px;margin-bottom:6px;font-size:11px;white-space:nowrap;"
+								)
+									ng-container(*ngIf="badge.icon")
+										fa-icon([icon]="badge.icon" size="xs")
+									| {{badge.label}}
 
 		h2 Contributors
 

@@ -242,3 +242,15 @@ function assertSizes(name: string, a: any[], b: any[]) {
 		throw new Error(`Invalid ${name} length (${a.length} !== ${b.length})`);
 	}
 }
+
+export function loadHeldItemOffset(holding: any, playerId: number) {
+	try {
+		const key = `heldOffset:${playerId}:${holding.type}`;
+		const data = localStorage.getItem(key);
+		if (data) {
+			const { x, y } = JSON.parse(data);
+			if (typeof x === 'number') holding.pickableX = x;
+			if (typeof y === 'number') holding.pickableY = y;
+		}
+	} catch (_e) { }
+}
