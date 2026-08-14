@@ -51,6 +51,9 @@
 
 .accessory-tab {
 	margin-top: 10px;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
 }
 
 .character-col-sticky {

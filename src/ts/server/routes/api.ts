@@ -20,7 +20,7 @@ export default function (
 	app.use(auth);
 
 	app.use(apiAccount(server, settings, world));
-	app.use(apiPony(server, settings, removedDocument));
+	app.use(apiPony(server, settings, removedDocument, world));
 	app.use(apiGame(server, settings, config));
 
 	return app;

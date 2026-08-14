@@ -20,6 +20,7 @@ function colorToText(c: number): string {
 
 export type UpdateCharacterCount = (accountId: ID) => Promise<void>;
 export type RemoveCharacter = (ponyId: string, accountId: string) => Promise<ICharacter | undefined>;
+export type RefreshPonyOptions = (characterId: string) => void;
 export type SavePony = ReturnType<typeof createSavePony>;
 export type RemovePony = ReturnType<typeof createRemovePony>;
 
@@ -28,6 +29,7 @@ export const createSavePony =
 		findCharacter: FindCharacter, findAuth: FindAuth, characterCount: CharacterCount,
 		updateCharacterCount: UpdateCharacterCount, createCharacter: CreateCharacter, log: LogAccountMessage,
 		isSuspiciousName: (name: string) => boolean, isSuspiciousPony: (info: PonyInfoNumber) => boolean,
+		refreshPonyOptions?: RefreshPonyOptions,
 	) =>
 		async (account: IAccount, data: Partial<PonyObject> | undefined, reporter: Reporter): Promise<PonyObject | null> => {
 			if (!data || !data.info || typeof data.name !== 'string') {
@@ -113,6 +115,8 @@ export const createSavePony =
 
 			if (created) {
 				await updateCharacterCount(account._id);
+			} else if (refreshPonyOptions) {
+				refreshPonyOptions(character._id.toString());
 			}
 
 			if (suspicious.length) {

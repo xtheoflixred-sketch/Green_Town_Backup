@@ -35,8 +35,7 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 						aria-hidden="true"
 					)
 
-					.d-none.d-sm-inline
-						| {{account.name}}
+				.d-none.d-sm-inline([emojiText]="account.name")
 
 					fa-icon.d-inline-block.d-sm-none(
 						[icon]="userIcon"

@@ -2,7 +2,7 @@
 
 :host {
 	display: block;
-	pointer-events: none;
+	pointer-events: auto;
 }
 
 .action-bar {
@@ -21,6 +21,7 @@
 	
 	&.is-blurred > .blur-me {
 		filter: blur(3px);
+		pointer-events: none;
 	}
 
 	// &.is-blurred:not(.is-mobile) > :nth-child(-n+11) {

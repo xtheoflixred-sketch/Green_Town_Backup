@@ -1,5 +1,5 @@
 import {
-	Action, MapFlags, MessageType, TileType, houseTiles, MapType,
+	Action, MapFlags, MessageType, TileType, houseTiles, editorTiles, MapType,
 } from '../common/interfaces';
 import { clamp, hasFlag, point, contains } from '../common/utils';
 import { pickAnyEntities, pickEntities, getTile } from '../common/worldMap';
@@ -829,7 +829,8 @@ export function handleBuildingWheel(game: any, input: any) {
 			changePlaceEntity(game, input.wheelY < 0);
 		}
 	} else if (game.player.hold === changeTileTool.type) {
-		changePlaceTile(game, input.wheelY < 0);
+		// Передаём editorBox для синхронизации (доступна через game.editorBox)
+		changePlaceTile(game, input.wheelY < 0, (game as any).editorBox);
 	} else if ((game.player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) || isEditorSawActive(game, game.player)) {
 		changeWallMaterial(game, input.wheelY < 0);
 	}
@@ -873,7 +874,7 @@ export function changePlaceEntity(game: any, reverse: boolean) {
 	addChatBubble(game.map, game.player, { message: name, type: MessageType.System, total, timer: total, created: Date.now() });
 }
 
-export function changePlaceTile(game: any, reverse: boolean) {
+export function changePlaceTile(game: any, reverse: boolean, editorBox?: any) {
 	if (reverse) {
 		game.placeTile = game.placeTile === 0 ? (houseTiles.length - 1) : (game.placeTile - 1);
 	} else {
@@ -883,7 +884,21 @@ export function changePlaceTile(game: any, reverse: boolean) {
 	const { name, type } = houseTiles[game.placeTile];
 
 	if (isEditorShovelActive(game, game.player)) {
-		game.editor.tile = type;
+		// Находим соответствующий тайл в editorTiles по типу
+		const editorTileIndex = editorTiles.findIndex(t => t.type === type);
+		if (editorTileIndex >= 0) {
+			// Обновляем editor.tile через editorBox для синхронизации
+			if (editorBox && typeof editorBox.editorTile === 'number') {
+				// Устанавливаем индекс в editorTiles — сеттер обновит placeTile
+				editorBox.editorTile = editorTileIndex;
+			} else {
+				// Fallback: присваиваем TileType напрямую
+				game.editor.tile = type;
+			}
+		} else {
+			// Fallback: просто используем тип из houseTiles
+			game.editor.tile = type;
+		}
 	}
 
 	const total = getSaysTime(name);

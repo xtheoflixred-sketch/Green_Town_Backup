@@ -6,11 +6,23 @@ const firefox = !SERVER && /firefox/i.test(navigator.userAgent);
 const NUMPAD_ENTER_KEY = 108;
 
 function isKeyEventInvalid(e: KeyboardEvent) {
-	return e.target && /^(input|textarea|select)$/i.test((e.target as HTMLElement).tagName);
+	let target = e.target as HTMLElement | null;
+	while (target) {
+		if (/^(input|textarea|select)$/i.test(target.tagName) || target.contentEditable === 'true') {
+			return true;
+		}
+		target = target.parentElement;
+	}
+	return false;
 }
 
 function allowKey(key: number) {
 	return key === Key.ESCAPE || key === Key.F5 || key === Key.F12 || key === Key.F11 || key === Key.TAB || key === Key.KEY_C || key === Key.KEY_I;
+}
+
+function isMovementKey(key: number) {
+	return key === Key.UP || key === Key.DOWN || key === Key.LEFT || key === Key.RIGHT ||
+		key === Key.KEY_W || key === Key.KEY_A || key === Key.KEY_S || key === Key.KEY_D;
 }
 
 function fixKeyCode(key: number) {
@@ -81,8 +93,9 @@ export class KeyboardController implements InputController {
 		this.stack.length = 0;
 	}
 	private keydown = (e: KeyboardEvent) => {
-		if (!this.manager.disabledKeyboard && !isKeyEventInvalid(e)) {
-			const code = withNumpadKeyCode(fixKeyCode(e.keyCode), e);
+		const code = withNumpadKeyCode(fixKeyCode(e.keyCode), e);
+		const movementAllowed = isMovementKey(code);
+		if ((!this.manager.disabledKeyboard || movementAllowed) && !isKeyEventInvalid(e)) {
 			this.manager.setValue(code, 1);
 
 			if (!allowKey(code)) {

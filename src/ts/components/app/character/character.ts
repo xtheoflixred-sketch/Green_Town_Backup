@@ -712,55 +712,6 @@ get previewState(): PonyState {
 		}
 		if (!this.info) return;
 
-		if (this.matchesKey(event, 'KeyH', 72)) {
-			event.preventDefault();
-			this.toggleHeadTurned();
-			return;
-		}
-
-		if (this.matchesKey(event, 'KeyA', 65)) {
-			if (this.info.flip) {
-				event.preventDefault();
-				this.info.flip = false;
-				this.changed();
-			}
-			return;
-		}
-
-		if (this.matchesKey(event, 'KeyD', 68)) {
-			if (!this.info.flip) {
-				event.preventDefault();
-				this.info.flip = true;
-				this.changed();
-			}
-			return;
-		}
-
-		if (this.matchesKey(event, 'KeyG', 71)) {
-			event.preventDefault();
-			this.previewScale = this.previewScale >= 7 ? 1 : this.previewScale + 1;
-			this.changed();
-			return;
-		}
-
-		if (this.matchesKey(event, 'KeyF', 70)) {
-			event.preventDefault();
-			this.previewScale = this.previewScale <= 1 ? 7 : this.previewScale - 1;
-			this.changed();
-			return;
-		}
-
-		if (this.matchesKey(event, 'KeyY', 89)) {
-			event.preventDefault();
-			this.toggleHidePreviewName();
-			return;
-		}
-
-		if (this.matchesKey(event, 'KeyT', 84)) {
-			event.preventDefault();
-			this.toggleHidePreviewTag();
-			return;
-		}
 	}
 	private createUndoPonySnapshot() {
 		if (this.pony.ponyInfo) {

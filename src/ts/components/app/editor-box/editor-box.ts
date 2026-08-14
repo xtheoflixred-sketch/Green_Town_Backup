@@ -9,7 +9,7 @@ import { StorageService } from '../../services/storageService';
 import { Model, getEntityNameFromType, getEntityNames, getEntityTypesFromName } from '../../services/model';
 import { getAlpha, withAlpha, colorToHexRGB, parseColor } from '../../../common/color';
 import { BLACK } from '../../../common/colors';
-import { Entity, Engine, EngineInfo, DebugFlags, tileTypeNames, EntityButtonAction, Action, TileType, houseTiles } from '../../../common/interfaces';
+import { Entity, Engine, EngineInfo, DebugFlags, EntityButtonAction, Action, TileType, houseTiles, editorTiles } from '../../../common/interfaces';
 import { CUSTOM_IMAGE_TYPE } from '../../../common/entities';
 
 @Component({
@@ -49,7 +49,7 @@ export class EditorBox implements OnInit, OnDestroy {
 	}
 	readonly checkIcon = faCheck;
 	readonly emptyIcon = emptyIcon;
-	readonly tiles = ['---', ...tileTypeNames];
+	readonly tiles = editorTiles.map(t => t.name);
 	readonly engines = engines;
 	readonly editorEntities: string[];
 	readonly entityPreviewActions = new Map<string, EntityButtonAction>();
@@ -77,8 +77,10 @@ export class EditorBox implements OnInit, OnDestroy {
 	) {
 		this.game.editor.type = this.storage.getItem('editor-entity') || 'rock';
 		this.showEditor = this.storage.getBoolean('show-editor');
-		if (!this.showEditor) {
-			this.game.editor.useEditorHammer = false;
+		this.game.editor.useEditorHammer = false;
+		this.game.editor.useEditorShovel = false;
+		if (this.showEditor) {
+			this.game.setKeyboardDisabled(true);
 		}
 		this.editorEntities = getEntityNames().slice().sort();
 		this.game.editor.entityNames = [...this.editorEntities];
@@ -96,15 +98,18 @@ export class EditorBox implements OnInit, OnDestroy {
 		}
 	}
 	ngOnInit() {
+		(this.game as any).editorBox = this;
 		this._leftSubscription = this.game.onLeft.subscribe(() => this.closeEditor());
 	}
 	ngOnDestroy() {
+		(this.game as any).editorBox = null;
 		this._leftSubscription && this._leftSubscription.unsubscribe();
 	}
 	private closeEditor() {
 		if (this.showEditor) {
 			this.zone.run(() => {
 				this.showEditor = false;
+				this.game.setKeyboardDisabled(false);
 				this.game.editor.useEditorHammer = false;
 				this.game.editor.useEditorBroom = false;
 				this.game.editor.useEditorRope = false;
@@ -286,17 +291,25 @@ export class EditorBox implements OnInit, OnDestroy {
 			this.game.editor.useEditorScrap = false;
 		this.game.editor.useEditorRecolor = false;
 		this.game.editor.useEditorSeason = false;
-			const tileIndex = houseTiles.findIndex(tile => tile.type === this.game.editor.tile);
-
-			if (tileIndex === -1) {
+			// Синхронизируем editorTile с placeTile при включении лопаты
+			const editorTileIndex = this.getEditorTileIndex(this.game.editor.tile);
+			if (editorTileIndex >= 0 && editorTileIndex < editorTiles.length) {
+				// editorTile теперь хранит индекс
+			} else {
+				// Если tile не найден, сбрасываем на Dirt
+				this.game.editor.tile = TileType.Dirt;
+			}
+			const placeTileIndex = houseTiles.findIndex(tile => tile.type === this.game.editor.tile);
+			if (placeTileIndex === -1) {
 				this.game.placeTile = 0;
 				this.game.editor.tile = TileType.Dirt;
 			} else {
-				this.game.placeTile = tileIndex;
+				this.game.placeTile = placeTileIndex;
 			}
 			this.game.send(server => server.action(Action.SwitchToTileTool));
 		} else {
-			this.game.editor.tile = -1;
+			this.game.editor.tile = TileType.None;
+			this.game.placeTile = 0;
 			this.game.send(server => server.action(Action.Drop));
 		}
 	}
@@ -327,26 +340,37 @@ export class EditorBox implements OnInit, OnDestroy {
 
 		return this.editorEntities.filter(e => e.toLowerCase().includes(query));
 	}
-	       get editorTile() {
-		       // Гарантируем, что значение всегда в допустимых границах
-		       const tile = this.game.editor.tile;
-		       if (typeof tile !== 'number' || isNaN(tile) || tile < -1 || tile >= tileTypeNames.length) {
-			       // fallback и логирование
-			       console.warn('[EditorBox] Некорректное значение editorTile:', tile, ' — сброс на -1');
-			       this.game.editor.tile = -1;
-			       return -1;
-		       }
-		       return tile;
-	       }
-	       set editorTile(value: number) {
-		       // Валидация входящего значения
-		       if (typeof value !== 'number' || isNaN(value) || value < -1 || value >= tileTypeNames.length) {
-			       console.warn('[EditorBox] Попытка установить некорректный editorTile:', value, ' — сброс на -1');
-			       this.game.editor.tile = -1;
-		       } else {
-			       this.game.editor.tile = value;
-		       }
-	       }
+	// Получить индекс тайла в editorTiles по его TileType
+	private getEditorTileIndex(tileType: number): number {
+		const index = editorTiles.findIndex(t => t.type === tileType);
+		return index >= 0 ? index : 0;
+	}
+	// Получить TileType по индексу в editorTiles
+	private getTileTypeFromEditorIndex(index: number): number {
+		if (index < 0 || index >= editorTiles.length) return TileType.None;
+		return editorTiles[index].type;
+	}
+	// editorTile хранит индекс в editorTiles для выпадающего меню
+	get editorTile(): number {
+		const tile = this.game.editor.tile;
+		return this.getEditorTileIndex(tile);
+	}
+	set editorTile(value: number) {
+		// Валидация входящего значения
+		if (typeof value !== 'number' || isNaN(value) || value < -1 || value >= editorTiles.length) {
+			console.warn('[EditorBox] Попытка установить некорректный editorTile:', value, ' — сброс на 0');
+			value = 0;
+		}
+		const tileType = this.getTileTypeFromEditorIndex(value);
+		this.game.editor.tile = tileType;
+		// Синхронизируем game.placeTile с editorTile
+		if (this.game.editor.useEditorShovel) {
+			const placeTileIndex = houseTiles.findIndex(t => t.type === tileType);
+			if (placeTileIndex >= 0) {
+				this.game.placeTile = placeTileIndex;
+			}
+		}
+	}
 	get hasEditor() {
 		return (this.model.isMod || this.model.isBuilder) && this.showEditor;
 	}
@@ -750,12 +774,11 @@ export class EditorBox implements OnInit, OnDestroy {
 	}
 	toggleEditor() {
 		this.zone.run(() => {
-			this.showEditor = !this.showEditor;
-			this.game.editor.useEditorHammer = this.showEditor;
+this.showEditor = !this.showEditor;
+		this.game.editor.useEditorHammer = false;
+		this.game.setKeyboardDisabled(this.showEditor);
 
-			if (this.showEditor) {
-				this.game.send(server => server.action(Action.SwitchToPlaceTool));
-			} else {
+			if (!this.showEditor) {
 				this.game.editor.useEditorHammer = false;
 				this.game.editor.useEditorBroom = false;
 				this.game.editor.useEditorRope = false;

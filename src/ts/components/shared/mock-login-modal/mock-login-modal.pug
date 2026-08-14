@@ -34,7 +34,7 @@
             portrait-box([pony]="getPonyInfo(acc.ponyInfo)" size="small" [noBorder]="true")
 
             .account-info
-              .account-name {{ acc.name }}
+              .account-name([emojiText]="acc.name")
               .account-id {{ acc.id }}
               .account-last-visit(*ngIf="acc.lastVisit") Last active: {{ acc.lastVisit | date:'short' }}
               .account-last-visit(*ngIf="!acc.lastVisit") No recent activity

@@ -210,11 +210,11 @@
 					[(ngModel)]="editorEntity"
 					placeholder="entity")
 
-				.input-group-append
-					button.btn.btn-default(
-						type="button"
-						(click)="openEntityPicker()")
-						| objects
+			.input-group-append
+				button.btn.btn-default(
+					type="button"
+					(click)="openEntityPicker()")
+					| objects
 
 			.dropdown.ml-1(dropdown)
 				button.btn.btn-sm.btn-default.dropdown-toggle(dropdownToggle)
@@ -264,12 +264,12 @@
 
 			.dropdown.ml-1(dropdown)
 				button.btn.btn-sm.btn-default.dropdown-toggle(dropdownToggle)
-					| tile: {{tiles[editorTile + 1]}}
+					| tile: {{tiles[editorTile]}}
 
 				.dropdown-menu(*dropdownMenu)
 					a.dropdown-item(
 						*ngFor="let t of tiles; let i = index"
-						(click)="editorTile = i - 1")
+						(click)="editorTile = i")
 						| {{t}}
 
 			//.dropdown.ml-1(dropdown)
