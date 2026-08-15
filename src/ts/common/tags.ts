@@ -1,6 +1,6 @@
 import { CharacterTag, FontPalettes } from './interfaces';
 import { hasRole, AccountSupporter } from './accountUtils';
-import { MOD_COLOR, ADMIN_COLOR, DEV_COLOR, PATREON_COLOR, ANNOUNCEMENT_COLOR, WHITE, OWNER_COLOR, CYAN, WCODE_COLOR } from './colors';
+import { MOD_COLOR, ADMIN_COLOR, DEV_COLOR, PATREON_COLOR, ANNOUNCEMENT_COLOR, WHITE, OWNER_COLOR, WCODE_COLOR, LIGHT_GRAY } from './colors';
 import { parseColorFast } from './color';
 import {
 	faUserCog,
@@ -30,7 +30,7 @@ const tags: { [key: string]: CharacterTag; } = {
 	'dev:music': { ...placeholder, name: 'dev musician', className: 'dev', color: DEV_COLOR, icon: faVolumeUp },
 	'mod': { ...placeholder, name: 'moderator', className: 'mod', color: MOD_COLOR, icon: faUserCog },
 	'wcode': { ...placeholder, name: 'wibe coder', className: 'wcode', color: WCODE_COLOR, icon: faTerminal },
-	'builder': { ...placeholder, name: 'map builder', className: 'builder', color: CYAN, icon: faHammer },
+	'builder': { ...placeholder, name: 'map builder', className: 'builder', color: LIGHT_GRAY, icon: faHammer },
 	'npc': { ...placeholder, name: 'npc', className: 'npc', color: ANNOUNCEMENT_COLOR, icon: faUserCog },
 	'sup1': { ...placeholder, name: 'supporter', className: 'sup1', color: PATREON_COLOR, icon: faStar },
 	'sup2': { ...placeholder, name: 'supporter', className: 'sup2', color: WHITE, icon: faStar },
@@ -56,7 +56,7 @@ export function getTag(id: string | undefined, customColor?: string | number): C
 	if (!id) return undefined;
 	const tag = tags[id];
 	if (!tag || !customColor) return tag;
-	
+
 	// Apply custom color override while preserving all other tag properties
 	const color = typeof customColor === 'string' ? parseColorFast(customColor) : customColor;
 	return { ...tag, color };

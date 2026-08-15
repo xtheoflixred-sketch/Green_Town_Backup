@@ -31,6 +31,35 @@ character-list {
 	min-width: 0;
 }
 
+.character-name-editor {
+	min-height: 34px;
+	max-height: 34px;
+	overflow-y: hidden;
+	overflow-x: auto;
+	white-space: nowrap;
+	outline: none;
+	cursor: text;
+	padding: 6px 12px;
+	font-size: 14px;
+	line-height: 22px;
+	vertical-align: middle;
+	user-select: text;
+	-webkit-user-select: text;
+	-moz-user-select: text;
+	-ms-user-select: text;
+
+	&.empty::before {
+		content: attr(placeholder);
+		color: #999;
+		pointer-events: none;
+	}
+
+	img {
+		image-rendering: pixelated;
+		image-rendering: crisp-edges;
+	}
+}
+
 .character-emoji-wrap {
 	position: absolute;
 	top: 0;

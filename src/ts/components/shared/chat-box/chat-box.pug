@@ -1,4 +1,4 @@
-.chat-box(#chatBox)
+.chat-box(#chatBox (mousedown)="onChatBoxMouseDown($event)" (click)="onChatBoxClick($event)")
 	div(#chatBoxInput)
 		.command-dropdown(*ngIf="showCommandDropdown")
 			ul.command-dropdown-menu(*ngIf="!tobeMode")
@@ -13,12 +13,18 @@
 			color-picker([color]="msgColor" [isOpen]="showColorPicker" (colorChange)="onColorChange($event)" openUp)
 			button.msgcolor-reset((click)="resetColor()") default
 
-		input.chat-input#chat-input(
+		.chat-input#chat-input(
 			#inputElement
-			[(ngModel)]="message"
-			(keydown)="keydown($event)"
-			(input)="onMessageChange()"
-			[maxlength]="maxSayLength"
+			contenteditable="true"
+			spellcheck="false"
+			tabindex="0"
+			attr.data-placeholder="Chat message"
+			(keydown)="onEditorKeydown($event)"
+			(input)="onEditorInput($event)"
+			(click)="onInputClick($event)"
+			(mousedown)="onInputMouseDown($event)"
+			(blur)="onEditorBlur($event)"
+			(paste)="onEditorPaste($event)"
 			aria-label="Chat message"
 		)
 

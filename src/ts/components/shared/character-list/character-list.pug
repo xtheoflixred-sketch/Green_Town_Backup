@@ -88,12 +88,10 @@ ul.character-select-list(
 
 			div.entry-with-text.flex-grow-1
 				div.d-flex.align-items-center
-					span.character-name.text-truncate(title="{{p.name}}") {{p.name}}
-
+					span.character-name.text-truncate([title]="p.name" [emojiText]="p.name" [emojiScale]="1.5")
 					span.char-timestamp.text-muted(
 						*ngIf="sortMode==='recent' && p.lastUsed")
 						|   ({{ formatLastUsed(p.lastUsed) }})
-
 					span.char-timestamp.text-muted(
 						*ngIf="sortMode==='creation'")
 						|   ({{ formatCreated(p) }})

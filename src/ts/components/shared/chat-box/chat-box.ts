@@ -9,13 +9,16 @@ import { faComment, faAngleDoubleRight } from '../../../client/icons';
 import { isInParty } from '../../../client/partyUtils';
 import { handleActionCommand } from '../../../client/playerActions';
 import { hasHeadAnimation } from '../../../common/pony';
-import { AutocompleteState, autocompleteMesssage, replaceEmojis, emojis } from '../../../client/emoji';
+import { AutocompleteState, autocompleteMesssage, replaceEmojis, emojis, hasEmojis, splitEmojis, findEmoji, getEmojiImageAsync } from '../../../client/emoji';
 import { replaceNodes } from '../../../client/htmlUtils';
 import { invalidEnumReturn } from '../../../common/utils';
 import { isAdmin, isMod } from '../../../common/accountUtils';
 import { findMatchingEntityNames, findEntityOrMockByAnyMeans, findBestEntityByName } from '../../../client/handlers';
 import { sample } from 'lodash';
 import { CLIENT_COMMANDS, ClientCommand, TOBE_ENTITIES } from '../../../client/commands';
+import { loadAndInitSpriteSheets } from '../../../client/spriteUtils';
+import { font } from '../../../client/fonts';
+import { getCharacterSprite } from '../../../graphics/spriteFont';
 
 const chatTypeNames: string[] = [];
 const chatTypeClasses: string[] = [];
@@ -85,6 +88,8 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	msgColor = '#bbbbbb';
 	colorPickerStyle: any = {};
 	private lastColorSend = 0;
+	private initialized = false;
+	private updatingMessage = false;
 	get filteredCommands(): ClientCommand[] {
 		const query = this.commandQuery.toLowerCase();
 		return CLIENT_COMMANDS.filter((c: ClientCommand) => c.name.toLowerCase().startsWith(query));
@@ -103,14 +108,16 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.message = `/${cmd.name} `;
 			this.tobeMode = false;
 		}
-		this.input.focus();
+		this.syncEditorFromMessage();
+		this.focusInput();
 	}
 	selectTobeEntity(entity: string) {
 		this.showCommandDropdown = false;
 		this.tobeMode = false;
 		this.tobeQuery = '';
 		this.message = `/tobe ${entity} `;
-		this.input.focus();
+		this.syncEditorFromMessage();
+		this.focusInput();
 	}
 	onColorChange(color: string) {
 		this.msgColor = color;
@@ -159,7 +166,22 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		}
 	}
 	get input() {
-		return this.inputElement.nativeElement as HTMLInputElement;
+		return this.inputElement.nativeElement as HTMLElement;
+	}
+
+	focusInput() {
+		const el = this.input;
+		if (el) {
+			el.focus();
+			const range = document.createRange();
+			const sel = window.getSelection();
+			range.selectNodeContents(el);
+			range.collapse(false);
+			if (sel) {
+				sel.removeAllRanges();
+				sel.addRange(range);
+			}
+		}
 	}
 
     
@@ -189,19 +211,88 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	ngAfterViewInit() {
 		this.chatBox.nativeElement.hidden = true;
 		this.input.addEventListener('paste', () => this.pasted = true);
+		loadAndInitSpriteSheets().then(() => {
+			this.initialized = true;
+			this.syncEditorFromMessage();
+		});
 	}
 	ngOnDestroy() {
 		this.clearTypingTimers();
+		if (this.isOpen) {
+			this.game.setKeyboardDisabled(false);
+		}
 		this.subscriptions.forEach(s => s.unsubscribe());
+	}
+	onEditorBlur(_event: FocusEvent) {
+		if (this.isOpen) {
+			setTimeout(() => this.focusInput(), 0);
+		}
 	}
 	addEmoji(emoji: string) {
 		this.toggleEmojiBox();
 		if (!this.message) {
 			this.message = emoji;
-		} else if (this.input.maxLength > this.message.length) {
+		} else if (this.maxSayLength > this.message.length) {
 			this.message += emoji;
 		}
+		this.syncEditorFromMessage();
 		this.updateTypingIndicator();
+	}
+
+	private syncEditorFromMessage() {
+		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
+		if (!el || this.updatingMessage || !this.initialized) return;
+		const msg = this.message || '';
+		if (hasEmojis(msg)) {
+			el.innerHTML = '';
+			const parts = splitEmojis(msg);
+			for (const part of parts) {
+				const emoji = hasEmojis(part) && findEmoji(part);
+				const sprite = emoji && font && getCharacterSprite(part, font);
+				if (sprite && emoji) {
+					const img = document.createElement('img');
+					img.className = 'pixelart';
+					img.style.display = 'inline-block';
+					img.style.verticalAlign = 'middle';
+					img.style.width = `${(sprite.w + sprite.ox) * 1.6}px`;
+					img.style.height = `${10 * 1.6}px`;
+					img.style.marginTop = '-3px';
+					img.alt = part;
+					getEmojiImageAsync(sprite, src => {
+						img.src = src;
+					});
+					el.appendChild(img);
+				} else {
+					el.appendChild(document.createTextNode(part));
+				}
+			}
+		} else {
+			el.textContent = msg;
+		}
+		if (!msg) {
+			el.classList.add('empty');
+		} else {
+			el.classList.remove('empty');
+		}
+	}
+
+	private extractMessageFromEditor(): string {
+		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
+		if (!el) return '';
+		let result = '';
+		for (const node of Array.from(el.childNodes)) {
+			if (node.nodeType === Node.TEXT_NODE) {
+				result += node.textContent || '';
+			} else if (node.nodeType === Node.ELEMENT_NODE) {
+				const elem = node as HTMLElement;
+				if (elem.tagName === 'IMG' && (elem as HTMLImageElement).alt) {
+					result += (elem as HTMLImageElement).alt;
+				} else if (elem.tagName !== 'BR') {
+					result += elem.textContent || '';
+				}
+			}
+		}
+		return result.replace(/[\u200B\u00A0]/g, ' ').replace(/\s+/g, ' ');
 	}
 	toggleEmojiBox() {
 		if (this.emojiBoxState === 'none') {
@@ -211,6 +302,16 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		}
 	}
 	onMessageChange() {
+		this.updatingMessage = true;
+		let extracted = this.extractMessageFromEditor();
+		if (extracted.length > this.maxSayLength) {
+			extracted = extracted.substring(0, this.maxSayLength);
+			this.message = extracted;
+			this.syncEditorFromMessage();
+		} else {
+			this.message = extracted;
+		}
+		this.updatingMessage = false;
 		this.updateTypingIndicator();
 
 		const msg = this.message || '';
@@ -241,6 +342,18 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.tobeQuery = '';
 			this.showCommandDropdown = false;
 		}
+	}
+
+	onEditorInput(_event: Event) {
+		this.onMessageChange();
+	}
+
+	onEditorKeydown(e: KeyboardEvent) {
+		this.keydown(e);
+	}
+
+	onEditorPaste(_event: ClipboardEvent) {
+		this.pasted = true;
 	}
 	send(_event: Event | undefined) {
 		const { chatType, message, entityId } = this.getMessageState();
@@ -287,9 +400,11 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 
 					if (names.length === 1) {
 						this.message = `${this.message.substring(0, space)} ${names[0]}`;
+						this.syncEditorFromMessage();
 					}
 				} else {
 					this.message = autocompleteMesssage(this.message, e.shiftKey, this.state);
+					this.syncEditorFromMessage();
 				}
 			}
 
@@ -298,6 +413,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			if (this.showColorPicker) {
 				this.showColorPicker = false;
 				this.message = '';
+				this.syncEditorFromMessage();
 				this.close();
 				e.preventDefault();
 			} else {
@@ -321,6 +437,12 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 
 				this.changeChatType(e, modeSwitch.mode);
 			}
+		}
+
+		if (this.message && this.message.length >= this.maxSayLength &&
+			![Key.BACKSPACE, Key.DELETE, Key.LEFT, Key.RIGHT, Key.HOME, Key.END].includes(e.keyCode) &&
+			!e.ctrlKey && !e.metaKey) {
+			e.preventDefault();
 		}
 	}
 	private getModeSwitchFromCommand(): { mode: ChatModeId; whisperTo?: Entity | FakeEntity; } | undefined {
@@ -634,6 +756,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.stopTypingIndicator();
 		this.setCurrentChatMode(chatType);
 		this.message = '';
+		this.syncEditorFromMessage();
 		e.preventDefault();
 	}
 	private chat(event: Event | undefined) {
@@ -647,18 +770,21 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		if (!this.isOpen) {
 			this.chat(undefined);
 			this.message = '/';
-			this.input.selectionStart = this.input.selectionEnd = 10000;
+			this.syncEditorFromMessage();
+			this.focusInput();
 		}
 	}
 	private open() {
 		if (!this.isOpen) {
 			this.isOpen = true;
 			this.chatBox.nativeElement.hidden = false;
+			this.game.setKeyboardDisabled(true);
 		}
 
 		const chatMode = isValidChatMode(this.currentChatMode, this.game) ? this.currentChatMode : ChatType.Say;
 		this.setCurrentChatMode(chatMode);
-		this.input.focus();
+		this.syncEditorFromMessage();
+		this.focusInput();
 		this.updateTypingIndicator();
 	}
 	private close() {
@@ -674,7 +800,9 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.isOpen = false;
 			this.chatBox.nativeElement.hidden = true;
 			this.message = '';
+			this.syncEditorFromMessage();
 			this.pasted = false;
+			this.game.setKeyboardDisabled(false);
 		}
 	}
 	toggle() {
@@ -683,6 +811,34 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		} else {
 			this.open();
 		}
+	}
+	onInputClick(event: MouseEvent) {
+		event.stopPropagation();
+		event.preventDefault();
+		if (this.isOpen) {
+			this.focusInput();
+		}
+	}
+	onInputMouseDown(event: MouseEvent) {
+		event.stopPropagation();
+		if (!this.isOpen) {
+			this.open();
+		}
+	}
+	onChatBoxMouseDown(event: MouseEvent) {
+		event.stopPropagation();
+		if (this.isOpen && event.target &&
+			!(event.target as HTMLElement).closest('button') &&
+			!(event.target as HTMLElement).closest('emote-box') &&
+			!(event.target as HTMLElement).closest('emoji-picker') &&
+			!(event.target as HTMLElement).closest('.chat-box-type') &&
+			!(event.target as HTMLElement).closest('.command-dropdown-menu') &&
+			!(event.target as HTMLElement).closest('.msgcolor-picker')) {
+			this.focusInput();
+		}
+	}
+	onChatBoxClick(event: MouseEvent) {
+		event.stopPropagation();
 	}
 	onMouseEnterEmojiButton(event: MouseEvent) {
 		if (!event.target) return;
@@ -699,7 +855,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		const index = chatTypes.indexOf(currentMode);
 		const next = chatTypes[(index === -1 ? 0 : (index + 1)) % chatTypes.length];
 		this.setCurrentChatMode(next);
-		this.input.focus();
+		this.focusInput();
 		this.updateTypingIndicator();
 	}
 	setChatType(type: 'say' | 'party' | 'whisper') {

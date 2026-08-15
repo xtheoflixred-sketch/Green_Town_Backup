@@ -97,6 +97,7 @@ import { AboutButton } from './about-button/about-button';
 import { AboutPony } from './about-pony/about-pony';
 import { TeamPony } from './team-pony/team-pony';
 import { LeaveSiteModal } from './leave-site-modal/leave-site-modal';
+import { EmojiText } from './directives/emojiText';
 
 const declarations = [
 	ActionBar,
@@ -170,6 +171,7 @@ const declarations = [
 	SiteLinks,
 	NotificationItem,
 	NotificationList,
+	EmojiText,
 	...dropdownDirectives,
 	...tabsetComponents,
 	...draggableComponents,

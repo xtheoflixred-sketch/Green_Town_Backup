@@ -91,7 +91,7 @@ export function removeElement(element: HTMLElement) {
 	element.parentElement && element.parentElement.removeChild(element);
 }
 
-export function replaceNodes(element: HTMLElement, text: string) {
+export function replaceNodes(element: HTMLElement, text: string, scale = 2) {
 	while (element.lastChild && element.lastChild !== element.firstChild) {
 		element.removeChild(element.lastChild);
 	}
@@ -104,7 +104,7 @@ export function replaceNodes(element: HTMLElement, text: string) {
 
 	if (hasEmojis(text)) {
 		firstChild.nodeValue = '';
-		appendAllNodes(element, createHtmlNodes(text, 2));
+		appendAllNodes(element, createHtmlNodes(text, scale));
 	} else {
 		firstChild.nodeValue = text;
 	}

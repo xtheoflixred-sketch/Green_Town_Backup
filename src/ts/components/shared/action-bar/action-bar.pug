@@ -17,7 +17,7 @@ ng-template(#actionsModal)
 		[draggablePad]="10"
 		(draggableDrag)="drag(i)"
 		(draggableDrop)="drop($event, i)")
-	button.action-settings.game-button((click)="openActions()" style="touch-action: inherit;")
+	button.action-settings.game-button([class.blur-me]="actions.length < blurCount" (click)="openActions()" style="touch-action: inherit;")
 		fa-icon.action-icon([icon]="cogIcon" [fixedWidth]="true")
 	.action-button-padding
 .scroller-label

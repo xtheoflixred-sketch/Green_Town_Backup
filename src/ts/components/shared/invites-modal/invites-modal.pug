@@ -10,7 +10,7 @@
 			.d-flex.justify-content-between
 				.d-flex.align-items-center
 					portrait-box([pony]="i.pony" size="small" [noBorder]="true" style="margin: -5px 10px -5px -10px;")
-					b {{i.name}}
+					b([emojiText]="i.name")
 					span.text-muted.ml-1(*ngIf="!i.active") (inactive)
 				button.btn.btn-xs.btn-outline-danger Cancel
 

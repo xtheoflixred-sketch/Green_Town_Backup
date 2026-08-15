@@ -84,7 +84,7 @@
 						portrait-box.mr-2([pony]="f.ponyInfo" size="small" [noBorder]="true")
 						.flex-grow-1.friends-item-details.min-width-0
 							.d-flex.align-items-center.justify-content-between.gap-2.min-width-0
-								.friends-item-name.text-truncate.min-width-0.flex-grow-1 {{f.actualName}}
+								.friends-item-name.text-truncate.min-width-0.flex-grow-1([title]="f.actualName" [emojiText]="f.actualName")
 								.d-inline-flex.align-items-center.flex-shrink-0.gap-2
 									span.text-muted(*ngIf="getNote(f)" [title]="isFirstFriend ? getNote(f) : 'Note'" [tooltip]="isFirstFriend ? null : getNote(f)")
 										fa-icon([icon]="faStickyNote")
@@ -117,7 +117,7 @@
 						span(
 							style="position: absolute; top: 0; left: 18px; width: 0; height: 0; transform: translateY(-1px); border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 7px solid #fff; pointer-events: none; z-index: 3;")
 						div.pony-menu-name.py-1.px-2(style="padding-top: 5px;")
-							div.name-text.text-truncate(title="{{f.actualName}}") {{f.actualName}}
+							div.name-text.text-truncate([title]="f.actualName" [emojiText]="f.actualName")
 							div.name-badges.d-flex.gap-1.ms-auto
 								span.badge.badge-success(title="Friend")
 									fa-icon([icon]="faUserCheck")

@@ -2,13 +2,18 @@
 
 .character-select.input-group
 	.character-input-wrap
-		input.form-control.text-center(
+		.character-name-editor.form-control.text-center(
 			#nameInput
-			type="text"
-			[(ngModel)]="pony.name"
-			[maxlength]="maxNameLength"
-			placeholder="Name of your character"
-			aria-label="Name of your character")
+			contenteditable="true"
+			attr.placeholder="Name of your character"
+			spellcheck="false"
+			tabindex="0"
+			(input)="onNameInput($event)"
+			(keydown)="onNameKeydown($event)"
+			(blur)="onNameBlur($event)"
+			(paste)="onNamePaste($event)"
+			aria-label="Name of your character"
+		)
 		.character-emoji-wrap(*ngIf="emojiButton")
 			emoji-picker(
 				[display]="emojiBoxState === 'inline-block'"

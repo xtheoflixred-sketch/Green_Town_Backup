@@ -15,6 +15,7 @@ export const YELLOW = 0xffff00ff;
 export const MAGENTA = 0xff00ffff;
 export const CYAN = 0x00ffffff;
 export const GRAY = 0x444444ff;
+export const LIGHT_GRAY = 0xaaaaaaff;
 export const RED = 0xff0000ff;
 export const HOTPINK = 0xff69b4ff;
 export const PURPLE = 0x800080ff;

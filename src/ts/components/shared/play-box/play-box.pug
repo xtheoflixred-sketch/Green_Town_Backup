@@ -55,7 +55,7 @@
 				fa-icon.mr-1([icon]="spinnerIcon" [spin]="true")
 				| Cancel
 			div(*ngIf="!joining && server")
-				| #[strong {{label || 'Play'}}] on #[span {{server.name}}]
+				| #[strong {{label || 'Play'}}] on #[span([emojiText]="server.name")]
 			.text-faded(*ngIf="!joining && !server")
 				| select server to play
 		button.btn.btn-lg.btn-success.flex-grow-0.dropdown-toggle(
@@ -69,7 +69,7 @@
 					.text-muted(*ngIf="!s.offline") online #[span.sr-only players] ({{s.online}})
 				.flag.mr-2(*ngFor="let f of s.countryFlags" [ngClass]="'flag-' + f")
 				fa-icon.text-muted.mr-2(*ngIf="!hasFlag(s)" [icon]="getIcon(s)" size="lg")
-				strong {{s.name}}
+				strong([emojiText]="s.name")
 			.text-muted.text-wrap {{s.desc}}
 
 .form-group(*ngIf="server?.alert === '18+'")

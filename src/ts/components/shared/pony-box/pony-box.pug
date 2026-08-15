@@ -18,8 +18,7 @@
 
 	.pony-box-rect(#rectBox [style.width.px]="currentRectWidth")
 		.pony-box-name-row
-			.pony-box-name(title="{{pony.name}}")
-				| {{pony.name}}
+			.pony-box-name([title]="pony.name" [emojiText]="pony.name")
 
 			.pony-box-statuses
 				span.pony-box-status-badge(*ngIf="isAfk" [ngClass]="{'afk-visible': isAfk}")

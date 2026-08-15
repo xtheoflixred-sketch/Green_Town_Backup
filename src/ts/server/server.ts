@@ -405,7 +405,7 @@ reloadSettings().then(() => {
 		pollCertificateExpirationDate();
 	}
 
-	httpServer.listen(port, () => {
+	httpServer.listen(port, '0.0.0.0', () => {
 		const options = compact([
 			app.get('env'),
 			args.login && 'login',

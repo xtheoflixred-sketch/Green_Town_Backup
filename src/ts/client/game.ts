@@ -620,6 +620,9 @@ export class PonyTownGame implements Game {
 		return this.zone.run(func);
 	}
 	applyChanges = () => this.zone.run(() => { });
+	setKeyboardDisabled(disabled: boolean) {
+		this.input.disabledKeyboard = disabled;
+	}
 	private getZoomBounds() {
 		return getZoomScaleBounds(this.model.supporter || 0);
 	}
@@ -1081,10 +1084,14 @@ export class PonyTownGame implements Game {
 
 			this.debugShortcuts.length = 0;
 
-			window.addEventListener('resize', () => {
-				this.resized = true;
-				DEVELOPMENT && log(`resized ${window.innerHeight} (${window.scrollY})`);
-			});
+window.addEventListener('resize', () => {
+			this.resized = true;
+			DEVELOPMENT && log(`resized ${window.innerHeight} (${window.scrollY})`);
+		});
+		document.addEventListener('fullscreenchange', () => {
+			this.resized = true;
+			this.resizeCamera();
+		});
 
 			this.canvas.addEventListener('touchstart', () => this.audio.touch());
 
@@ -3008,8 +3015,8 @@ export class PonyTownGame implements Game {
 	changePlaceEntity(reverse: boolean) {
 		changePlaceEntityTool(this, reverse);
 	}
-	changePlaceTile(reverse: boolean) {
-		changePlaceTileTool(this, reverse);
+	changePlaceTile(reverse: boolean, editorBox?: any) {
+		changePlaceTileTool(this, reverse, editorBox);
 	}
 	saveDebug() {
 		this.storage.setJSON('debug', this.debug);

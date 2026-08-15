@@ -197,6 +197,11 @@ export function updatePonyInfo(pony: Pony, info: string | Uint8Array, apply: () 
 		ensurePonyInfoDecoded(pony);
 		pony.discardBatch = true;
 
+		// Синхронизируем toy из options после декодирования
+		if (pony.options && pony.options.toy && !pony.toy) {
+			pony.toy = pony.options.toy;
+		}
+
 		if (isPonyFlying(pony) && !canPonyFly(pony)) {
 			DEVELOPMENT && console.warn('Force land');
 			pony.state = setFlag(pony.state, EntityState.PonyFlying, false);
@@ -231,6 +236,11 @@ export function ensurePonyInfoDecoded(pony: Pony) {
 		pony.ponyState.headTurned = !!info.headTurned;
 		pony.ponyState.headTurn = Math.max(0, Math.min(6, (info.headTurn === undefined ? 0 : info.headTurn) | 0));
 		pony.drawingOptions.flipped = isFacingRight(pony) ? !info.flip : !!info.flip;
+
+		// Применяем toy из options, если он не установлен напрямую
+		if (pony.options && pony.options.toy && !pony.toy) {
+			pony.toy = pony.options.toy;
+		}
 	}
 
 	return pony.palettePonyInfo!;
