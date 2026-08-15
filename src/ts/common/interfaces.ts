@@ -931,6 +931,8 @@ export interface PonyOptions {
 	toy?: number;
 	inventory?: InventoryState;
 	modal?: boolean;
+	pickableX?: number;
+	pickableY?: number;
 	/** Allows temporarily modifying movement speed (1.0 = normal). */
 	speedMultiplier?: number;
 	/** Allows scaling pony size (0.1 - 10.0, default 1.0). */
@@ -1294,6 +1296,7 @@ export const enum Action {
 	Dance1,
 	EditingCharacter,
 	Typing,
+	AdjustHeldItemOffset,
 }
 
 export const enum InfoFlags {

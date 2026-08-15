@@ -417,6 +417,9 @@ function adjustHeldItemOffset(game: PonyTownGame, dx: number, dy: number) {
 	holding.pickableX = pickableX;
 	holding.pickableY = pickableY;
 	player.discardBatch = true;
+	player.pickableX = pickableX;
+	player.pickableY = pickableY;
+	game.send(server => server.actionParam(Action.AdjustHeldItemOffset, { pickableX, pickableY }));
 
 	saveHeldItemOffset(player, holding);
 
@@ -454,6 +457,8 @@ export function adjustHeldItemOffsetSilent(game: PonyTownGame, dx: number, dy: n
 	holding.pickableX = pickableX;
 	holding.pickableY = pickableY;
 	player.discardBatch = true;
+	player.pickableX = pickableX;
+	player.pickableY = pickableY;
 
 	saveHeldItemOffset(player, holding);
 }

@@ -12,6 +12,7 @@ import { isChatVisible } from '../common/camera';
 import { createRegion, worldToRegionX, worldToRegionY } from '../common/region';
 import { createAnEntity, poof, poof2, getEntityType } from '../common/entities';
 import { getPonyState, setPonyState, isPonyFlying, addChatBubble, isHidden, getChatBubbleLimit, isFacingRight } from '../common/entityUtils';
+import { toWorldX, toWorldY } from '../common/positionUtils';
 import {
 	isPony, createPony, setPonyExpression, updatePonyInfo, updatePonyHold, doPonyAction, hasHeadAnimation,
 	setHeadAnimation,
@@ -892,6 +893,20 @@ function updateEntityOptionsInternal(entity: Entity, options: Partial<EntityOrPo
 
 	if ('tag' in options && !options.tag) {
 		entity.tag = undefined;
+	}
+
+	if (isPony(entity) && ('pickableX' in options || 'pickableY' in options)) {
+		const holding = entity.ponyState && entity.ponyState.holding;
+		if (holding) {
+			if ('pickableX' in options && typeof options.pickableX === 'number') {
+				holding.pickableX = options.pickableX;
+			}
+			if ('pickableY' in options && typeof options.pickableY === 'number') {
+				holding.pickableY = options.pickableY;
+			}
+			holding.x = toWorldX(holding.pickableX!);
+			holding.y = toWorldY(holding.pickableY!);
+		}
 	}
 
 	if (isPony(entity) && 'hold' in options) {

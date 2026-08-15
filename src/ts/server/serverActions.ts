@@ -517,6 +517,16 @@ export class ServerActions implements IServerActions, SocketServer {
 				}
 				break;
 			}
+			case Action.AdjustHeldItemOffset: {
+				if (!param || typeof param !== 'object' || typeof param.pickableX !== 'number' || typeof param.pickableY !== 'number') {
+					return;
+				}
+
+				const { pickableX, pickableY } = param as { pickableX: number; pickableY: number };
+				this.pony.options = Object.assign(this.pony.options || {}, { pickableX, pickableY });
+				updateEntityOptions(this.pony, { pickableX, pickableY });
+				break;
+			}
 			case Action.RemoveEntity: {
 				validateNumber(param, 'param');
 				this.updateLastAction();
