@@ -267,6 +267,18 @@ export function expression(
 	return { right, left, muzzle, rightIris, leftIris, extra };
 }
 
+export function syncLockedIrisPair(expr: Expression | undefined, locked: boolean): Expression | undefined {
+	if (!expr) {
+		return expr;
+	}
+
+	if (locked) {
+		return { ...expr, leftIris: expr.rightIris };
+	}
+
+	return expr;
+}
+
 const constants = createPlainMap<() => Expression | undefined>({
 	'^^': () => expression(Eye.ClosedHappy2, Eye.ClosedHappy2, Muzzle.Smile),
 	'))': () => expression(Eye.Neutral, Eye.Neutral, Muzzle.Smile),

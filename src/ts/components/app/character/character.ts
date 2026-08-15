@@ -37,6 +37,7 @@ import { ButtMarkEditorState } from '../../shared/butt-mark-editor/butt-mark-edi
 import { parseColorWithAlpha } from '../../../common/color';
 import { createAnEntity } from '../../../common/entities';
 import { mockPaletteManager } from '../../../common/ponyInfo';
+import { syncLockedIrisPair } from '../../../common/expressionUtils';
 
 const frontHoofTitles = ['', 'Fetlocks', 'Paws', 'Claws', ''];
 const backHoofTitles = ['', 'Fetlocks', 'Paws', '', ''];
@@ -179,6 +180,7 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 		emptyTag,
 	];
 	state = defaultPonyState();
+	lockIrises = true;
 	saved: PonyInfo[] = [];
 	activeAnimation = 0;
 	loaded = false;
@@ -691,15 +693,32 @@ get previewState(): PonyState {
 			}, 1000 / 24);
 		});
 	}
+	private syncIrisLockState() {
+		if (!this.state.expression) {
+			this.lockIrises = true;
+			return;
+		}
+
+		this.lockIrises = !!this.info.lockEyes || this.state.expression.leftIris === this.state.expression.rightIris;
+	}
+
 	setRightIris(iris: Iris) {
 		if (this.state.expression) {
 			this.state.expression.rightIris = iris;
+			if (this.lockIrises || this.info.lockEyes) {
+				this.state.expression.leftIris = iris;
+			}
+			this.syncIrisLockState();
 			this.renderChanged();
 		}
 	}
 	setLeftIris(iris: Iris) {
 		if (this.state.expression) {
 			this.state.expression.leftIris = iris;
+			if (this.lockIrises || this.info.lockEyes) {
+				this.state.expression.rightIris = iris;
+			}
+			this.syncIrisLockState();
 			this.renderChanged();
 		}
 	}
@@ -1132,6 +1151,17 @@ get previewState(): PonyState {
 		if (locked) {
 			this.info.eyeOpennessLeft = this.info.eyeOpennessRight;
 		}
+		this.syncIrisLockState();
+		this.changed();
+	}
+	irisLockChanged(locked: boolean) {
+		this.lockIrises = locked;
+		if (this.state.expression) {
+			this.state.expression = syncLockedIrisPair(this.state.expression, locked) || this.state.expression;
+			if (locked) {
+				this.state.expression.rightIris = this.state.expression.leftIris;
+			}
+		}
 		this.changed();
 	}
 	eyelashLockChanged(locked: boolean) {
@@ -1244,6 +1274,7 @@ get previewState(): PonyState {
 			const left = (this.info.eyeOpennessLeft != null ? this.info.eyeOpennessLeft : Eye.Neutral) as Eye;
 			const muzzle = (this.info.muzzle != null ? this.info.muzzle : Muzzle.Smile) as Muzzle;
 			this.state.expression = { ...this.state.expression, right, left, muzzle };
+			this.syncIrisLockState();
 		}
 	}
 

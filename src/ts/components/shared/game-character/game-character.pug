@@ -358,15 +358,20 @@
 										(selectedChange)="changed()" aria-labelledby="left-eye")
 
 							.row.form-group
-								label.col-sm-4.col-form-label Right iris
+								.col-sm-4.col-lock-box
+									label#irises {{lockIrises ? 'Irises' : 'Right iris'}}
+									check-box.lock-box(
+										[(checked)]="lockIrises" [icon]="lockIcon" (checkedChange)="irisLockChanged($event)"
+										label="Lock both irises" title="Lock both irises")
 								.col-sm-8
 									sprite-selection(
 										[selected]="state.expression ? state.expression.rightIris : 0" [sprites]="irisesRight" [fill]="info.eyeColorRight"
 										[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="9" [darken]="darken"
-										(selectedChange)="setRightIris($event)" aria-labelledby="right-iris")
+										(selectedChange)="setRightIris($event)" aria-labelledby="irises")
 
-							.row.form-group
-								label.col-sm-4.col-form-label Left iris
+							.row.form-group(*ngIf="!lockIrises")
+								.col-sm-4
+									label#left-iris Left iris
 								.col-sm-8
 									sprite-selection(
 										[selected]="state.expression ? state.expression.leftIris : 0" [sprites]="irisesLeft" [fill]="info.eyeColorLeft"

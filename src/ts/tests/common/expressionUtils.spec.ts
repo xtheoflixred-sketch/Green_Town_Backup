@@ -1,6 +1,6 @@
 import '../lib';
 import { expect } from 'chai';
-import { parseExpression, expression } from '../../common/expressionUtils';
+import { parseExpression, expression, syncLockedIrisPair } from '../../common/expressionUtils';
 import { expressions } from '../../common/expressions';
 import { Expression, Iris, Eye, Muzzle, ExpressionExtra } from '../../common/interfaces';
 import { decodeExpression, encodeExpression } from '../../common/encoders/expressionEncoder';
@@ -91,6 +91,25 @@ describe('expressionUtils', () => {
 			expect(flipIris(Iris.ShockedDownRight)).equal(Iris.ShockedDownLeft);
 			expect(flipIris(Iris.ShockedDownLeft2)).equal(Iris.ShockedDownRight2);
 			expect(flipIris(Iris.ShockedDownRight2)).equal(Iris.ShockedDownLeft2);
+		});
+	});
+
+	describe('syncLockedIrisPair()', () => {
+		it('copies the right iris to the left iris when locked', () => {
+			const expr = expression(Eye.Neutral, Eye.Neutral, Muzzle.Smile, Iris.UpRight, Iris.UpLeft);
+			expect(syncLockedIrisPair(expr, true)).eql({
+				right: Eye.Neutral,
+				left: Eye.Neutral,
+				muzzle: Muzzle.Smile,
+				rightIris: Iris.UpRight,
+				leftIris: Iris.UpRight,
+				extra: ExpressionExtra.None,
+			});
+		});
+
+		it('keeps separate iris values when unlocked', () => {
+			const expr = expression(Eye.Neutral, Eye.Neutral, Muzzle.Smile, Iris.UpRight, Iris.UpLeft);
+			expect(syncLockedIrisPair(expr, false)).eql(expr);
 		});
 	});
 
