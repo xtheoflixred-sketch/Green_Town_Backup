@@ -150,6 +150,7 @@ const characterSchema = new Schema({
 	name: { type: String, index: true },
 	desc: String,
 	tag: String,
+	tagColor: String, // Custom color override for the tag (hex format without '#')
 	supportTag: String,
 	supportChat: String,
 	supportTagPriority: Boolean,

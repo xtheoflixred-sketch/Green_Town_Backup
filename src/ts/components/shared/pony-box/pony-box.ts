@@ -207,7 +207,8 @@ export class PonyBox implements AfterViewChecked {
 		return this.pony && isPonyInParty(this.game.party, this.pony, false);
 	}
 	get specialTag() {
-		return getTag(this.pony && this.pony.tag);
+		const pony = this.pony;
+		return getTag(pony && pony.tag, pony && (pony as any).tagColor);
 	}
 	get specialClass() {
 		const tag = this.specialTag;

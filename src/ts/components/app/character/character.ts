@@ -6,7 +6,7 @@ import { PLAYER_NAME_MAX_LENGTH, PLAYER_DESC_MAX_LENGTH } from '../../../common/
 import {
 	PonyInfo, PonyObject, PonyState, SocialSiteInfo, ColorExtraSet, ColorExtra, CharacterTag, PonyEye, Eye, Muzzle,
 	Entity, defaultWorldState,
-	Iris, ExpressionExtra, PonySupportChatType
+	Iris, ExpressionExtra
 } from '../../../common/interfaces';
 import { findById, toInt, cloneDeep, delay } from '../../../common/utils';
 import {
@@ -29,7 +29,7 @@ import { precompressPony, compressPonyString, decompressPony, decompressPonyStri
 import { saveCanvas } from '../../../client/canvasUtils';
 import { drawPony } from '../../../client/ponyDraw';
 import { getProviderIcon } from '../../shared/sign-in-box/sign-in-box';
-import { faPlay, faLock, faRedo, faSave, faCode, faInfoCircle, faPaintBrush, faHorseHead, faRetweet, faSearch, faUndo, faEraser, faSlash, faFont, faStar, faHandHolding } from '../../../client/icons';
+import { faPlay, faUser, faLock, faBan, faRedo, faSave, faCode, faInfoCircle, faPaintBrush, faHorseHead, faRetweet, faSearch, faUndo, faEraser, faSlash, faFont, faStar, faHandHolding } from '../../../client/icons';
 import { isFileSaverSupported, createExpression, readFileAsText } from '../../../client/clientUtils';
 import { isMobile } from '../../../client/data';
 import { emptyTag, getAvailableTags } from '../../../common/tags';
@@ -89,6 +89,8 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	hidePreviewTag = false;
 
 	readonly playIcon = faPlay;
+	readonly userIcon = faUser;
+	readonly hideIcon = faBan;
 	readonly resetIcon = faRedo;
 	readonly undoIcon = faUndo;
 	readonly redoIcon = faRedo;
@@ -187,6 +189,9 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	previewMagic = false;
 	previewHoldItem = true;
 	previewPony: PonyObject | undefined = undefined;
+	private supporterTagPreview: string | undefined = undefined;
+	private supporterTagPreviewActive = false;
+	private tagPreview?: CharacterTag;
 	private previewHoldItemType = 0;
 	private previewHoldItemStateKey = '';
 	sites: SocialSiteInfo[] = [];
@@ -292,47 +297,73 @@ get previewState(): PonyState {
 		return this.previewPony ? this.previewPony.name : this.pony.name;
 	}
 	get previewTag() {
-		return getPonyTag(this.previewPony || this.pony, this.account);
+		let pony = this.previewPony || this.pony;
+
+		if (!this.previewPony && this.tagPreview) {
+			pony = {
+				...pony,
+				tag: this.tagPreview.id,
+				supportTagPriority: false,
+			};
+		}
+
+		if (!this.previewPony && this.supporterTagPreviewActive) {
+			pony = {
+				...pony,
+				supportTag: this.supporterTagPreview,
+				hideSupport: this.supporterTagPreview === 'hidden',
+				supportTagPriority: true,
+			};
+		}
+
+		return getPonyTag(pony, this.account);
 	}
-	get supporterTagLabel() {
+	get displayedSupporterTag(): string | undefined {
+		if (this.supporterTagPreviewActive) {
+			return this.supporterTagPreview;
+		}
 		if (this.pony.hideSupport || this.pony.supportTag === 'hidden') {
-			return 'Hidden';
+			return 'hidden';
 		}
-		if (this.pony.supportTag && /^sup[1-4]$/.test(this.pony.supportTag)) {
-			return this.pony.supportTag.toUpperCase();
-		}
-		return 'Auto';
+		return this.pony.supportTag;
 	}
+
+	previewSupporterTag(value: string | undefined) {
+		this.supporterTagPreview = value;
+		this.supporterTagPreviewActive = true;
+		this.renderChanged();
+	}
+
+	clearSupporterTagPreview() {
+		if (!this.supporterTagPreviewActive && this.supporterTagPreview === undefined) {
+			return;
+		}
+
+		this.supporterTagPreview = undefined;
+		this.supporterTagPreviewActive = false;
+		this.renderChanged();
+	}
+
+	previewCharacterTag(value: CharacterTag) {
+		this.tagPreview = value;
+		this.renderChanged();
+	}
+
+	clearCharacterTagPreview() {
+		if (!this.tagPreview) {
+			return;
+		}
+
+		this.tagPreview = undefined;
+		this.renderChanged();
+	}
+
+	get displayedCharacterTag(): CharacterTag {
+		return this.tagPreview || this.tag;
+	}
+
 	get showSupporterOptions() {
 		return this.model.supporter > 0 && this.model.isMod;
-	}
-	get supportChatOptions() {
-		const options: Array<{ id?: PonySupportChatType, label: string }> = [
-			{ id: undefined, label: 'Auto' },
-			{ id: 'say', label: 'Say' },
-			{ id: 'party', label: 'Party' },
-			{ id: 'supporter', label: 'Supporter' },
-			{ id: 'think', label: 'Think' },
-			{ id: 'partyThink', label: 'Party think' },
-			{ id: 'whisper', label: 'Whisper' },
-		];
-		if (this.model.supporter >= 1) {
-			options.splice(4, 0, { id: 'supporter1', label: 'Supporter 1' });
-		}
-		if (this.model.supporter >= 2) {
-			options.splice(5, 0, { id: 'supporter2', label: 'Supporter 2' });
-		}
-		if (this.model.supporter >= 3) {
-			options.splice(6, 0, { id: 'supporter3', label: 'Supporter 3' });
-		}
-		if (this.model.supporter >= 4) {
-			options.splice(7, 0, { id: 'supporter4', label: 'Supporter 4' });
-		}
-		return options;
-	}
-	get supportChatLabel() {
-		const option = this.supportChatOptions.find(option => option.id === this.pony.supportChat);
-		return option ? option.label : 'Auto';
 	}
 	get supportTagPriority() {
 		return this.pony.supportTagPriority !== false;
@@ -1060,6 +1091,11 @@ get previewState(): PonyState {
 		this.changed();
 	}
 
+	resetTagColor() {
+		this.pony.tagColor = undefined;
+		this.changed();
+	}
+
 	toggleBlushEffect() {
 		this.info.blush = !this.info.blush;
 		this.changed();
@@ -1342,7 +1378,7 @@ get previewState(): PonyState {
 		}
 
 		if (this.pony.name !== stored.name || this.pony.desc !== stored.desc || this.pony.site !== stored.site
-			|| this.pony.tag !== stored.tag || this.pony.supportTag !== stored.supportTag
+			|| this.pony.tag !== stored.tag || this.pony.tagColor !== stored.tagColor || this.pony.supportTag !== stored.supportTag
 			|| this.pony.hideSupport !== stored.hideSupport || this.pony.respawnAtSpawn !== stored.respawnAtSpawn) {
 			return true;
 		}
@@ -1406,7 +1442,7 @@ get previewState(): PonyState {
 		}
 
 		if (a.name !== b.name || a.id !== b.id || a.desc !== b.desc || a.site !== b.site
-			|| a.tag !== b.tag || a.supportTag !== b.supportTag
+			|| a.tag !== b.tag || a.tagColor !== b.tagColor || a.supportTag !== b.supportTag
 			|| a.hideSupport !== b.hideSupport || a.respawnAtSpawn !== b.respawnAtSpawn) {
 			return false;
 		}

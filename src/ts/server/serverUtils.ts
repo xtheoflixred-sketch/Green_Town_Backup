@@ -54,7 +54,7 @@ export function toAccountData(account: IAccount): AccountData {
 	};
 }
 
-export const toPonyObjectFields = '_id name info desc site tag supportTag supportChat supportTagPriority lastUsed flags';
+export const toPonyObjectFields = '_id name info desc site tag tagColor supportTag supportChat supportTagPriority lastUsed flags';
 
 export function toPonyObject(character: ICharacter): PonyObject;
 export function toPonyObject(character: ICharacter | undefined): PonyObject | null;
@@ -66,6 +66,7 @@ export function toPonyObject(character: ICharacter | undefined): PonyObject | nu
 		info: character.info || '',
 		site: character.site ? character.site.toString() : undefined,
 		tag: character.tag || undefined,
+		tagColor: character.tagColor || undefined,
 		supportTag: character.supportTag || undefined,
 		supportChat: character.supportChat || undefined,
 		supportTagPriority: character.supportTagPriority,

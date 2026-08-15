@@ -1,6 +1,7 @@
 import { CharacterTag, FontPalettes } from './interfaces';
 import { hasRole, AccountSupporter } from './accountUtils';
 import { MOD_COLOR, ADMIN_COLOR, DEV_COLOR, PATREON_COLOR, ANNOUNCEMENT_COLOR, WHITE, OWNER_COLOR, CYAN, WCODE_COLOR } from './colors';
+import { parseColorFast } from './color';
 import {
 	faUserCog,
 	faCode,
@@ -51,8 +52,14 @@ export function getAllTags() {
 	return Object.keys(tags).map(key => tags[key]);
 }
 
-export function getTag(id: string | undefined): CharacterTag | undefined {
-	return id ? tags[id] : undefined;
+export function getTag(id: string | undefined, customColor?: string | number): CharacterTag | undefined {
+	if (!id) return undefined;
+	const tag = tags[id];
+	if (!tag || !customColor) return tag;
+	
+	// Apply custom color override while preserving all other tag properties
+	const color = typeof customColor === 'string' ? parseColorFast(customColor) : customColor;
+	return { ...tag, color };
 }
 
 export function getTagTooltipById(id: string | undefined): string | undefined {

@@ -6,8 +6,19 @@ import {
 	SUPPORTER2_COLOR, SUPPORTER3_COLOR, SUPPORTER4_COLOR
 } from '../../common/colors';
 import { MessageType } from '../../common/interfaces';
+import { parseColorFast } from '../../common/color';
+import { getTag } from '../../common/tags';
 
 describe('colors', () => {
+	describe('getTag()', () => {
+		it('uses a custom tag color override without changing the tag id', () => {
+			const tag = getTag('mod', '00ff00');
+			expect(tag).not.undefined;
+			expect(tag!.id).equals('mod');
+			expect(tag!.color).equals(parseColorFast('00ff00'));
+		});
+	});
+
 	describe('fillToOutline()', () => {
 		it('returns undefined for undefined', () => {
 			expect(fillToOutline(undefined)).undefined;

@@ -173,6 +173,11 @@ export function updatePony(pony: ServerEntity, account: IAccount, character: ICh
 		options.tag = `sup${level}`;
 	}
 
+	// Propagate custom tag color override
+	if (character.tagColor) {
+		pony.tagColor = character.tagColor;
+	}
+
 	pony.options = options;
 	pony.extraOptions = createExtraOptions(character);
 	pony.canFly = canFly(ponyInfo);

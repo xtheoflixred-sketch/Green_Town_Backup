@@ -590,6 +590,8 @@ export interface Entity extends EntityPart {
 	// custom message color set by /msgcolor
 	messageColor?: string;
 	bgColor?: string;
+	// custom tag color override (hex format without '#')
+	tagColor?: string;
 
 	// custom image
 	customImageUrl?: string;
@@ -668,6 +670,7 @@ export interface Pony extends Entity {
 	// player info
 	name: string | undefined;
 	tag: string | undefined;
+	tagColor?: string; // Custom tag color override (hex format without '#')
 	site: SocialSite | undefined;
 	modInfo: ModInfo | undefined;
 	ex: boolean; // extended data indicator, sent in extended options
@@ -1506,6 +1509,7 @@ export interface PonyObject {
 	name: string;
 	info: string;
 	tag?: string;
+	tagColor?: string; // Custom color for the tag (hex format like 'ff0000')
 	supportTag?: string;
 	supportChat?: PonySupportChatType;
 	supportTagPriority?: boolean;

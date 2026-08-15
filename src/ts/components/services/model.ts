@@ -431,15 +431,15 @@ export class Model {
 					pony.info = compressPonyString(pony.ponyInfo);
 				}
 
-				const { id, name, desc, site, tag, supportTag, info, hideSupport, respawnAtSpawn } = pony as any;
+				const { id, name, desc, site, tag, tagColor, supportTag, info, hideSupport, respawnAtSpawn } = pony as any;
 
 				if (!fast) {
 					this.pending = true;
 				}
 
 				return this.post<PonyObject | undefined>('/api/pony/save', {
-					pony: { id, name, desc, site, tag, supportTag, info, hideSupport, respawnAtSpawn }
-				});
+					pony: { id, name, desc, site, tag, tagColor, supportTag, info, hideSupport, respawnAtSpawn }
+				})
 			})
 			.catch((e: Error) => {
 				if (e.message === CHARACTER_SAVING_ERROR) {

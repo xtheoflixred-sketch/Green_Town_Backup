@@ -462,6 +462,7 @@ export interface CharacterBase<ID> extends TimestampsBase {
 	account: ID;
 	site?: ID;
 	tag?: string;
+	tagColor?: string; // Custom color override for the tag (hex format)
 	supportTag?: string;
 	supportChat?: PonySupportChatType;
 	supportTagPriority?: boolean;

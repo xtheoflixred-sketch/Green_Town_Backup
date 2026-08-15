@@ -323,8 +323,8 @@ export function getNameRenderMode(isHovered: boolean, alwaysShowTags: boolean, t
 	return DrawNameRenderMode.Hidden;
 }
 
-function drawTagLabel(batch: PaletteSpriteBatch, x: number, y: number, palettes: CommonPalettes, tagId?: string, allowRawTag = false) {
-	const tag = getTag(tagId);
+function drawTagLabel(batch: PaletteSpriteBatch, x: number, y: number, palettes: CommonPalettes, tagId?: string, tagColor?: string, allowRawTag = false) {
+	const tag = getTag(tagId, tagColor);
 
 	if (tag) {
 		const tagSize = measureText(tag.label, fontSmallPal);
@@ -341,9 +341,9 @@ function drawTagLabel(batch: PaletteSpriteBatch, x: number, y: number, palettes:
 
 export function drawNamePlate(
 	batch: PaletteSpriteBatch, text: string, x: number, y: number, flags: DrawNameFlags,
-	palettes: CommonPalettes, tagId?: string, allowRawTag = false, renderMode = DrawNameRenderMode.NameAndTag,
+	palettes: CommonPalettes, tagId?: string, tagColor?: string, allowRawTag = false, renderMode = DrawNameRenderMode.NameAndTag,
 ) {
-	const tag = getTag(tagId);
+	const tag = getTag(tagId, tagColor);
 	const hasTag = !!tag || (allowRawTag && !!tagId);
 	const size = measureText(text, fontPal);
 	const xx = x - Math.round(size.w / 2);
@@ -353,12 +353,12 @@ export function drawNamePlate(
 
 	if (renderMode === DrawNameRenderMode.NameAndTag) {
 		drawOutlinedText(batch, text, fontPal, color, OUTLINE_COLOR, xx, yy, options);
-		drawTagLabel(batch, x, yy + 11, palettes, tagId, allowRawTag);
+		drawTagLabel(batch, x, yy + 11, palettes, tagId, tagColor, allowRawTag);
 	} else if (renderMode === DrawNameRenderMode.TagOnly) {
 		// Position tag the same way as when name is drawn so vertical offset matches
 		const size = measureText(text, fontPal);
 		const yy = y - size.h + 6 - (hasTag ? 3 : 0);
-		drawTagLabel(batch, x, yy + 8, palettes, tagId, allowRawTag);
+		drawTagLabel(batch, x, yy + 8, palettes, tagId, tagColor, allowRawTag);
 	}
 }
 
@@ -587,6 +587,7 @@ export function drawNames(
 
 			const isHovered = chatBounds !== undefined && bounds !== undefined && contains(e.x, e.y, bounds, hover);
 			const tag = (isHidden(e) && drawHidden) ? 'hidden' : e.tag;
+			const tagColor = (e as any).tagColor as string | undefined;
 			const renderMode = getNameRenderMode(isHovered, alwaysShowTags, tag);
 			if (renderMode !== DrawNameRenderMode.Hidden) {
 				const { x, y } = worldToScreen(camera, e);
@@ -595,7 +596,7 @@ export function drawNames(
 				const flags = DrawNameFlags.None |
 					(isPartyMember(e, party) ? DrawNameFlags.Party : 0) |
 					(isFriend(e) ? DrawNameFlags.Friend : 0);
-				drawNamePlate(batch, e.name, x, y + chatOffsetY - nameOffset, flags, palettes, tag, false, renderMode);
+				drawNamePlate(batch, e.name, x, y + chatOffsetY - nameOffset, flags, palettes, tag, tagColor, false, renderMode);
 			}
 		}
 	}

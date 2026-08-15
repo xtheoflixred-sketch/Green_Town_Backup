@@ -34,6 +34,7 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 	@Input() scale = 3;
 	@Input() name?: string;
 	@Input() tag?: string;
+	@Input() tagColor?: string;
 	@Input() pony?: PonyInfo;
 	@Input() state?: PonyState = defaultPonyState();
 	@Input() noBackground = false;
@@ -336,7 +337,7 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 			this.nameBatch = this.nameBatch || new ContextSpriteBatch(createCanvas(nameBufferWidth, 25));
 			resizeCanvas(this.nameBatch.canvas, nameBufferWidth, 25);
 			this.nameBatch.start(sprites.paletteSpriteSheet, TRANSPARENT);
-			drawNamePlate(this.nameBatch, name, nameBufferWidth / 2, plateTextY, DrawNameFlags.None, commonPalettes, this.tag, this.allowAnyTag);
+		drawNamePlate(this.nameBatch, name, nameBufferWidth / 2, plateTextY, DrawNameFlags.None, commonPalettes, this.tag, this.tagColor, this.allowAnyTag);
 			this.nameBatch.end();
 			viewContext.save();
 			viewContext.scale(scale, scale);
