@@ -5,7 +5,7 @@ import { SAY_MAX_LENGTH } from '../../../common/constants';
 import { Key } from '../../../client/input/input';
 import { PonyTownGame } from '../../../client/game';
 import { cleanMessage, isSpamMessage } from '../../../client/clientUtils';
-import { faComment, faAngleDoubleRight } from '../../../client/icons';
+import { faComment, faAngleDoubleRight, faTimes } from '../../../client/icons';
 import { isInParty } from '../../../client/partyUtils';
 import { handleActionCommand } from '../../../client/playerActions';
 import { hasHeadAnimation } from '../../../common/pony';
@@ -19,16 +19,35 @@ import { CLIENT_COMMANDS, ClientCommand, TOBE_ENTITIES } from '../../../client/c
 import { loadAndInitSpriteSheets } from '../../../client/spriteUtils';
 import { font } from '../../../client/fonts';
 import { getCharacterSprite } from '../../../graphics/spriteFont';
+import { getTag } from '../../../common/tags';
+import { isMobile } from '../../../client/data';
 
 const chatTypeNames: string[] = [];
 const chatTypeClasses: string[] = [];
 
-type ChatModeId = ChatType | 'mod' | 'admin' | 'builder' | 'npc';
+type ChatModeId = ChatType | 'mod' | 'admin' | 'owner' | 'dev' | 'builder' | 'npc';
+type ChatTypeMenuCategory = 'developer' | 'supporter' | 'chats';
+type ChatTypeMenuOption = {
+	label: string;
+	mode?: ChatModeId;
+	badgeClass?: string;
+	icon?: any;
+	divider?: boolean;
+	category?: ChatTypeMenuCategory;
+	collapsed?: boolean;
+	hidden?: boolean;
+	selectableIndex?: number;
+};
 
 function setupChatType(type: ChatType, name: string) {
 	chatTypeNames[type] = name;
 	chatTypeClasses[type] = `chat-${name.replace(/ /, '-')}`;
 }
+
+chatTypeNames['owner' as any] = 'owner';
+chatTypeClasses['owner' as any] = 'chat-owner';
+chatTypeNames['dev' as any] = 'dev';
+chatTypeClasses['dev' as any] = 'chat-dev';
 
 setupChatType(ChatType.Say, 'say');
 setupChatType(ChatType.Party, 'party');
@@ -55,6 +74,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	readonly maxSayLength = SAY_MAX_LENGTH;
 	readonly commentIcon = faComment;
 	readonly sendIcon = faAngleDoubleRight;
+	readonly resetIcon = faTimes;
 	readonly emotes = emojis;
 	emojiBoxState = 'none';
 	@ViewChild('inputElement', { static: true }) inputElement!: ElementRef;
@@ -72,7 +92,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	private state: AutocompleteState = {};
 	private subscriptions: Subscription[];
 	private _disabled = false;
-	private chatModeOverride: 'mod' | 'admin' | 'builder' | 'npc' | undefined;
+	private chatModeOverride: 'mod' | 'admin' | 'owner' | 'dev' | 'builder' | 'npc' | undefined;
 	private typingIndicatorActive = false;
 	private typingIndicatorType = MessageType.Chat;
 	private typingIndicatorEntityId = 0;
@@ -82,12 +102,98 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	private typingHideTimeout: any;
 	showCommandDropdown = false;
 	commandQuery = '';
+	selectedCommandIndex = 0;
 	tobeMode = false;
 	tobeQuery = '';
+	selectedTobeIndex = 0;
 	showColorPicker = false;
+	showChatTypeMenu = false;
+	selectedChatTypeIndex = 0;
+	chatTypeMenuStyle: any = {};
 	msgColor = '#bbbbbb';
 	colorPickerStyle: any = {};
 	private lastColorSend = 0;
+	private chatTypeMenuPressTimer: any;
+	private documentClickHandler: (event: MouseEvent) => void = () => undefined;
+	private documentKeydownHandler: (event: KeyboardEvent) => void = () => undefined;
+	private chatTypePreviewMode: ChatModeId | undefined;
+	private chatTypeMenuOptionsCache: ChatTypeMenuOption[] = [];
+	private selectableChatTypeMenuOptionsCache: Array<ChatTypeMenuOption & { mode: ChatModeId }> = [];
+	private chatTypeMenuCacheReady = false;
+	chatTypeDeveloperCollapsed = false;
+	chatTypeSupporterCollapsed = false;
+
+	get chatTypeMenuOptions(): ChatTypeMenuOption[] {
+		if (!this.chatTypeMenuCacheReady) {
+			this.refreshChatTypeMenuOptions();
+		}
+		return this.chatTypeMenuOptionsCache;
+	}
+
+	get selectableChatTypeMenuOptions(): Array<ChatTypeMenuOption & { mode: ChatModeId }> {
+		if (!this.chatTypeMenuCacheReady) {
+			this.refreshChatTypeMenuOptions();
+		}
+		return this.selectableChatTypeMenuOptionsCache;
+	}
+
+	private refreshChatTypeMenuOptions() {
+		const options = getChatTypeMenuOptions(this.game);
+		let selectableIndex = 0;
+
+		for (const option of options) {
+			if (option.divider) {
+				option.collapsed = option.category === 'developer'
+					? this.chatTypeDeveloperCollapsed
+					: option.category === 'supporter'
+						? this.chatTypeSupporterCollapsed
+						: false;
+				option.hidden = false;
+				continue;
+			}
+
+			const collapsed = option.category === 'developer'
+				? this.chatTypeDeveloperCollapsed
+				: option.category === 'supporter'
+					? this.chatTypeSupporterCollapsed
+					: false;
+
+			option.hidden = collapsed;
+			option.selectableIndex = collapsed ? -1 : selectableIndex++;
+		}
+
+		this.chatTypeMenuOptionsCache = options;
+		this.selectableChatTypeMenuOptionsCache = options.filter(
+			(option): option is ChatTypeMenuOption & { mode: ChatModeId } =>
+				!option.divider && !option.hidden && option.mode !== undefined
+		);
+		this.chatTypeMenuCacheReady = true;
+	}
+
+	private invalidateChatTypeMenuOptions() {
+		this.chatTypeMenuCacheReady = false;
+	}
+
+	toggleChatTypeCategory(category: ChatTypeMenuCategory) {
+		this.clearChatTypePreview();
+		if (category === 'developer') {
+			this.chatTypeDeveloperCollapsed = !this.chatTypeDeveloperCollapsed;
+		} else if (category === 'supporter') {
+			this.chatTypeSupporterCollapsed = !this.chatTypeSupporterCollapsed;
+		} else {
+			return;
+		}
+
+		this.invalidateChatTypeMenuOptions();
+		this.refreshChatTypeMenuOptions();
+
+		const currentIndex = this.getSelectableChatTypeIndex(this.currentChatMode);
+		if (currentIndex >= 0) {
+			this.selectedChatTypeIndex = currentIndex;
+		} else if (this.selectableChatTypeMenuOptions.length > 0) {
+			this.selectedChatTypeIndex = 0;
+		}
+	}
 	private initialized = false;
 	private updatingMessage = false;
 	get filteredCommands(): ClientCommand[] {
@@ -101,6 +207,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	selectCommand(cmd: ClientCommand) {
 		this.showCommandDropdown = false;
 		this.commandQuery = '';
+		this.selectedCommandIndex = 0;
 		if (cmd.name === 'tobe') {
 			this.message = '/tobe ';
 			this.tobeMode = true;
@@ -115,12 +222,29 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.showCommandDropdown = false;
 		this.tobeMode = false;
 		this.tobeQuery = '';
+		this.selectedTobeIndex = 0;
 		this.message = `/tobe ${entity} `;
 		this.syncEditorFromMessage();
 		this.focusInput();
 	}
+	private selectHighlightedCommand() {
+		if (this.showCommandDropdown) {
+			if (this.tobeMode) {
+				const matches = this.filteredTobeEntities;
+				if (matches.length > 0) {
+					this.selectTobeEntity(matches[this.selectedTobeIndex] || matches[0]);
+				}
+			} else {
+				const matches = this.filteredCommands;
+				if (matches.length > 0) {
+					this.selectCommand(matches[this.selectedCommandIndex] || matches[0]);
+				}
+			}
+		}
+	}
 	onColorChange(color: string) {
 		this.msgColor = color;
+		this.updateChatType();
 		const now = Date.now();
 		if (now - this.lastColorSend > 200) {
 			this.lastColorSend = now;
@@ -129,17 +253,56 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	}
 	resetColor() {
 		this.msgColor = '#bbbbbb';
+		this.updateChatType();
 		this.game.send(server => server.say(0, `/msgcolor reset`, ChatType.Say));
 		this.showColorPicker = false;
 		this.close();
 	}
+	onResetSayColorFromMenu(event: Event) {
+		event.preventDefault();
+		event.stopPropagation();
+		this.msgColor = '#bbbbbb';
+		this.updateChatType();
+		this.game.send(server => server.say(0, `/msgcolor reset`, ChatType.Say));
+	}
 	private updateColorPickerPosition() {
-		const el = this.chatBox.nativeElement as HTMLElement;
-		const rect = el.getBoundingClientRect();
 		this.colorPickerStyle = {
-			left: `${rect.left}px`,
-			bottom: `${window.innerHeight - rect.top + 2}px`,
+			left: '60px',
+			bottom: '230px',
 		};
+	}
+	private updateChatTypeMenuPosition() {
+		const typeBox = this.typeBox && this.typeBox.nativeElement as HTMLElement | undefined;
+		if (!typeBox) {
+			this.chatTypeMenuStyle = { left: '0px', top: '0px' };
+			return;
+		}
+		const rect = typeBox.getBoundingClientRect();
+		this.chatTypeMenuStyle = {
+			left: `${Math.max(12, rect.left - 10)}px`,
+			top: `${Math.max(10, rect.top - 12)}px`,
+			transform: 'translateY(-100%)',
+		};
+	}
+	private normalizeMessageColor(color: string | undefined): string {
+		if (!color) {
+			return '#bbbbbb';
+		}
+		const hex = String(color).replace(/^#/, '');
+		return /^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex) ? `#${hex}` : '#bbbbbb';
+	}
+	private syncMessageColorFromPlayer() {
+		if (this.game.player && (this.game.player as any).messageColor !== undefined) {
+			this.msgColor = this.normalizeMessageColor((this.game.player as any).messageColor);
+		} else {
+			this.msgColor = '#bbbbbb';
+		}
+	}
+	private scrollActiveCommandIntoView() {
+		const activeItem = document.querySelector('.command-dropdown-item.active') as HTMLElement | null;
+		if (activeItem) {
+			activeItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		}
 	}
 	constructor(private game: PonyTownGame, zone: NgZone) {
 		this.subscriptions = [
@@ -184,7 +347,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		}
 	}
 
-    
 	get currentChatMode(): ChatModeId {
 		return this.chatModeOverride || this.chatType;
 	}
@@ -198,12 +360,12 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		return (this.message || '').length >= Math.ceil(this.maxSayLength * 0.9);
 	}
 	private setCurrentChatMode(mode: ChatModeId) {
-		if (mode === 'mod' || mode === 'admin' || mode === 'builder' || mode === 'npc') {
+		if (mode === 'mod' || mode === 'admin' || mode === 'owner' || mode === 'dev' || mode === 'builder' || mode === 'npc') {
 			this.chatModeOverride = mode;
 			this.chatType = ChatType.Say;
 		} else {
 			this.chatModeOverride = undefined;
-			this.chatType = mode;
+			this.chatType = mode as ChatType;
 		}
 
 		this.updateChatType();
@@ -211,6 +373,32 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	ngAfterViewInit() {
 		this.chatBox.nativeElement.hidden = true;
 		this.input.addEventListener('paste', () => this.pasted = true);
+		this.documentClickHandler = (event: MouseEvent) => {
+			if (!this.showChatTypeMenu) {
+				return;
+			}
+			const target = event.target as Node | null;
+			if (!target) {
+				return;
+			}
+			const menu = document.querySelector('.chat-type-menu') as HTMLElement | null;
+			const trigger = this.typeBox && this.typeBox.nativeElement as HTMLElement | null;
+			const clickedInsideMenu = !!(menu && menu.contains(target));
+			const clickedTrigger = !!(trigger && trigger.contains(target));
+			if (!clickedInsideMenu && !clickedTrigger) {
+				this.closeChatTypeMenu();
+			}
+		};
+		document.addEventListener('mousedown', this.documentClickHandler);
+
+		this.documentKeydownHandler = (event: KeyboardEvent) => {
+			if (event.keyCode === Key.ESCAPE && this.showChatTypeMenu) {
+				this.closeChatTypeMenu();
+				event.preventDefault();
+				event.stopPropagation();
+			}
+		};
+		document.addEventListener('keydown', this.documentKeydownHandler);
 		loadAndInitSpriteSheets().then(() => {
 			this.initialized = true;
 			this.syncEditorFromMessage();
@@ -218,6 +406,12 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	}
 	ngOnDestroy() {
 		this.clearTypingTimers();
+		if (this.documentClickHandler) {
+			document.removeEventListener('mousedown', this.documentClickHandler);
+		}
+		if (this.documentKeydownHandler) {
+			document.removeEventListener('keydown', this.documentKeydownHandler);
+		}
 		if (this.isOpen) {
 			this.game.setKeyboardDisabled(false);
 		}
@@ -320,31 +514,48 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.showColorPicker = true;
 			this.showCommandDropdown = false;
 			this.updateColorPickerPosition();
+			const playerColor = this.game.player && (this.game.player as any).messageColor;
+			this.msgColor = this.normalizeMessageColor(playerColor || this.msgColor);
 			return;
 		} else {
 			this.showColorPicker = false;
 		}
 
+		const msgcolorMatch = /^\/msgcolor\s+(#[0-9a-f]{6}|[0-9a-f]{6}|reset)\s*$/i.exec(msg);
+		if (msgcolorMatch) {
+			const value = msgcolorMatch[1].toLowerCase();
+			this.msgColor = value === 'reset' ? '#bbbbbb' : this.normalizeMessageColor(value);
+		}
+
 		if (this.tobeMode && msg.startsWith('/tobe ')) {
 			this.tobeQuery = msg.substring(6);
+			this.selectedTobeIndex = 0;
 			this.showCommandDropdown = true;
 		} else if (msg.startsWith('/tobe ')) {
 			this.tobeMode = true;
 			this.tobeQuery = msg.substring(6);
+			this.selectedTobeIndex = 0;
 			this.showCommandDropdown = true;
 		} else if (msg.startsWith('/')) {
 			this.tobeMode = false;
 			this.commandQuery = msg.substring(1);
+			this.selectedCommandIndex = 0;
 			this.showCommandDropdown = true;
 		} else {
 			this.tobeMode = false;
 			this.commandQuery = '';
 			this.tobeQuery = '';
+			this.selectedCommandIndex = 0;
+			this.selectedTobeIndex = 0;
 			this.showCommandDropdown = false;
 		}
 	}
 
 	onEditorInput(_event: Event) {
+		if (this.showChatTypeMenu) {
+			this.showChatTypeMenu = false;
+			this.selectedChatTypeIndex = 0;
+		}
 		this.onMessageChange();
 	}
 
@@ -386,14 +597,62 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.state.lastEmoji = undefined;
 		}
 
+		if (this.showChatTypeMenu && (e.keyCode === Key.UP || e.keyCode === Key.DOWN || e.keyCode === Key.TAB)) {
+			const options = this.selectableChatTypeMenuOptions;
+			const count = options.length;
+			if (count > 0) {
+				if (e.keyCode === Key.TAB) {
+					const option = options[this.selectedChatTypeIndex] || options[0];
+					if (option) {
+						this.selectChatType(option.mode);
+					}
+				} else {
+					this.selectedChatTypeIndex = (this.selectedChatTypeIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
+					const option = options[this.selectedChatTypeIndex];
+					if (option) {
+						this.previewChatType(option.mode);
+					}
+					this.scrollSelectedChatTypeIntoView();
+				}
+			}
+			e.preventDefault();
+			return;
+		}
+
+		if (this.showCommandDropdown && (e.keyCode === Key.UP || e.keyCode === Key.DOWN)) {
+			if (this.tobeMode) {
+				const count = this.filteredTobeEntities.length;
+				if (count > 0) {
+					this.selectedTobeIndex = (this.selectedTobeIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
+					this.scrollActiveCommandIntoView();
+				}
+			} else {
+				const count = this.filteredCommands.length;
+				if (count > 0) {
+					this.selectedCommandIndex = (this.selectedCommandIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
+					this.scrollActiveCommandIntoView();
+				}
+			}
+			e.preventDefault();
+			return;
+		}
+
 		if (e.keyCode === Key.TAB) {
-			if (this.showCommandDropdown && this.tobeMode && this.filteredTobeEntities.length > 0) {
-				this.selectTobeEntity(this.filteredTobeEntities[0]);
+			if (this.showChatTypeMenu) {
+				const options = this.selectableChatTypeMenuOptions;
+				const option = options[this.selectedChatTypeIndex] || options[0];
+				if (option) {
+					this.selectChatType(option.mode);
+				}
 				e.preventDefault();
-			} else if (this.showCommandDropdown && this.filteredCommands.length > 0) {
-				this.selectCommand(this.filteredCommands[0]);
+				return;
+			}
+			if (this.showCommandDropdown) {
+				this.selectHighlightedCommand();
 				e.preventDefault();
-			} else if (this.message) {
+				return;
+			}
+			if (this.message) {
 				if (/^\/(w|whisper) .+$/i.test(this.message)) {
 					const space = this.message.indexOf(' ');
 					const names = findMatchingEntityNames(this.game, this.message.substr(space + 1));
@@ -410,7 +669,16 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 
 			e.preventDefault();
 		} else if (e.keyCode === Key.ENTER && this.isOpen) {
-			if (this.showColorPicker) {
+			if (this.showChatTypeMenu) {
+				const options = this.selectableChatTypeMenuOptions;
+				if (options.length > 0) {
+					const option = options[this.selectedChatTypeIndex];
+					if (option) {
+						this.selectChatType(option.mode);
+					}
+				}
+				e.preventDefault();
+			} else if (this.showColorPicker) {
 				this.showColorPicker = false;
 				this.message = '';
 				this.syncEditorFromMessage();
@@ -420,7 +688,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 				this.send(e);
 			}
 		} else if (e.keyCode === Key.ESCAPE) {
-			if (this.showCommandDropdown) {
+			if (this.showChatTypeMenu) {
+				this.showChatTypeMenu = false;
+				this.selectedChatTypeIndex = 0;
+			} else if (this.showCommandDropdown) {
 				this.showCommandDropdown = false;
 				this.commandQuery = '';
 			} else {
@@ -452,6 +723,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 
 		if (/^\/(s|say)\s$/i.test(message)) {
 			return { mode: ChatType.Say };
+		} else if (/^\/(o|owner)\s$/i.test(message)) {
+			return { mode: 'owner' };
+		} else if (/^\/(d|dev)\s$/i.test(message)) {
+			return { mode: 'dev' };
 		} else if (/^\/(p|party)\s$/i.test(message)) {
 			return { mode: isInParty(this.game) ? ChatType.Party : ChatType.Say };
 		} else if (/^\/(t|think)\s$/i.test(message)) {
@@ -489,7 +764,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	}
 	private getMessageState() {
 		const mode = this.currentChatMode;
-		let chatType = (mode === 'mod' || mode === 'admin' || mode === 'builder' || mode === 'npc') ? ChatType.Say : mode;
+		let chatType = (mode === 'mod' || mode === 'admin' || mode === 'owner' || mode === 'dev' || mode === 'builder' || mode === 'npc') ? ChatType.Say : mode;
 		let message = replaceEmojis(cleanMessage(this.message || '')).substr(0, SAY_MAX_LENGTH);
 		const whisperTo = this.game.whisperTo;
 		let entityId = whisperTo && whisperTo.id || 0;
@@ -498,6 +773,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			message = `/m ${message}`;
 		} else if (mode === 'admin' && message && !/^\//.test(message)) {
 			message = `/a ${message}`;
+		} else if (mode === 'owner' && message && !/^\//.test(message)) {
+			message = `/o ${message}`;
+		} else if (mode === 'dev' && message && !/^\//.test(message)) {
+			message = `/dev ${message}`;
 		} else if (mode === 'builder' && message && !/^\//.test(message)) {
 			message = `/build ${message}`;
 		} else if (mode === 'npc' && message && !/^\//.test(message)) {
@@ -551,6 +830,53 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.clearTypingStartTimeout();
 		this.clearTypingHideTimeout();
 	}
+	private closeChatTypeMenu() {
+		this.showChatTypeMenu = false;
+		this.selectedChatTypeIndex = 0;
+		this.clearChatTypePreview();
+	}
+
+	getSelectableChatTypeIndex(mode: ChatModeId): number {
+		const options = this.selectableChatTypeMenuOptions;
+		for (let i = 0; i < options.length; i++) {
+			if (options[i].mode === mode) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	previewChatType(mode: ChatModeId) {
+		if (!isValidChatMode(mode, this.game)) {
+			return;
+		}
+		this.chatTypePreviewMode = mode;
+		this.updateChatType();
+	}
+
+	clearChatTypePreview() {
+		if (this.chatTypePreviewMode !== undefined) {
+			this.chatTypePreviewMode = undefined;
+			this.updateChatType();
+			if (this.isOpen) {
+				this.updateChatTypeInputPadding();
+			}
+		}
+	}
+
+	onChatTypeMenuHover(mode: ChatModeId) {
+		const index = this.getSelectableChatTypeIndex(mode);
+		if (index >= 0) {
+			this.selectedChatTypeIndex = index;
+			this.previewChatType(mode);
+		}
+	}
+	private scrollSelectedChatTypeIntoView() {
+		const activeItem = document.querySelector('.chat-type-menu li.active') as HTMLElement | null;
+		if (activeItem) {
+			activeItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		}
+	}
 	private getTypingMessageType(chatType: ChatType) {
 		switch (chatType) {
 			case ChatType.Party:
@@ -593,6 +919,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 				return { entityId: 0, type: MessageType.Mod };
 			} else if (mode === 'admin') {
 				return { entityId: 0, type: MessageType.Admin };
+			} else if (mode === 'owner') {
+				return { entityId: 0, type: MessageType.Owner };
+			} else if (mode === 'dev') {
+				return { entityId: 0, type: MessageType.Dev };
 			} else if (mode === 'builder') {
 				return { entityId: 0, type: MessageType.Builder };
 			} else if (mode === 'npc') {
@@ -627,6 +957,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 					return args ? { entityId: 0, type: MessageType.Mod } : undefined;
 				case 'a':
 					return args ? { entityId: 0, type: MessageType.Admin } : undefined;
+				case 'o':
+					return args ? { entityId: 0, type: MessageType.Owner } : undefined;
+				case 'dev':
+					return args ? { entityId: 0, type: MessageType.Dev } : undefined;
 				case 'build':
 					return args ? { entityId: 0, type: MessageType.Builder } : undefined;
 				case 'npc':
@@ -781,6 +1115,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.game.setKeyboardDisabled(true);
 		}
 
+		this.syncMessageColorFromPlayer();
 		const chatMode = isValidChatMode(this.currentChatMode, this.game) ? this.currentChatMode : ChatType.Say;
 		this.setCurrentChatMode(chatMode);
 		this.syncEditorFromMessage();
@@ -796,6 +1131,9 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.tobeMode = false;
 			this.tobeQuery = '';
 			this.showColorPicker = false;
+			this.showChatTypeMenu = false;
+			this.selectedChatTypeIndex = 0;
+			this.clearChatTypePreview();
 			this.input.blur();
 			this.isOpen = false;
 			this.chatBox.nativeElement.hidden = true;
@@ -833,20 +1171,111 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			!(event.target as HTMLElement).closest('emoji-picker') &&
 			!(event.target as HTMLElement).closest('.chat-box-type') &&
 			!(event.target as HTMLElement).closest('.command-dropdown-menu') &&
+			!(event.target as HTMLElement).closest('.chat-type-menu') &&
 			!(event.target as HTMLElement).closest('.msgcolor-picker')) {
+			this.showChatTypeMenu = false;
+			this.selectedChatTypeIndex = 0;
 			this.focusInput();
 		}
 	}
 	onChatBoxClick(event: MouseEvent) {
 		event.stopPropagation();
 	}
+	onChatTypeContextMenu(event: MouseEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		if (this.showChatTypeMenu) {
+			this.closeChatTypeMenu();
+			return;
+		}
+		this.showChatTypeMenu = true;
+		this.invalidateChatTypeMenuOptions();
+		this.refreshChatTypeMenuOptions();
+		const currentIndex = this.getSelectableChatTypeIndex(this.currentChatMode);
+		this.selectedChatTypeIndex = currentIndex >= 0 ? currentIndex : 0;
+		this.updateChatTypeMenuPosition();
+		const option = this.selectableChatTypeMenuOptions[this.selectedChatTypeIndex];
+		if (option) {
+			this.previewChatType(option.mode);
+		}
+	}
+	selectChatType(mode: ChatModeId) {
+		this.showChatTypeMenu = false;
+		this.selectedChatTypeIndex = 0;
+		this.chatTypePreviewMode = undefined;
+		this.setCurrentChatMode(mode);
+		this.updateChatType();
+		this.focusInput();
+		this.updateTypingIndicator();
+	}
+	selectChatTypeByIndex(index: number, mode: ChatModeId) {
+		const options = this.selectableChatTypeMenuOptions;
+		if (index < 0 || index >= options.length) {
+			return;
+		}
+
+		const option = options[index];
+		if (!option || option.mode !== mode) {
+			return;
+		}
+
+		this.selectedChatTypeIndex = index;
+		this.selectChatType(option.mode);
+	}
 	onMouseEnterEmojiButton(event: MouseEvent) {
 		if (!event.target) return;
 		const emoji = sample(emojis)!;
 		this.btnEmoji = emoji.names[0];
 	}
+	startChatTypeMenuLongPress() {
+		if (!isMobile) {
+			return;
+		}
+		this.clearChatTypeMenuLongPress();
+		this.chatTypeMenuPressTimer = setTimeout(() => {
+			this.showChatTypeMenu = true;
+			const currentIndex = this.getSelectableChatTypeIndex(this.currentChatMode);
+			this.selectedChatTypeIndex = currentIndex >= 0 ? currentIndex : 0;
+			this.updateChatTypeMenuPosition();
+			const option = this.selectableChatTypeMenuOptions[this.selectedChatTypeIndex];
+			if (option) {
+				this.previewChatType(option.mode);
+			}
+		}, 350);
+	}
+	clearChatTypeMenuLongPress() {
+		if (this.chatTypeMenuPressTimer !== undefined) {
+			clearTimeout(this.chatTypeMenuPressTimer);
+			this.chatTypeMenuPressTimer = undefined;
+		}
+	}
+	onTypeBoxPressStart(event?: Event) {
+		if (event) {
+			event.preventDefault();
+		}
+		this.startChatTypeMenuLongPress();
+	}
+	onTypeBoxPressEnd() {
+		this.clearChatTypeMenuLongPress();
+	}
 	toggleChatType(event?: MouseEvent) {
 		if (event && event.button !== 0) {
+			return;
+		}
+		if (isMobile) {
+			if (this.showChatTypeMenu) {
+				this.showChatTypeMenu = false;
+				this.selectedChatTypeIndex = 0;
+				return;
+			}
+			this.showChatTypeMenu = true;
+			const currentIndex = this.getSelectableChatTypeIndex(this.currentChatMode);
+			this.selectedChatTypeIndex = currentIndex >= 0 ? currentIndex : 0;
+			this.updateChatTypeMenuPosition();
+			const option = this.selectableChatTypeMenuOptions[this.selectedChatTypeIndex];
+			if (option) {
+				this.previewChatType(option.mode);
+			}
 			return;
 		}
 
@@ -875,12 +1304,21 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	private currentTypeClass = '';
 	private currentTypePrefix = '';
 	private currentTypeName = '';
+	private updateChatTypeInputPadding() {
+		const chatBox = (this.chatBox.nativeElement as HTMLElement).getBoundingClientRect();
+		const typeBox = (this.typeBox.nativeElement as HTMLElement).getBoundingClientRect();
+		if (chatBox.width > 0 && typeBox.width > 0) {
+			const padding = Math.ceil(typeBox.right - chatBox.left) + 4;
+			(this.inputElement.nativeElement as HTMLElement).style.paddingLeft = `${padding}px`;
+		}
+	}
+
 	private updateChatType() {
 		let typeName: string;
 		let typePrefix: string;
 		let changed = false;
 
-		const currentMode = this.currentChatMode;
+		const currentMode = this.chatTypePreviewMode !== undefined ? this.chatTypePreviewMode : this.currentChatMode;
 		const typeClass = chatTypeClass(currentMode, this.game.model.supporter);
 
 		if (this.currentTypeClass !== typeClass) {
@@ -908,13 +1346,18 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			replaceNodes(this.typeName.nativeElement, typeName);
 		}
 
-		if (changed || this.isOpen) {
-			const chatBox = (this.chatBox.nativeElement as HTMLElement).getBoundingClientRect();
-			const typeBox = (this.typeBox.nativeElement as HTMLElement).getBoundingClientRect();
-			if (chatBox.width > 0 && typeBox.width > 0) {
-				const padding = Math.ceil(typeBox.right - chatBox.left) + 4;
-				(this.inputElement.nativeElement as HTMLElement).style.paddingLeft = `${padding}px`;
-			}
+		if (currentMode === ChatType.Say) {
+			const playerColor = this.game.player && (this.game.player as any).messageColor;
+			const sayColor = this.msgColor || this.normalizeMessageColor(playerColor);
+			(this.typeBox.nativeElement as HTMLElement).style.color = sayColor;
+		} else {
+			(this.typeBox.nativeElement as HTMLElement).style.color = '';
+		}
+
+		// Hover preview must not force a synchronous layout/reflow on every mousemove.
+		// Recalculate the input padding only for the real selected mode.
+		if ((changed || this.isOpen) && this.chatTypePreviewMode === undefined) {
+			this.updateChatTypeInputPadding();
 		}
 	}
 }
@@ -923,6 +1366,8 @@ function getChatModeName(mode: ChatModeId) {
 	switch (mode) {
 		case 'mod': return 'mod';
 		case 'admin': return 'admin';
+		case 'owner': return 'owner';
+		case 'dev': return 'dev';
 		case 'builder': return 'builder';
 		case 'npc': return 'npc';
 		default: return chatTypeNames[mode as ChatType];
@@ -934,6 +1379,10 @@ function chatTypeClass(chatType: ChatModeId, supporter: number) {
 		return 'chat-mod';
 	} else if (chatType === 'admin') {
 		return 'chat-admin';
+	} else if (chatType === 'owner') {
+		return 'chat-owner';
+	} else if (chatType === 'dev') {
+		return 'chat-dev';
 	} else if (chatType === 'builder') {
 		return 'chat-builder';
 	} else if (chatType === 'npc') {
@@ -984,6 +1433,10 @@ function isValidChatMode(type: ChatModeId, game: PonyTownGame) {
 		return !!account && isMod(account);
 	} else if (type === 'admin') {
 		return !!account && isAdmin(account);
+	} else if (type === 'owner') {
+		return !!account && !!(account.roles && account.roles.indexOf('owner') !== -1);
+	} else if (type === 'dev') {
+		return !!account && !!(account.roles && account.roles.indexOf('dev') !== -1);
 	} else if (type === 'builder') {
 		return !!account && account.roles && account.roles.indexOf('builder') !== -1;
 	} else if (type === 'npc') {
@@ -1006,4 +1459,101 @@ function getChatTypes(game: PonyTownGame): ChatModeId[] {
 	}
 
 	return chatTypes;
+}
+
+function getChatTypeMenuOptions(game: PonyTownGame): ChatTypeMenuOption[] {
+	const options: ChatTypeMenuOption[] = [];
+	const account = game.model.account;
+	const supporter = game.model.supporter;
+
+	const addMode = (mode: ChatModeId, category: ChatTypeMenuCategory) => {
+		if (!isValidChatMode(mode, game)) {
+			return false;
+		}
+		if (mode === ChatType.Supporter1 && supporter < 1) return false;
+		if (mode === ChatType.Supporter2 && supporter < 2) return false;
+		if (mode === ChatType.Supporter3 && supporter < 3) return false;
+		if (mode === ChatType.Supporter4 && supporter < 4) return false;
+		if (mode === ChatType.Supporter && supporter < 1) return false;
+		if (mode === 'mod' && !(account && isMod(account))) return false;
+		if (mode === 'admin' && !(account && isAdmin(account))) return false;
+		if (mode === 'owner' && !(account && account.roles && account.roles.indexOf('owner') !== -1)) return false;
+		if (mode === 'dev' && !(account && account.roles && account.roles.indexOf('dev') !== -1)) return false;
+		if (mode === 'builder' && !(account && account.roles && account.roles.indexOf('builder') !== -1)) return false;
+		if (mode === 'npc' && !(account && account.roles && account.roles.indexOf('npc') !== -1)) return false;
+		if (mode === ChatType.Party && !isInParty(game)) return false;
+		if (mode === ChatType.Think && !isValidChatType(ChatType.Think, game)) return false;
+
+		const tagId = getChatTypeTagId(mode);
+		const tag = tagId ? getTag(tagId) : undefined;
+		options.push({
+			label: getChatModeName(mode),
+			mode,
+			category,
+			badgeClass: tag ? tag.className : 'none',
+			icon: tag && tag.icon,
+		});
+		return true;
+	};
+
+	const roleModes: ChatModeId[] = ['owner', 'admin', 'mod', 'builder', 'dev', 'npc'];
+	if (roleModes.some(mode => isValidChatMode(mode, game))) {
+		options.push({ label: 'Developer chats', divider: true, category: 'developer' });
+		for (const mode of roleModes) {
+			addMode(mode, 'developer');
+		}
+	}
+
+	const supporterModes: ChatModeId[] = [
+		ChatType.Supporter4,
+		ChatType.Supporter3,
+		ChatType.Supporter2,
+		ChatType.Supporter1,
+		ChatType.Supporter,
+	];
+	if (supporterModes.some(mode => isValidChatMode(mode, game))) {
+		options.push({ label: 'Supporter chats', divider: true, category: 'supporter' });
+		for (const mode of supporterModes) {
+			addMode(mode, 'supporter');
+		}
+	}
+
+	if (isValidChatMode(ChatType.Think, game) || isInParty(game) || isValidChatMode(ChatType.Say, game)) {
+		options.push({ label: 'Chats', divider: true, category: 'chats' });
+		if (isValidChatMode(ChatType.Think, game)) {
+			addMode(ChatType.Think, 'chats');
+		}
+		if (isInParty(game)) {
+			addMode(ChatType.Party, 'chats');
+		}
+		addMode(ChatType.Say, 'chats');
+	}
+
+	return options;
+}
+
+function getChatTypeTagId(mode: ChatModeId): string | undefined {
+	switch (mode) {
+		case ChatType.Say: return undefined;
+		case ChatType.Party: return 'owner';
+		case ChatType.Think: return undefined;
+		case ChatType.Whisper: return undefined;
+		case ChatType.Supporter:
+			return 'sup1';
+		case ChatType.Supporter1:
+			return 'sup1';
+		case ChatType.Supporter2:
+			return 'sup2';
+		case ChatType.Supporter3:
+			return 'sup3';
+		case ChatType.Supporter4:
+			return 'sup4';
+		case 'mod': return 'mod';
+		case 'admin': return 'admin';
+		case 'owner': return 'owner';
+		case 'dev': return 'dev';
+		case 'builder': return 'builder';
+		case 'npc': return 'npc';
+		default: return undefined;
+	}
 }

@@ -618,6 +618,22 @@ describe('commands', () => {
 			});
 		});
 
+		describe('/o', () => {
+			it('send owner message', () => {
+				runCommand(client, 'o', 'message', ChatType.Say, undefined, {});
+
+				expect(client.saysQueue).eql([[client.pony.id, 'message', MessageType.Owner]]);
+			});
+		});
+
+		describe('/dev', () => {
+			it('send dev message', () => {
+				runCommand(client, 'dev', 'message', ChatType.Say, undefined, {});
+
+				expect(client.saysQueue).eql([[client.pony.id, 'message', MessageType.Dev]]);
+			});
+		});
+
 		describe('/time', () => {
 			it('sets world time', () => {
 				const setTime = stub(context.world, 'setTime');

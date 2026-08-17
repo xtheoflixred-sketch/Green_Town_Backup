@@ -855,7 +855,7 @@ export function createCommands(world: World): Command[] {
 
 			// Build help text with categories
 			const helpLines: string[] = [];
-			const categoryOrder = ['Chat', 'Actions', 'Pony states', 'Emotes', 'Expressions', 'House', 'Supporters', 'Debug', 'Other', 'Mod', 'Admin', 'Owner'];
+			const categoryOrder = ['Chat', 'Actions', 'Pony states', 'Emotes', 'Expressions', 'House', 'Supporters', 'Debug', 'Other', 'Mod', 'Admin', 'Owner', 'Dev'];
 // moved Other above Mod so generic commands show earlier
 
 
@@ -1838,6 +1838,12 @@ export function createCommands(world: World): Command[] {
 			findEntities(client.map, e => e.type === butterfly.type || e.type === bat.type || e.type === firefly.type)
 				.forEach(e => sayToAll(e, message, filterBadWords(message), MessageType.Admin, settings));
 		}, false, 'Admin'),
+
+		// owner
+		adminModChat(['o'], '/o - owner text', 'owner', MessageType.Owner, 'Owner'),
+
+		// dev
+		adminModChat(['dev'], '/dev - developer text', 'dev', MessageType.Dev, 'Dev'),
 
 		// builder
 		adminModChat(['build'], '/build - builder text', 'builder', MessageType.Builder, 'Builder'),

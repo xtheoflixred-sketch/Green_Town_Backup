@@ -118,6 +118,7 @@ $chat-pad: 5px;
 	bottom: $chat-pad;
 	right: $chat-pad;
 	height: 0;
+	z-index: 10;
 }
 
 #chat-log {
@@ -126,6 +127,7 @@ $chat-pad: 5px;
 	bottom: $chat-pad + 42px;
 	right: $chat-pad;
 	height: 0;
+	z-index: 9;
 }
 
 #build-box {
@@ -140,7 +142,7 @@ $chat-pad: 5px;
 	position: fixed;
 	left: $chat-pad + 45px;
 	bottom: 0;
-	z-index: 2;
+	z-index: 1;
 }
 
 #inventory-bar {

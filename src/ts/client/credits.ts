@@ -191,6 +191,48 @@ export const CREDITS: Credit[] = [
 		avatarBgColor: 'rgb(159, 95, 199)',
 		links: [],
 	},
+	{
+		name: 'Aalik',
+		badges: [BADGES.mainart],
+		avatarSkin: 'aalik-pony',
+		avatarBgColor: 'rgb(146, 117, 170)',
+		links: [],
+	},
+	{
+		name: 'Hika Mig',
+		badges: [BADGES.artist],
+		avatarSkin: 'hika-mig-pony',
+		avatarBgColor: 'rgb(101, 120, 164)',
+		links: [],
+	},
+	{
+		name: 'Sofa',
+		badges: [BADGES.builder],
+		avatarSkin: 'sofa-pony',
+		avatarBgColor: 'rgb(168, 112, 131)',
+		links: [],
+	},
+	{
+		name: 'Lai',
+		badges: [BADGES.artist],
+		avatarSkin: 'lai-pony',
+		avatarBgColor: 'rgb(151, 127, 177)',
+		links: [],
+	},
+	{
+		name: 'Krif',
+		badges: [BADGES.artist],
+		avatarSkin: 'krif-pony',
+		avatarBgColor: 'rgb(149, 117, 86)',
+		links: [],
+	},
+	{
+		name: 'Enot',
+		badges: [BADGES.builder],
+		avatarSkin: 'enot-pony',
+		avatarBgColor: 'rgb(120, 118, 92)',
+		links: [],
+	},
 ];
 
 

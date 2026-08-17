@@ -58,7 +58,7 @@
 			h2 The Team
 			.mb-4
 				.team-members.web-tab
-					.team-member.team.mt-2(*ngFor="let c of credits")
+					.team-member.team.mt-2(*ngFor="let c of credits" [class.single-badge-card]="c.badges.length === 1")
 						.team-member-inner
 							.team-avatar-wrap
 								.team-avatar(
@@ -76,7 +76,16 @@
 										b.text-truncate.sno.mb-0 {{c.name}}
 										site-links([links]="c.links")
 
-							.team-badges-col
+								.team-badges-col(*ngIf="c.badges.length === 1")
+									span.badge(
+										[style.background-color]="c.badges[0].color"
+										style="color:white;border-radius:4px;padding:3px 8px;margin-bottom:6px;font-size:11px;white-space:nowrap;"
+									)
+										ng-container(*ngIf="c.badges[0].icon")
+											fa-icon([icon]="c.badges[0].icon" size="xs")
+										| {{c.badges[0].label}}
+
+							.team-badges-col(*ngIf="c.badges.length > 1")
 								span.badge(
 									*ngFor="let badge of c.badges"
 									[style.background-color]="badge.color"

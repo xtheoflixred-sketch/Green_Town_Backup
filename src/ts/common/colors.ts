@@ -90,6 +90,8 @@ export function getMessageColor(type: MessageType): number {
 		case MessageType.System: return SYSTEM_COLOR;
 		case MessageType.Admin: return ADMIN_COLOR;
 		case MessageType.Mod: return MOD_COLOR;
+		case MessageType.Owner: return OWNER_COLOR;
+		case MessageType.Dev: return DEV_COLOR;
 		case MessageType.Party: return PARTY_COLOR;
 		case MessageType.Thinking: return THINKING_COLOR;
 		case MessageType.PartyThinking: return PARTY_THINKING_COLOR;
@@ -105,7 +107,7 @@ export function getMessageColor(type: MessageType): number {
 		case MessageType.WhisperAnnouncement:
 		case MessageType.WhisperToAnnouncement:
 			return ANNOUNCEMENT_COLOR;
-		case MessageType.Builder: return CYAN;
+		case MessageType.Builder: return LIGHT_GRAY;
 		case MessageType.NPC: return ANNOUNCEMENT_COLOR;
 		case MessageType.Dismiss: return TRANSPARENT;
 		default:

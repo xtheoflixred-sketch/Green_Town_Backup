@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { emojis } from '../../../client/emoji';
 import { CREDITS, CONTRIBUTORS, Credit, } from '../../../client/credits';
-import { OFFLINE_PONY, DEL_PONY, KOKOSIK_PONY, TRUMENTALISE_PONY } from '../../../common/constants';
+import { OFFLINE_PONY, DEL_PONY, KOKOSIK_PONY, TRUMENTALISE_PONY, HIKA_MIG_PONY, AALIK_PONY, SOFA_PONY, ENOT_PONY, LAI_PONY, KRIF_PONY } from '../../../common/constants';
 import { decompressPonyString } from '../../../common/compressPony';
 import { SUPPORTER_REWARDS_LIST } from '../../../common/constants';
 import { discordLink, contactEmail, contactDiscord, version, shortVersion } from '../../../client/data';
@@ -22,7 +22,13 @@ const SKIN_MAP: { [key: string]: string } = {
 	// map avatarSkin id -> compressed pony string (use existing constants as examples)
 	'kokosik-pony': KOKOSIK_PONY,
 	'del-pony': DEL_PONY,
-	'trumentalise-pony': TRUMENTALISE_PONY,		
+	'trumentalise-pony': TRUMENTALISE_PONY,
+	'hika-mig-pony': HIKA_MIG_PONY,
+	'aalik-pony': AALIK_PONY,
+	'sofa-pony': SOFA_PONY,
+	'enot-pony': ENOT_PONY,
+	'lai-pony': LAI_PONY,
+	'krif-pony': KRIF_PONY,
 };
 
 function toCredit(credit: Credit) {

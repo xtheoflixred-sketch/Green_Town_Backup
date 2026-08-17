@@ -239,6 +239,8 @@ export const enum MessageType {
 	WhisperToAnnouncement = 17,
 	Builder = 18,
 	NPC = 19,
+	Owner = 20,
+	Dev = 21,
 }
 
 export function toMessageType(type: MessageType) {
@@ -276,7 +278,9 @@ export function isModOrAdminMessage(type: MessageType) {
 	return type === MessageType.Mod ||
 		type === MessageType.Admin ||
 		type === MessageType.Builder ||
-		type === MessageType.NPC;
+		type === MessageType.NPC ||
+		type === MessageType.Owner ||
+		type === MessageType.Dev;
 }
 
 export function isPartyMessage(type: MessageType) {
@@ -293,6 +297,8 @@ export function isPublicMessage(type: MessageType) {
 		type === MessageType.Mod ||
 		type === MessageType.Builder ||
 		type === MessageType.NPC ||
+		type === MessageType.Owner ||
+		type === MessageType.Dev ||
 		type === MessageType.Supporter1 ||
 		type === MessageType.Supporter2 ||
 		type === MessageType.Supporter3 ||
@@ -1505,7 +1511,7 @@ export interface IServerActions {
 
 // Pony
 
-export type PonySupportChatType = 'say' | 'party' | 'supporter' | 'supporter1' | 'supporter2' | 'supporter3' | 'supporter4' | 'think' | 'partyThink' | 'whisper' | 'mod' | 'admin' | 'builder' | 'npc';
+export type PonySupportChatType = 'say' | 'party' | 'supporter' | 'supporter1' | 'supporter2' | 'supporter3' | 'supporter4' | 'think' | 'partyThink' | 'whisper' | 'mod' | 'admin' | 'owner' | 'builder' | 'npc';
 
 export interface PonyObject {
 	id: string;

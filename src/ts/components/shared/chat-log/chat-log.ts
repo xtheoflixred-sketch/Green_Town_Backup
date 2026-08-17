@@ -82,6 +82,8 @@ const LABELS: (string | undefined)[] = [];
 LABELS[MessageType.System] = 'system';
 LABELS[MessageType.Admin] = 'admin';
 LABELS[MessageType.Mod] = 'mod';
+LABELS[MessageType.Owner] = 'owner';
+LABELS[MessageType.Dev] = 'dev';
 LABELS[MessageType.Party] = 'party';
 LABELS[MessageType.PartyThinking] = 'party';
 LABELS[MessageType.PartyAnnouncement] = 'party';
@@ -106,6 +108,8 @@ const CLASSES: (string | undefined)[] = [];
 CLASSES[MessageType.System] = 'chat-line-system';
 CLASSES[MessageType.Admin] = 'chat-line-admin';
 CLASSES[MessageType.Mod] = 'chat-line-mod';
+CLASSES[MessageType.Owner] = 'chat-line-owner';
+CLASSES[MessageType.Dev] = 'chat-line-dev';
 CLASSES[MessageType.Party] = 'chat-line-party';
 CLASSES[MessageType.Thinking] = 'chat-line-thinking';
 CLASSES[MessageType.PartyThinking] = 'chat-line-party-thinking';
@@ -209,6 +213,20 @@ export function updateChatLogLine(line: ChatLogLineDOM, entry: ChatLogMessage, h
 			}
 			labelText = ' NPC';
 			labelTooltip = 'npc';
+		} else if (label === 'owner') {
+			const tag = getTag('owner');
+			if (tag && tag.icon) {
+				icons.push(tag.icon);
+			}
+			labelText = ' Owner';
+			labelTooltip = 'server owner';
+		} else if (label === 'dev') {
+			const tag = getTag('dev');
+			if (tag && tag.icon) {
+				icons.push(tag.icon);
+			}
+			labelText = ' Developer';
+			labelTooltip = 'developer';
 		} else {
 			const tag = getTag(label);
 			if (tag && tag.icon) {

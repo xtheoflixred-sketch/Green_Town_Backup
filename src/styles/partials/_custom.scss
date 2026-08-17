@@ -102,6 +102,11 @@ code {
 	@include badge-variant($forbidden);
 }
 
+.badge-think-dark {
+	background: darken(#555, 10%) !important;
+	color: #aaa !important;
+}
+
 // dropdown / popover
 
 .dropdown-toggle > .fa-caret-down {

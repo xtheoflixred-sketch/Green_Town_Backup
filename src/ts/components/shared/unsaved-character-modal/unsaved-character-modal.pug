@@ -16,13 +16,12 @@
 			.preview-card
 				.character-preview-wrapper
 					character-preview(
-						*ngIf="storedPony"
-						[pony]="storedPony"
+						[pony]="currentPony"
 						[noBackground]="true"  
                         [scale]="3")
 
 				div.text-muted(*ngIf="!storedPony")
-					| No saved draft found.
+					| No saved draft found
 
 			button.btn.btn-danger.action-btn(
 				(click)="confirmDiscard()")
@@ -40,7 +39,8 @@
 			.preview-card
 				.character-preview-wrapper
 					character-preview(
-						[pony]="currentPony"
+						*ngIf="storedPony"
+						[pony]="storedPony"
 						[noBackground]="true"  
                         [scale]="3")
 
