@@ -1,7 +1,7 @@
 .chat-box(#chatBox (mousedown)="onChatBoxMouseDown($event)" (click)="onChatBoxClick($event)")
 	div(#chatBoxInput)
 		.command-dropdown(*ngIf="showCommandDropdown")
-			ul.command-dropdown-menu(*ngIf="!tobeMode")
+			ul.command-dropdown-menu(*ngIf="!tobeMode && !seasonMode")
 				li.command-dropdown-item(*ngFor="let cmd of filteredCommands; let i = index" [class.active]="selectedCommandIndex === i" (click)="selectCommand(cmd)")
 					| /{{cmd.name}}
 					span.command-help(*ngIf="cmd.help") {{cmd.help}}
@@ -13,6 +13,35 @@
 					| {{entity}}
 				li.command-dropdown-empty(*ngIf="filteredTobeEntities.length === 0")
 					i команды не найдены
+
+			ul.command-dropdown-menu(*ngIf="seasonMode")
+				li.command-dropdown-item(
+					*ngFor="let item of filteredSeasonItems; let i = index",
+					[class.active]="selectedSeasonIndex === i",
+					(click)="selectSeasonItem(item)"
+				)
+					| {{item}}
+				li.command-dropdown-empty(*ngIf="filteredSeasonItems.length === 0")
+					i no matches
+
+		.toy-dropdown(*ngIf="showToyDropdown")
+			.toy-dropdown-menu
+				li.toy-dropdown-item(
+					*ngFor="let toy of filteredToys",
+					[class.toy-collected]="isToyCollected(toy.id)",
+					[class.toy-uncollected]="!isToyCollected(toy.id)",
+					(click)="selectToyById(toy.id)"
+				)
+					span.toy-icon-frame
+						img.toy-sprite-img(
+							*ngIf="getToySpriteUrl(toy.id)",
+							[src]="getToySpriteUrl(toy.id)",
+							width="30",
+							height="30",
+							draggable="false"
+						)
+					span.toy-name {{toy.name}}
+					span.toy-number {{ '#' + toy.id }}
 
 		.msgcolor-picker(*ngIf="showColorPicker" [ngStyle]="colorPickerStyle")
 			button.msgcolor-reset((click)="resetColor()") default

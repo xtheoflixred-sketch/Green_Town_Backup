@@ -21,6 +21,19 @@ import { font } from '../../../client/fonts';
 import { getCharacterSprite } from '../../../graphics/spriteFont';
 import { getTag } from '../../../common/tags';
 import { isMobile } from '../../../client/data';
+import { Model } from '../../services/model';
+import { getToySprite, initializeToys } from '../../../client/ponyDraw';
+import * as sprites from '../../../generated/sprites';
+import { drawCanvas } from '../../../graphics/contextSpriteBatch';
+import { mockPaletteManager } from '../../../common/ponyInfo';
+import { WHITE } from '../../../common/colors';
+
+interface ToyEntry {
+	id: number;
+	name: string;
+	color: string;
+	category: string;
+}
 
 const chatTypeNames: string[] = [];
 const chatTypeClasses: string[] = [];
@@ -196,6 +209,183 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	}
 	private initialized = false;
 	private updatingMessage = false;
+	showToyDropdown = false;
+	seasonMode = false;
+	seasonPhase: 'season' | 'holiday' = 'season';
+	seasonQuery = '';
+	selectedSeasonIndex = 0;
+	private readonly _seasonValues = ['spring', 'summer', 'autumn', 'winter'];
+	private readonly _holidayValues = ['none', 'christmas', 'halloween', 'stpatricks', 'easter'];
+	get filteredSeasonItems(): string[] {
+		const q = this.seasonQuery.toLowerCase();
+		if (this.seasonPhase === 'holiday') {
+			return this._holidayValues.filter(h => h.startsWith(q));
+		}
+		return this._seasonValues.filter(s => s.startsWith(q));
+	}
+	private readonly _allToys: ToyEntry[] = [
+		{ id: 1, name: 'Red Hat', color: '#ff2525', category: 'hat' },
+		{ id: 2, name: 'Green Hat', color: '#22ac22', category: 'hat' },
+		{ id: 3, name: 'Blue Hat', color: '#2e58f4', category: 'hat' },
+		{ id: 4, name: 'Pink Hat', color: '#ff71ff', category: 'hat' },
+		{ id: 5, name: 'Snowpony', color: '#ffffff', category: 'snowpony' },
+		{ id: 6, name: 'Snowpony (Clothes)', color: '#ff9100', category: 'snowpony' },
+		{ id: 7, name: 'Evil Snowpony', color: '#404040', category: 'snowpony' },
+		{ id: 8, name: 'Gift (Red)', color: '#cf1717', category: 'gift' },
+		{ id: 9, name: 'Gift (Pink)', color: '#dfc588', category: 'gift' },
+		{ id: 10, name: 'Gift (Green)', color: '#7fc484', category: 'gift' },
+		{ id: 11, name: 'Gift (Rose)', color: '#d56a69', category: 'gift' },
+		{ id: 12, name: 'Gift (Purple)', color: '#e586df', category: 'gift' },
+		{ id: 13, name: 'Bell', color: '#ffd94f', category: 'hanging' },
+		{ id: 14, name: 'Mistletoe', color: '#429a51', category: 'hanging' },
+		{ id: 15, name: 'Cookie', color: '#e7b86f', category: 'hanging' },
+		{ id: 16, name: 'Spider', color: '#000000', category: 'hanging' },
+		{ id: 17, name: 'Teddy (Brown)', color: '#a86230', category: 'teddy' },
+		{ id: 18, name: 'Teddy (Brown Angel)', color: '#dfbe8b', category: 'teddy' },
+		{ id: 19, name: 'Teddy (Black)', color: '#474444', category: 'teddy' },
+		{ id: 20, name: 'Teddy (Black Angel)', color: '#96623e', category: 'teddy' },
+		{ id: 21, name: 'Teddy (Brown Clothes)', color: '#ff0000', category: 'teddy' },
+		{ id: 22, name: 'Teddy (Black Clothes)', color: '#ff0000', category: 'teddy' },
+		{ id: 23, name: 'Teddy (Santa)', color: '#dce5ed', category: 'teddy' },
+		{ id: 24, name: 'Xmas Tree', color: '#1a9b2f', category: 'xmas' },
+		{ id: 25, name: 'Xmas Tree (Alt)', color: '#f1d224', category: 'xmas' },
+		{ id: 26, name: 'Reindeer', color: '#7b4b24', category: 'reindeer' },
+		{ id: 27, name: 'Reindeer (Clothes)', color: '#cf0e0e', category: 'reindeer' },
+		{ id: 28, name: 'Candy Horn (One)', color: '#ff1b1b', category: 'candy' },
+		{ id: 29, name: 'Candy Horn (Two)', color: '#ff1b1b', category: 'candy' },
+		{ id: 30, name: 'Candy Horn (Alt)', color: '#58df6a', category: 'candy' },
+		{ id: 31, name: 'Star', color: '#ffd94f', category: 'star' },
+		{ id: 32, name: 'Halo', color: '#ffd94f', category: 'halo' },
+	];
+	get filteredToys(): ToyEntry[] {
+		return this._allToys;
+	}
+	isToyCollected(toyId: number): boolean {
+		const bitmask = this.getToyBitmask();
+		return !!(bitmask & (1 << (toyId - 1)));
+	}
+	private getToyBitmask(): number {
+		const acct: any = this.model && this.model.account;
+		const state = acct && acct.state;
+		const toysValue = state && state.toys;
+		if (toysValue !== undefined) {
+			return typeof toysValue === 'number' ? toysValue : parseInt(toysValue, 10) || 0;
+		}
+		return 0;
+	}
+	selectToyById(toyId: number) {
+		this.message = `/toy ${toyId}`;
+		this.showToyDropdown = false;
+		this.showCommandDropdown = false;
+		this.syncEditorFromMessage();
+		this.focusInput();
+	}
+	private toySpriteUrls = new Map<number, string>();
+	getToySpriteUrl(toyId: number): string | undefined {
+		return this.toySpriteUrls.get(toyId);
+	}
+	private initToyPreviewActions() {
+		if (this.toySpriteUrls.size > 0) return;
+		const size = 30;
+		const pad = 2;
+		const fit = size - pad * 2;
+
+		const sheetDataOk = !!sprites.paletteSpriteSheet.data;
+		if (!sheetDataOk) {
+			console.warn('[toy preview] paletteSpriteSheet.data is not loaded');
+		}
+
+		for (const toy of this._allToys) {
+			const toySet = getToySprite(toy.id);
+			if (!toySet) continue;
+			const patterns = (sprites.extraAccessoriesBehind as any)[toySet.type]
+				|| (sprites.extraAccessories as any)[toySet.type];
+			
+			// Fallback for palette-only toys (no sprite geometry)
+			if (!patterns || !patterns[toySet.pattern] || !patterns[toySet.pattern].color) {
+				if (toySet.palette && toySet.palette.colors && toySet.palette.colors.length > 1) {
+					const rgbaArray = new Uint32Array(toySet.palette.colors);
+					const color = rgbaArray[1] || 0xFFFFFFFF;
+					const colorHex = '#' + ((color >>> 8) & 0xFFFFFF).toString(16).padStart(6, '0');
+					
+					const final = drawCanvas(size, size, sprites.paletteSpriteSheet, undefined, batch => {
+						const ctx = batch.canvas.getContext('2d')!;
+						ctx.globalAlpha = 0.7;
+						ctx.fillStyle = colorHex;
+						const rectSize = Math.min(size - 4, 24);
+						const x = Math.round((size - rectSize) / 2);
+						const y = Math.round((size - rectSize) / 2);
+						ctx.fillRect(x, y, rectSize, rectSize);
+						ctx.globalAlpha = 1.0;
+					});
+					this.toySpriteUrls.set(toy.id, final.toDataURL());
+				}
+				continue;
+			}
+
+			const patternSprite = patterns[toySet.pattern];
+			const sprite = patternSprite.color;
+			const palette = mockPaletteManager.addArray(toySet.palette!.colors!);
+
+			if (sprite.w === 0 || sprite.h === 0) {
+				console.warn(`[toy preview] toy ${toy.id} has zero-size sprite`);
+				continue;
+			}
+
+			const tmp = drawCanvas(sprite.w, sprite.h, sprites.paletteSpriteSheet, undefined, batch => {
+				batch.drawSprite(sprite, WHITE, palette, 0, 0);
+			});
+			const ctx = tmp.getContext('2d')!;
+			const imgData = ctx.getImageData(0, 0, sprite.w, sprite.h);
+			const d = imgData.data;
+			let x0 = sprite.w, y0 = sprite.h, x1 = 0, y1 = 0;
+			for (let r = 0; r < sprite.h; r++) {
+				for (let c = 0; c < sprite.w; c++) {
+					const a = d[(r * sprite.w + c) * 4 + 3];
+					if (a > 0) {
+						if (c < x0) x0 = c;
+						if (r < y0) y0 = r;
+						if (c > x1) x1 = c;
+						if (r > y1) y1 = r;
+					}
+				}
+			}
+			if (x1 < x0 || y1 < y0) {
+				console.warn(`[toy preview] toy ${toy.id} (${toy.name}): no visible pixels, sprite: w=${sprite.w} h=${sprite.h} ox=${sprite.ox} oy=${sprite.oy} type=${sprite.type}, palette colors: ${palette.colors.length}`);
+				if (toySet.palette && toySet.palette.colors && toySet.palette.colors.length > 1) {
+					const rgbaArray = new Uint32Array(toySet.palette.colors);
+					const color = rgbaArray[1] || 0xFFFFFFFF;
+					const colorHex = '#' + ((color >>> 8) & 0xFFFFFF).toString(16).padStart(6, '0');
+
+					const final = drawCanvas(size, size, sprites.paletteSpriteSheet, undefined, batch => {
+						const ctx = batch.canvas.getContext('2d')!;
+						ctx.globalAlpha = 0.7;
+						ctx.fillStyle = colorHex;
+						const rectSize = Math.min(size - 4, 24);
+						const x = Math.round((size - rectSize) / 2);
+						const y = Math.round((size - rectSize) / 2);
+						ctx.fillRect(x, y, rectSize, rectSize);
+						ctx.globalAlpha = 1.0;
+					});
+					this.toySpriteUrls.set(toy.id, final.toDataURL());
+				}
+				continue;
+			}
+
+			const cw = x1 - x0 + 1;
+			const ch = y1 - y0 + 1;
+			const sc = Math.min(1, fit / Math.max(cw, ch));
+			const sw = Math.round(cw * sc);
+			const sh = Math.round(ch * sc);
+			const ox = Math.round((size - sw) / 2) - x0;
+			const oy = Math.round((size - sh) / 2) - y0;
+
+			const final = drawCanvas(size, size, sprites.paletteSpriteSheet, undefined, batch => {
+				batch.drawSprite(sprite, WHITE, palette, ox, oy);
+			});
+			this.toySpriteUrls.set(toy.id, final.toDataURL());
+		}
+	}
 	get filteredCommands(): ClientCommand[] {
 		const query = this.commandQuery.toLowerCase();
 		return CLIENT_COMMANDS.filter((c: ClientCommand) => c.name.toLowerCase().startsWith(query));
@@ -211,6 +401,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		if (cmd.name === 'tobe') {
 			this.message = '/tobe ';
 			this.tobeMode = true;
+		} else if (cmd.name === 'season') {
+			this.message = '/season ';
+			this.seasonMode = true;
+			this.seasonPhase = 'season';
 		} else {
 			this.message = `/${cmd.name} `;
 			this.tobeMode = false;
@@ -227,9 +421,35 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.syncEditorFromMessage();
 		this.focusInput();
 	}
+	selectSeasonItem(value: string) {
+		if (this.seasonPhase === 'season') {
+			this.message = `/season ${value} `;
+			this.seasonPhase = 'holiday';
+			this.seasonQuery = '';
+			this.selectedSeasonIndex = 0;
+			this.syncEditorFromMessage();
+			this.focusInput();
+		} else {
+			const seasonMatch = this.message && this.message.match(/\/season\s+(\w+)/);
+			const season = seasonMatch ? seasonMatch[1] : 'spring';
+			this.message = `/season ${season} ${value}`;
+			this.seasonMode = false;
+			this.seasonPhase = 'season';
+			this.seasonQuery = '';
+			this.selectedSeasonIndex = 0;
+			this.showCommandDropdown = false;
+			this.syncEditorFromMessage();
+			this.focusInput();
+		}
+	}
 	private selectHighlightedCommand() {
 		if (this.showCommandDropdown) {
-			if (this.tobeMode) {
+			if (this.seasonMode) {
+				const matches = this.filteredSeasonItems;
+				if (matches.length > 0) {
+					this.selectSeasonItem(matches[this.selectedSeasonIndex] || matches[0]);
+				}
+			} else if (this.tobeMode) {
 				const matches = this.filteredTobeEntities;
 				if (matches.length > 0) {
 					this.selectTobeEntity(matches[this.selectedTobeIndex] || matches[0]);
@@ -304,7 +524,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			activeItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 		}
 	}
-	constructor(private game: PonyTownGame, zone: NgZone) {
+	constructor(private game: PonyTownGame, private model: Model, zone: NgZone) {
 		this.subscriptions = [
 			this.game.onChat.subscribe(() => zone.run(() => this.chat(undefined))),
 			this.game.onToggleChat.subscribe(() => zone.run(() => this.toggle())),
@@ -401,6 +621,8 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		document.addEventListener('keydown', this.documentKeydownHandler);
 		loadAndInitSpriteSheets().then(() => {
 			this.initialized = true;
+			initializeToys(this.game.paletteManager);
+			this.initToyPreviewActions();
 			this.syncEditorFromMessage();
 		});
 	}
@@ -531,23 +753,79 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.tobeQuery = msg.substring(6);
 			this.selectedTobeIndex = 0;
 			this.showCommandDropdown = true;
+			this.showToyDropdown = false;
 		} else if (msg.startsWith('/tobe ')) {
 			this.tobeMode = true;
 			this.tobeQuery = msg.substring(6);
 			this.selectedTobeIndex = 0;
 			this.showCommandDropdown = true;
+			this.showToyDropdown = false;
+		} else if (msg === '/toy' || msg === '/toy ') {
+			this.tobeMode = false;
+			this.seasonMode = false;
+			this.commandQuery = '';
+			this.showCommandDropdown = false;
+			this.showToyDropdown = true;
+		} else if (msg.startsWith('/toy ')) {
+			this.tobeMode = false;
+			this.seasonMode = false;
+			this.commandQuery = '';
+			this.showCommandDropdown = false;
+			this.showToyDropdown = true;
+		} else if (this.seasonMode && msg.startsWith('/season ')) {
+			const afterSeason = msg.substring(8);
+			const spaceIdx = afterSeason.indexOf(' ');
+			if (spaceIdx !== -1) {
+				this.seasonPhase = 'holiday';
+				this.seasonQuery = afterSeason.substring(spaceIdx + 1);
+			} else {
+				this.seasonPhase = 'season';
+				this.seasonQuery = afterSeason;
+			}
+			this.selectedSeasonIndex = 0;
+			this.showCommandDropdown = true;
+		} else if (msg === '/season' || msg === '/season ') {
+			this.tobeMode = false;
+			this.seasonMode = true;
+			this.seasonPhase = 'season';
+			this.seasonQuery = '';
+			this.selectedSeasonIndex = 0;
+			this.showCommandDropdown = true;
+			this.showToyDropdown = false;
+		} else if (msg.startsWith('/season ')) {
+			this.tobeMode = false;
+			this.seasonMode = true;
+			this.seasonPhase = 'season';
+			const afterSeason = msg.substring(8);
+			const spaceIdx = afterSeason.indexOf(' ');
+			if (spaceIdx !== -1) {
+				this.seasonPhase = 'holiday';
+				this.seasonQuery = afterSeason.substring(spaceIdx + 1);
+			} else {
+				this.seasonQuery = afterSeason;
+			}
+			this.selectedSeasonIndex = 0;
+			this.showCommandDropdown = true;
+			this.showToyDropdown = false;
 		} else if (msg.startsWith('/')) {
 			this.tobeMode = false;
+			this.seasonMode = false;
 			this.commandQuery = msg.substring(1);
 			this.selectedCommandIndex = 0;
 			this.showCommandDropdown = true;
+			this.showToyDropdown = false;
 		} else {
 			this.tobeMode = false;
+			this.seasonMode = false;
+			this.seasonPhase = 'season';
 			this.commandQuery = '';
 			this.tobeQuery = '';
+			this.seasonQuery = '';
 			this.selectedCommandIndex = 0;
 			this.selectedTobeIndex = 0;
+			this.selectedSeasonIndex = 0;
 			this.showCommandDropdown = false;
+			this.showToyDropdown = false;
 		}
 	}
 
@@ -620,7 +898,13 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		}
 
 		if (this.showCommandDropdown && (e.keyCode === Key.UP || e.keyCode === Key.DOWN)) {
-			if (this.tobeMode) {
+			if (this.seasonMode) {
+				const count = this.filteredSeasonItems.length;
+				if (count > 0) {
+					this.selectedSeasonIndex = (this.selectedSeasonIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
+					this.scrollActiveCommandIntoView();
+				}
+			} else if (this.tobeMode) {
 				const count = this.filteredTobeEntities.length;
 				if (count > 0) {
 					this.selectedTobeIndex = (this.selectedTobeIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
@@ -1130,6 +1414,9 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.commandQuery = '';
 			this.tobeMode = false;
 			this.tobeQuery = '';
+			this.seasonMode = false;
+			this.seasonPhase = 'season';
+			this.seasonQuery = '';
 			this.showColorPicker = false;
 			this.showChatTypeMenu = false;
 			this.selectedChatTypeIndex = 0;

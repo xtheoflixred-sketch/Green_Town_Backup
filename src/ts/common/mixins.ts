@@ -859,18 +859,19 @@ export function mixLight(color: number, dx: number, dy: number, w: number, h: nu
 			base.lightScaleAdjust = 1;
 			const adjustedScale = base.lightScale * base.lightScaleAdjust * LIGHT_VOLUME_SCALE;
 			base.lightBounds = rect(-(dx + w / 2), -(dy + h / 2), w * adjustedScale, h * adjustedScale);
-			base.drawLight = function (batch: SpriteBatch) {
-				if (!this.lightOn)
-					return;
+		base.drawLight = function (batch: SpriteBatch) {
+			if (!this.lightOn)
+				return;
 
-				const x = toScreenX(this.x);
-				const y = toScreenYWithZ(this.y, this.z);
-				const width = w * adjustedScale;
-				const height = h * adjustedScale;
-				const color = this.lightColor!;
+			const x = toScreenX(this.x);
+			const y = toScreenYWithZ(this.y, this.z);
+			const es = (this.entityScale || 1);
+			const width = w * adjustedScale * es;
+			const height = h * adjustedScale * es;
+			const color = this.lightColor!;
 
-				batch.drawImage(color, -1, -1, 2, 2, x - (dx + width / 2), y - (dy + height / 2), width, height);
-			};
+			batch.drawImage(color, -1, -1, 2, 2, x - (dx + width / 2), y - (dy + height / 2), width, height);
+		};
 		}
 	};
 }
@@ -883,15 +884,16 @@ export function mixLightSprite(sprite: Sprite, color: number, dx: number, dy: nu
 			base.lightSpriteY = dy;
 			base.lightSpriteColor = color;
 			base.lightSpriteBounds = getBounds(sprite, -dx, -dy);
-			base.drawLightSprite = function (batch: SpriteBatch) {
-				if (!this.lightSpriteOn)
-					return;
+		base.drawLightSprite = function (batch: SpriteBatch) {
+			if (!this.lightSpriteOn)
+				return;
 
-				const x = toScreenX(this.x) - this.lightSpriteX!;
-				const y = toScreenYWithZ(this.y, this.z) - this.lightSpriteY!;
+			const es = (this.entityScale || 1);
+			const x = toScreenX(this.x) - this.lightSpriteX! * es;
+			const y = toScreenYWithZ(this.y, this.z) - this.lightSpriteY! * es;
 
-				batch.drawSprite(sprite, this.lightSpriteColor || BLACK, x, y);
-			};
+			batch.drawSprite(sprite, this.lightSpriteColor || BLACK, x, y);
+		};
 		}
 	};
 }

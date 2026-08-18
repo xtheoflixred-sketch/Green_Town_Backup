@@ -206,6 +206,14 @@ function mergeSprites(sets: ColorExtraSet[]): ColorExtraSet {
 }
 
 function mergeSpriteSets(...sets: ColorExtraSets[]): ColorExtraSets {
+	// Filter out empty arrays and use the first non-empty array if all are empty
+	const nonEmptySets = sets.filter(s => s && s.length > 0);
+	if (nonEmptySets.length === 0) {
+		return sets[0] || [];
+	}
+	if (nonEmptySets.length === 1) {
+		return nonEmptySets[0];
+	}
 	return zip(...sets).map(mergeSprites);
 }
 

@@ -329,7 +329,7 @@ export function drawPonyEntity(batch: PaletteSpriteBatch, pony: Pony, drawOption
 		const options = pony.drawingOptions;
 		options.flipped = right;
 		options.selected = pony.selected === true || pony.chatHovered === true;
-		options.outlineColor = pony.chatHovered === true ? (pony.chatHoverColor || HOVER_OUTLINE_COLOR) : SELECT_OUTLINE_COLOR;
+		options.outlineColor = pony.chatHovered === true ? (pony.chatHoverColor || HOVER_OUTLINE_COLOR) : (pony.outlineColor || SELECT_OUTLINE_COLOR);
 		options.extra = pony.extra;
 		options.toy = pony.toy;
 		options.swimming = swimming;

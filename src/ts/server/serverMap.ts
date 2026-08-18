@@ -322,6 +322,12 @@ export function loadMap(world: World, map: ServerMap, data: MapData, loadOptions
 			const typeNumber = getEntityType(type);
 			const entity = createAnEntity(typeNumber, 0, x, y, options, mockPaletteManager, world);
 
+			if (options && typeof options === 'object') {
+				if ((options as any).entityScale !== undefined) (entity as any).entityScale = (options as any).entityScale;
+				if ((options as any).entityOpacity !== undefined) (entity as any).entityOpacity = (options as any).entityOpacity;
+				if ((options as any).spriteTint !== undefined) (entity as any).spriteTint = (options as any).spriteTint;
+			}
+
 			if (name) {
 				setEntityName(entity, name);
 			}

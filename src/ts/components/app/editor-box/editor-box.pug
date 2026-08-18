@@ -9,7 +9,7 @@
 		.d-flex.align-items-start.pl-2.pt-1(*ngIf="hasEditor")
 			.dropdown-menu.p-0(
 				*ngIf="hasSelectedEntities"
-				style="display: block; width: 500px; position: absolute; top: 36px; left: 0;")
+				style="display: block; width: 380px; position: absolute; top: 36px; left: 0;")
 				.px-2
 
 				//- name
@@ -186,6 +186,15 @@
 							color-picker([(color)]="entitySpriteTint")
 						.col-3.text-right
 							button.btn.btn-xs.btn-warning((click)="entitySpriteTint = '#ffffff'") default
+
+				//- selection highlight color
+				div(*ngIf="singleEntity")
+					.row.form-group.mb-2
+						label.col-5.col-form-label highlight
+						.col-4
+							color-picker([(color)]="selectionHighlightColor")
+						.col-3.text-right
+							button.btn.btn-xs.btn-warning((click)="selectionHighlightColor = '#ffcc00'") default
 
 				//- scale (non-customImage only)
 				div(*ngIf="singleEntity && !isCustomImageEntity")

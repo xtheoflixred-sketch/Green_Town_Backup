@@ -127,12 +127,13 @@ export class SpriteBox implements AfterViewInit, OnChanges, DoCheck {
 				// Fallback: render colored rectangle for palette-only items (like toys)
 				const rgbaArray = new Uint32Array(sprite.palettes[0]);
 				const color = rgbaArray[0] || 0xFFFFFFFF; // Use first color in palette
-				const x = Math.round((bufferSize - 32) / 2);
-				const y = Math.round((bufferSize - 32) / 2);
+				const rectSize = Math.min(bufferSize - 4, 24); // Size of rectangle, with padding
+				const x = Math.round((bufferSize - rectSize) / 2);
+				const y = Math.round((bufferSize - rectSize) / 2);
 
 				context.globalAlpha = 0.7;
 				context.fillStyle = '#' + ((color >>> 8) & 0xFFFFFF).toString(16).padStart(6, '0');
-				context.fillRect(x, y, 32, 32);
+				context.fillRect(x, y, rectSize, rectSize);
 				context.globalAlpha = 1.0;
 				context.restore();
 				return;
@@ -141,18 +142,18 @@ export class SpriteBox implements AfterViewInit, OnChanges, DoCheck {
 			let x = this.x;
 			let y = this.y;
 
-			if (this.center) {
-				const bounds = rect(0, 0, 0, 0);
-				addRect(bounds, sprite.color);
-				addRect(bounds, sprite.extra);
+		if (this.center) {
+			const bounds = rect(0, 0, 0, 0);
+			addRect(bounds, sprite.color);
+			addRect(bounds, sprite.extra);
 
-				if (sprite.colorMany) {
-					sprite.colorMany.forEach(c => addRect(bounds, c));
-				}
-
-				x = Math.round((bufferSize - bounds.w) / 2 - bounds.x);
-				y = Math.round((bufferSize - bounds.h) / 2 - bounds.y);
+			if (sprite.colorMany) {
+				sprite.colorMany.forEach(c => addRect(bounds, c));
 			}
+
+			x = Math.round((bufferSize - bounds.w) / 2 - bounds.x);
+			y = Math.round((bufferSize - bounds.h) / 2 - bounds.y);
+		}
 
 			batch.start(paletteSpriteSheet, 0);
 

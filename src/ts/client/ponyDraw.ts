@@ -18,7 +18,9 @@ import {
 } from './ponyUtils';
 import { HEAD_ACCESSORY_OFFSETS, EAR_ACCESSORY_OFFSETS, EXTRA_ACCESSORY_OFFSETS } from '../common/offsets';
 import { createMat2D, identityMat2D, translateMat2D, copyMat2D, rotateMat2D, scaleMat2D } from '../common/mat2d';
-import { darkenForOutline } from '../common/ponyInfo';
+import { darkenForOutline, createDefaultPony, syncLockedPonyInfo, toPalette, mockPaletteManager } from '../common/ponyInfo';
+import { defaultPonyState, defaultDrawPonyOptions } from './ponyHelpers';
+import { drawCanvas } from '../graphics/contextSpriteBatch';
 
 type Batch = PaletteSpriteBatch;
 type Info = Readonly<PalettePonyInfo>;
@@ -230,6 +232,37 @@ export function initializeToys(paletteManager: PaletteManager) {
 // export accessor for toy data
 export function getToySprite(id: number): PaletteSpriteSet | undefined {
 	return toys[id];
+}
+
+// Draw a preview of a toy on a pony's head for icon rendering
+export function drawToyPreview(toyId: number, size: number = 30): HTMLCanvasElement {
+	const toySet = getToySprite(toyId);
+	if (!toySet) {
+		// Return empty canvas if toy not found
+		const canvas = document.createElement('canvas');
+		canvas.width = size;
+		canvas.height = size;
+		return canvas;
+	}
+
+	// Create a simple pony for preview
+	const info = createDefaultPony();
+	info.coatFill = '#e0e0e0';
+	info.mane!.type = 0;
+	info.backMane!.type = 0;
+	info.tail!.type = 0;
+	syncLockedPonyInfo(info);
+	const palettePony = toPalette(info, mockPaletteManager);
+
+	// Create state
+	const state = defaultPonyState();
+
+	// Draw pony with toy
+	const options = { ...defaultDrawPonyOptions(), toy: toyId };
+	return drawCanvas(size, size, sprites.paletteSpriteSheet, undefined, batch => {
+		// Position pony to show toy clearly
+		drawPony(batch, palettePony, state, 15, 40, options);
+	});
 }
 
 // const zeroPoint = point(0, 0);

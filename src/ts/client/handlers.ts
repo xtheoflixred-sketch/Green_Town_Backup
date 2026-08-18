@@ -832,6 +832,9 @@ function createEntityOrPony(
 
 		if (options && typeof options === 'object') {
 			(entity as any).options = options;
+			if ('entityScale' in options) (entity as any).entityScale = (options as any).entityScale;
+			if ('entityOpacity' in options) (entity as any).entityOpacity = (options as any).entityOpacity;
+			if ('spriteTint' in options) (entity as any).spriteTint = (options as any).spriteTint;
 		}
 
 		if (name) {

@@ -795,7 +795,7 @@ export function getCollectedToysList(client: IClient): number[] {
 
 	for (let i = 0, bit = 1; i < toys.length; i++ , bit <<= 1) {
 		if (stateToys & bit) {
-			result.push(toys[i].type);
+			result.push(i + 1);
 		}
 	}
 

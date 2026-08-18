@@ -923,7 +923,6 @@ export class ServerActions implements IServerActions, SocketServer {
 		}
 		const isPlayerRopeMove =
 			action.type === 'move' &&
-			!action.preview &&
 			hasFlag(this.map.flags, MapFlags.EditableEntities) &&
 			(this.pony.options!.hold === entities.rope.type || this.pony.options!.hold === entities.hammer.type);
 		const isPlayerMirror =
@@ -948,6 +947,8 @@ export class ServerActions implements IServerActions, SocketServer {
 				return;
 			}
 
+			const isPreview = !!action.preview;
+
 			for (const { id, x, y } of action.entities) {
 				const entity = this.world.getEntityById(id);
 
@@ -962,8 +963,10 @@ export class ServerActions implements IServerActions, SocketServer {
 					entity.coverLifting = 0;
 					entity.selected = false;
 					updateEntity(entity, false);
-					updateRegion(entity, this.client.map);
-					getExpectedRegion(entity, this.client.map).colliderDirty = true;
+					if (!isPreview) {
+						updateRegion(entity, this.client.map);
+						getExpectedRegion(entity, this.client.map).colliderDirty = true;
+					}
 				}
 			}
 
