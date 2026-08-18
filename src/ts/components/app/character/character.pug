@@ -286,6 +286,13 @@ page-loader(*ngIf="!playing")
 					set-selection(
 						label="Back mane" [base]="maneFill" [set]="info.backMane" [sets]="backManes"
 						[darken]="darken" (change)="changed()")
+					hr
+					set-selection(
+						label="Ponytail" [base]="maneFill" [set]="info.ponytail" [sets]="ponytails"
+						[darken]="darken" (change)="changed()")
+					.form-group.text-center
+						button.btn.btn-sm.btn-default((click)="copyCoatColorToPonytail()" [disabled]="info.ponytail.lockFills[0]")
+							| Use body color
 
 			tab(title="tail")
 				.character-tab(*tabContent)

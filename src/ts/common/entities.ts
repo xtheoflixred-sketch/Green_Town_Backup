@@ -1991,14 +1991,11 @@ export const bushHeart2 = registerMix(n('bush-heart-2'),
 	}),
 	bushHeartCollider);
 
-// sodas (with colliders)
-const sodaCollider = mixColliderRect(-8, -16, 16, 16, false);
-
-export const amanitaSoda = doodad(n('amanita-soda'), sprites.amanita_soda, 8, 16, 0, sodaCollider);
-export const cherrySoda = doodad(n('cherry-soda'), sprites.cherry_soda, 8, 16, 0, sodaCollider);
-export const magmaSoda = doodad(n('magma-soda'), sprites.magma_soda, 8, 16, 0, sodaCollider);
-export const mintSoda = doodad(n('mint-soda'), sprites.mint_soda, 8, 16, 0, sodaCollider);
-export const strawberrySoda = doodad(n('strawberry-soda'), sprites.strawberry_soda, 8, 16, 0, sodaCollider);
+export const amanitaSoda = doodad(n('amanita-soda'), sprites.amanita_soda, 8, 16, 0);
+export const cherrySoda = doodad(n('cherry-soda'), sprites.cherry_soda, 8, 16, 0);
+export const magmaSoda = doodad(n('magma-soda'), sprites.magma_soda, 8, 16, 0);
+export const mintSoda = doodad(n('mint-soda'), sprites.mint_soda, 8, 16, 0);
+export const strawberrySoda = doodad(n('strawberry-soda'), sprites.strawberry_soda, 8, 16, 0);
 
 // cliffs
 
