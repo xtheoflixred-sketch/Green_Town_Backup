@@ -77,10 +77,10 @@ export class EditorBox implements OnInit, OnDestroy {
 	) {
 		this.game.editor.type = this.storage.getItem('editor-entity') || 'rock';
 		this.showEditor = this.storage.getBoolean('show-editor');
-		this.game.editor.useEditorHammer = false;
-		this.game.editor.useEditorShovel = false;
 		if (this.showEditor) {
 			this.game.setKeyboardDisabled(true);
+		} else {
+			this.game.editor.useEditorHammer = false;
 		}
 		this.editorEntities = getEntityNames().slice().sort();
 		this.game.editor.entityNames = [...this.editorEntities];
@@ -289,27 +289,21 @@ export class EditorBox implements OnInit, OnDestroy {
 			this.game.editor.useEditorPickaxe = false;
 			this.game.editor.useEditorSaw = false;
 			this.game.editor.useEditorScrap = false;
-		this.game.editor.useEditorRecolor = false;
-		this.game.editor.useEditorSeason = false;
-			// Синхронизируем editorTile с placeTile при включении лопаты
+			this.game.editor.useEditorRecolor = false;
+			this.game.editor.useEditorSeason = false;
 			const editorTileIndex = this.getEditorTileIndex(this.game.editor.tile);
 			if (editorTileIndex >= 0 && editorTileIndex < editorTiles.length) {
-				// editorTile теперь хранит индекс
+				const placeTileIndex = houseTiles.findIndex(tile => tile.type === this.game.editor.tile);
+				if (placeTileIndex >= 0) {
+					this.game.placeTile = placeTileIndex;
+				}
 			} else {
-				// Если tile не найден, сбрасываем на Dirt
 				this.game.editor.tile = TileType.Dirt;
-			}
-			const placeTileIndex = houseTiles.findIndex(tile => tile.type === this.game.editor.tile);
-			if (placeTileIndex === -1) {
-				this.game.placeTile = 0;
-				this.game.editor.tile = TileType.Dirt;
-			} else {
-				this.game.placeTile = placeTileIndex;
+				const placeTileIndex = houseTiles.findIndex(tile => tile.type === TileType.Dirt);
+				this.game.placeTile = placeTileIndex >= 0 ? placeTileIndex : 0;
 			}
 			this.game.send(server => server.action(Action.SwitchToTileTool));
 		} else {
-			this.game.editor.tile = TileType.None;
-			this.game.placeTile = 0;
 			this.game.send(server => server.action(Action.Drop));
 		}
 	}
@@ -394,6 +388,13 @@ export class EditorBox implements OnInit, OnDestroy {
 	}
 	set selectingEntities(value) {
 		this.game.editor.selectingEntities = value;
+	}
+	get selectionHighlightColor(): string {
+		return '#' + ((this.game.editor.selectionHighlightColor >> 8) & 0xFFFFFF).toString(16).padStart(6, '0');
+	}
+	set selectionHighlightColor(value: string) {
+		const hex = parseInt(value.replace('#', ''), 16);
+		this.game.editor.selectionHighlightColor = ((hex & 0xFFFFFF) << 8) | 0xFF;
 	}
 	get shadowOpacity() {
 		return getAlpha(this.game.shadowColor);
@@ -774,9 +775,9 @@ export class EditorBox implements OnInit, OnDestroy {
 	}
 	toggleEditor() {
 		this.zone.run(() => {
-this.showEditor = !this.showEditor;
-		this.game.editor.useEditorHammer = false;
-		this.game.setKeyboardDisabled(this.showEditor);
+			this.showEditor = !this.showEditor;
+			this.game.editor.useEditorHammer = false;
+			this.game.setKeyboardDisabled(this.showEditor);
 
 			if (!this.showEditor) {
 				this.game.editor.useEditorHammer = false;

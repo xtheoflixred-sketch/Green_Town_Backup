@@ -61,6 +61,7 @@ export const CLIENT_COMMANDS: ClientCommand[] = [
 	{ name: 'boop', help: '/boop [count] - a boop' },
 	{ name: 'drop', help: '/drop - drop held item' },
 	{ name: 'droptoy', help: '/droptoy - drop held toy' },
+	{ name: 'toy', help: '/toy <number> - hold a collected toy' },
 	{ name: 'open', help: '/open - open gift' },
 	{ name: 'gifts', help: '/gifts - show gift score' },
 	{ name: 'candies', help: '/candies - show candy score' },
@@ -145,6 +146,8 @@ export const CLIENT_COMMANDS: ClientCommand[] = [
 	{ name: 'saveentities', help: '/saveentities <file name> - save entities to file', role: 'owner' },
 	{ name: 'savehides', help: '/savehides - save hides to file', role: 'owner' },
 	{ name: 'throwerror', help: '/throwerror <message> - throw test error', role: 'owner' },
+	{ name: 'season', help: '/season <season> [<holiday>]' },
+	{ name: 'toy', help: '/toy <number> - hold toy' },
 	...((BETA ? [
 		{ name: 'season', help: '/season <season> [<holiday>]', role: 'admin', subcommands: ['?'] },
 		{ name: 'weather', help: '/weather <none|rain>', role: 'admin', subcommands: ['none', 'rain'] },

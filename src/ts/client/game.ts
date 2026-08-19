@@ -432,6 +432,7 @@ export class PonyTownGame implements Game {
 		draggingStart: point(0, 0),
 		selectingEntities: false,
 		selectedEntities: [] as Entity[],
+		selectionHighlightColor: 0xffcc00ff as number,
 		customLight: false,
 		lightColor: 'ffffff',
 	};
@@ -2392,6 +2393,11 @@ window.addEventListener('resize', () => {
 			const hideSelectionOutline = this.editor.draggingEntities && this.player.hold === dragEntityTool.type;
 			const selectedEntities = hideSelectionOutline ? [] : this.editor.selectedEntities;
 
+			for (const entity of selectedEntities) {
+				entity.outlineColor = this.editor.selectionHighlightColor;
+				entity.selected = true;
+			}
+
 			gl.useProgram(mapPaletteShader.program);
 			gl.uniformMatrix4fv(mapPaletteShader.uniforms.transform, false, viewMatrix);
 			gl.uniform4fv(mapPaletteShader.uniforms.lighting, lighting);
@@ -2400,7 +2406,7 @@ window.addEventListener('resize', () => {
 			bindTexture(gl, 0, paletteSpriteSheet.texture);
 			bindTexture(gl, 1, this.paletteManager.texture);
 			for (const entity of dragVisual.selectedForMove) {
-				entity.outlineColor = dragVisual.isMultiCloneMode ? CYAN : 0xffcc00ff;
+				entity.outlineColor = dragVisual.isMultiCloneMode ? CYAN : this.editor.selectionHighlightColor;
 			}
 			const showHoverOutline = !hideSelectionOutline && !dragVisual.ghostEntities.length && this.highlightEntity;
 			const hoverTool = this.player.hold;
@@ -2408,7 +2414,7 @@ window.addEventListener('resize', () => {
 			const hammerCtrl = hoverTool === placeEntitiesTool.type && this.input.isPressed(Key.CTRL);
 			const ropeMultiMode = dragVisual.isMultiMoveMode;
 			const pickaxeMultiMode = dragVisual.isMultiCloneToolMode;
-			const singleDragOutlineColor = dragVisual.isClonePreview ? CYAN : ((hoverTool === dragEntityTool.type || hammerShift) ? 0xffcc00ff : WHITE);
+			const singleDragOutlineColor = dragVisual.isClonePreview ? CYAN : ((hoverTool === dragEntityTool.type || hammerShift) ? this.editor.selectionHighlightColor : WHITE);
 			for (const entity of dragVisual.draggedEntities) {
 				entity.outlineColor = singleDragOutlineColor;
 			}
@@ -2443,19 +2449,19 @@ window.addEventListener('resize', () => {
 				seasonHighlight.outlineColor = WHITE;
 			}
 			if (ropeHighlight) {
-				ropeHighlight.outlineColor = 0xffcc00ff;
+				ropeHighlight.outlineColor = this.editor.selectionHighlightColor;
 			}
 			if (ropeShiftHighlight) {
 				ropeShiftHighlight.outlineColor = 0xffe680ff; // светло-жёлтый для multi-drag
 			}
 			if (editorRopeHighlight) {
-				editorRopeHighlight.outlineColor = 0xffcc00ff;
+				editorRopeHighlight.outlineColor = this.editor.selectionHighlightColor;
 			}
 			if (editorRopeShiftHighlight) {
 				editorRopeShiftHighlight.outlineColor = 0xffe680ff;
 			}
 			if (hammerShiftHighlight) {
-				hammerShiftHighlight.outlineColor = 0xffcc00ff; // жёлтый как у верёвки
+				hammerShiftHighlight.outlineColor = this.editor.selectionHighlightColor;
 			}
 			if (cloneHighlight) {
 				cloneHighlight.outlineColor = CYAN;
@@ -2477,6 +2483,10 @@ window.addEventListener('resize', () => {
 			this.entitiesDrawn = drawMap(
 				paletteBatch, map, this.camera, this.player, options, this.tileSets, selectedEntities);
 
+			for (const entity of selectedEntities) {
+				entity.outlineColor = undefined;
+				entity.selected = false;
+			}
 			for (const entity of dragVisual.selectedForMove) {
 				entity.outlineColor = undefined;
 			}
@@ -2531,7 +2541,7 @@ window.addEventListener('resize', () => {
 
 			if (dragVisual.ghostEntities.length) {
 				paletteBatch.depth = 0;
-				const ghostOutlineColor = dragVisual.isClonePreview ? CYAN : 0xffcc00ff;
+				const ghostOutlineColor = dragVisual.isClonePreview ? CYAN : this.editor.selectionHighlightColor;
 				const outlineAlpha = 0.24;
 				const previewAlpha = dragVisual.isMultiDragPreview ? 0.9 : 0.35;
 

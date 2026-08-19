@@ -2192,7 +2192,7 @@ export function createCommands(world: World): Command[] {
 				resetTiles(client.map, region);
 			}
 		}, false, 'Admin'),
-		BETA && command(['season'], '/season <season> [<holiday>]', 'admin', ({ world }, _client, message) => {
+		command(['season'], '/season <season> [<holiday>]', 'admin', ({ world }, _client, message) => {
 			const [s = '', h = ''] = message.split(' ');
 			const season = parseSeason(s);
 			const holiday = parseHoliday(h);
@@ -2275,9 +2275,18 @@ export function createCommands(world: World): Command[] {
 		command(['hold'], '/hold <name> - hold item', 'owner', ({ }, client, message) => {
 			holdItem(client.pony, getEntityType(message));
 		}, false, 'Owner'),
-		BETA && command(['toy'], '/toy <number> - hold toy', 'owner', ({ }, client, message) => {
-			holdToy(client.pony, parseInt(message, 10) | 0);
-		}, false, 'Owner'),
+		command(['toy'], '/toy <number> - hold toy', '', ({ }, client, message) => {
+			const toyId = parseInt(message, 10) | 0;
+			if (toyId > 0) {
+				const stateToys = toInt((client.account.state || {}).toys);
+				const toyIndex = toyId - 1;
+				if (!hasFlag(stateToys, 1 << toyIndex)) {
+					sayTo(client, client.pony, `You haven't collected toy #${toyId}`, MessageType.System);
+					return;
+				}
+			}
+			holdToy(client.pony, toyId);
+		}, false, 'Actions'),
 		BETA && command(['dc'], '/dc', 'owner', ({ }, client) => {
 			client.disconnect(true, false);
 		}, false, 'Owner'),

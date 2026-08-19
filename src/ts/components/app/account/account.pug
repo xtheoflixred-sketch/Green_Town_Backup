@@ -3,13 +3,13 @@ h1(focusTitle) Account settings
 .row.text-large
 	.col-md-6
 		form(name="form" (submit)="submit()" style="max-width: 400px; margin-bottom: 100px")
-			.form-group
-				h3 Account details
-			.form-group
-				label(for="account-name") Account Name
-				input#account-name.form-control(
-					type="text" name="name" [(ngModel)]="data.name" required [maxlength]="nameMaxLength")
-				small.form-text.text-warning This name will be visible to other players
+		.form-group
+			h3 Account details
+		.form-group
+			label(for="account-name") Account Name
+			input#account-name.form-control(
+				type="text" name="name" [(ngModel)]="data.name" required [maxlength]="nameMaxLength")
+			small.form-text.text-warning This name will be visible to other players
 			.form-group
 				label(for="birthdate")
 					| Date of birth. You must be over 18 years old to play.

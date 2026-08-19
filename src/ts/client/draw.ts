@@ -3,7 +3,7 @@ import {
 } from '../common/interfaces';
 import { isBoundsVisible } from '../common/camera';
 import { drawBounds, drawPixelText, drawBoundsOutline, drawOutlineRect, drawWorldBounds } from '../graphics/graphicsUtils';
-import { ORANGE, BLUE, PURPLE, BLACK, RED, WHITE, CYAN, HOTPINK, GRAY, GRASS_COLOR } from '../common/colors';
+import { ORANGE, BLUE, PURPLE, BLACK, RED, WHITE, CYAN, HOTPINK, GRAY } from '../common/colors';
 import * as entities from '../common/entities';
 import { toScreenX, toScreenY, toWorldX, toWorldY } from '../common/positionUtils';
 import { tileWidth, tileHeight, PONY_TYPE, REGION_SIZE, REGION_WIDTH, REGION_HEIGHT } from '../common/constants';
@@ -14,8 +14,6 @@ import { drawTiles, drawTilesNew, drawTilesDebugInfo } from './tileUtils';
 import { withAlphaFloat } from '../common/color';
 import { timeStart, timeEnd } from './timing';
 
-const SELECTED_ENTITY_BOUNDS = withAlphaFloat(ORANGE, 0.5);
-const SELECTED_TRIGGER_BOUNDS = withAlphaFloat(GRASS_COLOR, 0.55);
 const SELECTED_ITEM_TRIGGER_BOUNDS = withAlphaFloat(HOTPINK, 0.55);
 
 function isItemTrigger(entity: Entity) {
@@ -156,7 +154,7 @@ export function hasLightSprite(entity: Entity) {
 
 export function drawMap(
 	batch: PaletteSpriteBatch, map: WorldMap, camera: Camera, player: Pony,
-	options: DrawOptions, tileSets: TileSets, selectedEntities: Entity[],
+	options: DrawOptions, tileSets: TileSets, _selectedEntities: Entity[],
 ) {
 	TIMING && timeStart('forEachRegion');
 	batch.depth = 1.0;
@@ -198,12 +196,7 @@ export function drawMap(
 	}
 
 	if (BETA) {
-		for (const entity of selectedEntities) {
-			const bounds = getSelectOutlineBounds(entity);
-			// Use special salad/grass color for item triggers
-			const isItemTrigger = entity && (entity.type === entities.itemTriggerPoint.type || entity.type === entities.itemTriggerArea.type);
-			drawBoundsOutline(batch, entity, bounds, isItemTrigger ? SELECTED_TRIGGER_BOUNDS : SELECTED_ENTITY_BOUNDS, 2);
-		}
+		// Shape-based outline is already drawn via entity.outlineColor in drawEntities
 	}
 
 	if (BETA && options.debug.showHelpers) {

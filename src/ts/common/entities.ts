@@ -477,8 +477,7 @@ export const insulatingTape = doodad(n('insulating-tape'), sprites.insulating_ta
 	mixPickable(36, 48));
 
 export const brush = doodad(n('brush'), sprites.brush, 10, 8, 0,
-	mixPickable(19, 46));
-
+	mixPickable(19, 46))
 export const banHammer = doodad(n('ban-hammer'), sprites.ban_hammer, 10, 8, 0,
 	mixPickable(19, 38));
 
@@ -955,22 +954,23 @@ function createFloorLamp(name: string, sprite: PaletteRenderable, lightColor: nu
 					-(mainDx + mainW * s / 2), -(mainDy + mainH * s / 2),
 					mainW * s, mainH * s
 				);
-				base.drawLight = function (batch: SpriteBatch) {
-					if (!this.lightOn)
-						return;
-					const x = toScreenX(this.x);
-					const y = toScreenYWithZ(this.y, this.z);
-					const ms = (this.lightScaleAdjust || 1) * LIGHT_VOLUME_SCALE;
-					const mw = mainW * ms;
-					const mh = mainH * ms;
-					batch.drawImage(lightColor, -1, -1, 2, 2,
-						x - (mainDx + mw / 2), y - (mainDy + mh / 2), mw, mh);
-					const bs = 0.95 + 0.05 * Math.sin(Date.now() * 0.0015);
-					const bw2 = bloomW * bs;
-					const bh2 = bloomH * bs;
-					batch.drawImage(bloomColor, -1, -1, 2, 2,
-						x - (bloomDx + bw2 / 2), y - (bloomDy + bh2 / 2), bw2, bh2);
-				};
+			base.drawLight = function (batch: SpriteBatch) {
+				if (!this.lightOn)
+					return;
+				const x = toScreenX(this.x);
+				const y = toScreenYWithZ(this.y, this.z);
+				const es = (this.entityScale || 1);
+				const ms = (this.lightScaleAdjust || 1) * LIGHT_VOLUME_SCALE * es;
+				const mw = mainW * ms;
+				const mh = mainH * ms;
+				batch.drawImage(lightColor, -1, -1, 2, 2,
+					x - (mainDx + mw / 2), y - (mainDy + mh / 2), mw, mh);
+				const bs = 0.95 + 0.05 * Math.sin(Date.now() * 0.0015);
+				const bw2 = bloomW * bs * es;
+				const bh2 = bloomH * bs * es;
+				batch.drawImage(bloomColor, -1, -1, 2, 2,
+					x - (bloomDx + bw2 / 2), y - (bloomDy + bh2 / 2), bw2, bh2);
+			};
 			}
 		});
 }
@@ -1960,6 +1960,42 @@ export const largeLeafedBush4 = registerMix(n('large-leafed-bush-4'),
 		winter: { palette: 1 },
 	}),
 	largeLeafedBushSmall);
+
+// berry bushes (seasonal)
+export const berryBush = registerMix(n('berry-bush'),
+	mixDrawSeasonal({
+		spring: { sprite: sprites.berry_bush_spring, dx: 16, dy: 24, palette: 0 },
+		summer: { sprite: sprites.berry_bush_summer, dx: 16, dy: 24, palette: 0 },
+		autumn: { sprite: sprites.berry_bush_autumn, dx: 16, dy: 24, palette: 0 },
+		winter: { sprite: sprites.berry_bush_winter, dx: 16, dy: 24, palette: 0 },
+	}));
+
+// heart bushes (seasonal)
+const bushHeartCollider = mixColliderRounded(-14, -6, 28, 12, 2, false);
+
+export const bushHeart = registerMix(n('bush-heart'),
+	mixDrawSeasonal({
+		spring: { sprite: sprites.bush_heart_summer, dx: 10, dy: 24, palette: 0 },
+		summer: { sprite: sprites.bush_heart_summer, dx: 16, dy: 24, palette: 0 },
+		autumn: { sprite: sprites.bush_heart_autumn, dx: 16, dy: 24, palette: 0 },
+		winter: { sprite: sprites.bush_heart_winter, dx: 16, dy: 24, palette: 0 },
+	}),
+	bushHeartCollider);
+
+export const bushHeart2 = registerMix(n('bush-heart-2'),
+	mixDrawSeasonal({
+		spring: { sprite: sprites.bush_heart_autumn_2, dx: 16, dy: 24, palette: 0 },
+		summer: { sprite: sprites.bush_heart_autumn_2, dx: 16, dy: 24, palette: 0 },
+		autumn: { sprite: sprites.bush_heart_autumn_2, dx: 16, dy: 24, palette: 0 },
+		winter: { sprite: sprites.bush_heart_autumn_2, dx: 16, dy: 24, palette: 0 },
+	}),
+	bushHeartCollider);
+
+export const amanitaSoda = doodad(n('amanita-soda'), sprites.amanita_soda, 8, 16, 0);
+export const cherrySoda = doodad(n('cherry-soda'), sprites.cherry_soda, 8, 16, 0);
+export const magmaSoda = doodad(n('magma-soda'), sprites.magma_soda, 8, 16, 0);
+export const mintSoda = doodad(n('mint-soda'), sprites.mint_soda, 8, 16, 0);
+export const strawberrySoda = doodad(n('strawberry-soda'), sprites.strawberry_soda, 8, 16, 0);
 
 // cliffs
 
