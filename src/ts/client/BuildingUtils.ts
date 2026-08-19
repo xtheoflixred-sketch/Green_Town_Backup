@@ -829,7 +829,6 @@ export function handleBuildingWheel(game: any, input: any) {
 			changePlaceEntity(game, input.wheelY < 0);
 		}
 	} else if (game.player.hold === changeTileTool.type) {
-		// Передаём editorBox для синхронизации (доступна через game.editorBox)
 		changePlaceTile(game, input.wheelY < 0, (game as any).editorBox);
 	} else if ((game.player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) || isEditorSawActive(game, game.player)) {
 		changeWallMaterial(game, input.wheelY < 0);
@@ -884,19 +883,14 @@ export function changePlaceTile(game: any, reverse: boolean, editorBox?: any) {
 	const { name, type } = houseTiles[game.placeTile];
 
 	if (isEditorShovelActive(game, game.player)) {
-		// Находим соответствующий тайл в editorTiles по типу
 		const editorTileIndex = editorTiles.findIndex(t => t.type === type);
 		if (editorTileIndex >= 0) {
-			// Обновляем editor.tile через editorBox для синхронизации
 			if (editorBox && typeof editorBox.editorTile === 'number') {
-				// Устанавливаем индекс в editorTiles — сеттер обновит placeTile
 				editorBox.editorTile = editorTileIndex;
 			} else {
-				// Fallback: присваиваем TileType напрямую
 				game.editor.tile = type;
 			}
 		} else {
-			// Fallback: просто используем тип из houseTiles
 			game.editor.tile = type;
 		}
 	}

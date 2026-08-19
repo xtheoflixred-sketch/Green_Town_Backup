@@ -89,6 +89,10 @@ export class Home {
 	get previewTag() {
 		return getPonyTag(this.previewPony || this.pony, this.account);
 	}
+	get previewTagColor() {
+		const pony = this.previewPony || this.pony;
+		return pony ? (pony as any).tagColor : undefined;
+	}
 	signIn(provider: OAuthProvider) {
 		this.model.signIn(provider);
 	}

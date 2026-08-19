@@ -60,8 +60,6 @@ export class EditorBox implements OnInit, OnDestroy {
 	pendingEditorEntity = '';
 	private showEditor = false;
 	private scaleSendTimer: any = null;
-	private opacitySendTimer: any = null;
-	private spriteTintSendTimer: any = null;
 	private _originalBounds = new WeakMap<any, any>();
 	private _originalInteractBounds = new WeakMap<any, any>();
 	private _originalChatBounds = new WeakMap<any, any>();
@@ -334,30 +332,25 @@ export class EditorBox implements OnInit, OnDestroy {
 
 		return this.editorEntities.filter(e => e.toLowerCase().includes(query));
 	}
-	// Получить индекс тайла в editorTiles по его TileType
 	private getEditorTileIndex(tileType: number): number {
 		const index = editorTiles.findIndex(t => t.type === tileType);
 		return index >= 0 ? index : 0;
 	}
-	// Получить TileType по индексу в editorTiles
 	private getTileTypeFromEditorIndex(index: number): number {
 		if (index < 0 || index >= editorTiles.length) return TileType.None;
 		return editorTiles[index].type;
 	}
-	// editorTile хранит индекс в editorTiles для выпадающего меню
 	get editorTile(): number {
 		const tile = this.game.editor.tile;
 		return this.getEditorTileIndex(tile);
 	}
 	set editorTile(value: number) {
-		// Валидация входящего значения
 		if (typeof value !== 'number' || isNaN(value) || value < -1 || value >= editorTiles.length) {
 			console.warn('[EditorBox] Попытка установить некорректный editorTile:', value, ' — сброс на 0');
 			value = 0;
 		}
 		const tileType = this.getTileTypeFromEditorIndex(value);
 		this.game.editor.tile = tileType;
-		// Синхронизируем game.placeTile с editorTile
 		if (this.game.editor.useEditorShovel) {
 			const placeTileIndex = houseTiles.findIndex(t => t.type === tileType);
 			if (placeTileIndex >= 0) {
@@ -415,6 +408,26 @@ export class EditorBox implements OnInit, OnDestroy {
 		const names = uniq(types).map(type => this.getEntityName(type)).join(', ');
 		return types.length === 1 ? `${names} [${entities[0].id}]` : names;
 	}
+	get entityMessageColor(): string {
+		const entity = this.editor.selectedEntities[0] as any;
+		return entity ? (entity.messageColor || '#ffffff') : '#ffffff';
+	}
+	set entityMessageColor(value: string) {
+		const hex = value.startsWith('#') ? value.substring(1) : value;
+		const ids = this.editor.selectedEntities.map(e => e.id);
+		this.editor.selectedEntities.forEach(e => (e as any).messageColor = hex);
+		this.game.send(server => server.editorAction({ type: 'setname', entities: ids, messageColor: hex }));
+	}
+	get entityTagColor(): string {
+		const entity = this.editor.selectedEntities[0] as any;
+		return entity ? (entity.tagColor || '#ffffff') : '#ffffff';
+	}
+	set entityTagColor(value: string) {
+		const hex = value.startsWith('#') ? value.substring(1) : value;
+		const ids = this.editor.selectedEntities.map(e => e.id);
+		this.editor.selectedEntities.forEach(e => (e as any).tagColor = hex);
+		this.game.send(server => server.editorAction({ type: 'setname', entities: ids, tagColor: hex }));
+	}
 	get entityLightColor() {
 		return colorToHexRGB(this.getEntityValue(e => e && e.lightColor || BLACK));
 	}
@@ -458,7 +471,6 @@ export class EditorBox implements OnInit, OnDestroy {
 		       set entityLightScale(value) {
 			       const ids = this.editor.selectedEntities.map(e => e.id);
 			       this.editor.selectedEntities.forEach(e => e.lightScaleAdjust = value);
-			       // Приведение к number для строгой типизации
 			       this.game.send(server => server.editorAction({ type: 'setLightScale', entities: ids, scale: Number(value) }));
 		       }
 	get entityX() {
@@ -524,25 +536,6 @@ export class EditorBox implements OnInit, OnDestroy {
 		}));
 	}
 
-	get entityCustomImageOpacity() {
-		const entity = this.editor.selectedEntities[0];
-		return entity ? ((entity as any).customImageOpacity !== undefined ? (entity as any).customImageOpacity : 1) : 1;
-	}
-
-	set entityCustomImageOpacity(value) {
-		this.editor.selectedEntities.forEach(e => {
-			(e as any).customImageOpacity = value;
-		});
-		if (this.opacitySendTimer) clearTimeout(this.opacitySendTimer);
-		this.opacitySendTimer = setTimeout(() => {
-			this.game.send(server => server.editorAction({
-				type: 'setCustomImage',
-				entities: this.editor.selectedEntities.map(e => e.id),
-				customImageOpacity: value,
-			}));
-		}, 100);
-	}
-
 	get isCustomImageEntity() {
 		return this.editor.selectedEntities.some(e => (e as any).type === CUSTOM_IMAGE_TYPE);
 	}
@@ -563,54 +556,6 @@ export class EditorBox implements OnInit, OnDestroy {
 			type: 'setCustomImage',
 			entities: this.editor.selectedEntities.map(e => e.id),
 			customImageUrl: value,
-		}));
-	}
-
-	get entityNameInput() {
-		const entity = this.editor.selectedEntities[0];
-		return entity ? (entity.name || '') : '';
-	}
-
-	set entityNameInput(value: string) {
-		this.editor.selectedEntities.forEach(e => {
-			e.name = value;
-		});
-		this.game.send(server => server.editorAction({
-			type: 'setname',
-			entities: this.editor.selectedEntities.map(e => e.id),
-			name: value,
-		}));
-	}
-
-	get entityMessageInput() {
-		const entity = this.editor.selectedEntities[0];
-		return entity ? ((entity as any).entityMessage || '') : '';
-	}
-
-	set entityMessageInput(value: string) {
-		this.editor.selectedEntities.forEach(e => {
-			(e as any).entityMessage = value;
-		});
-		this.game.send(server => server.editorAction({
-			type: 'setname',
-			entities: this.editor.selectedEntities.map(e => e.id),
-			entityMessage: value,
-		}));
-	}
-
-	get entityMessageColor() {
-		const entity = this.editor.selectedEntities[0];
-		return entity ? (entity.messageColor || '#ffffff') : '#ffffff';
-	}
-
-	set entityMessageColor(value: string) {
-		this.editor.selectedEntities.forEach(e => {
-			e.messageColor = value;
-		});
-		this.game.send(server => server.editorAction({
-			type: 'setname',
-			entities: this.editor.selectedEntities.map(e => e.id),
-			messageColor: value,
 		}));
 	}
 
@@ -690,47 +635,6 @@ export class EditorBox implements OnInit, OnDestroy {
 				type: 'settint',
 				entities: this.editor.selectedEntities.map(e => e.id),
 				entityScale: scaleValue,
-			}));
-		}, 100);
-	}
-
-	get entityOpacity() {
-		const entity = this.editor.selectedEntities[0];
-		return entity ? ((entity as any).entityOpacity !== undefined ? (entity as any).entityOpacity : 1) : 1;
-	}
-
-	set entityOpacity(value: number) {
-		this.editor.selectedEntities.forEach(e => {
-			(e as any).entityOpacity = value;
-		});
-		if (this.opacitySendTimer) clearTimeout(this.opacitySendTimer);
-		this.opacitySendTimer = setTimeout(() => {
-			this.game.send(server => server.editorAction({
-				type: 'settint',
-				entities: this.editor.selectedEntities.map(e => e.id),
-				entityOpacity: value,
-			}));
-		}, 100);
-	}
-
-	get entitySpriteTint() {
-		const entity = this.editor.selectedEntities[0];
-		const tint = entity ? ((entity as any).spriteTint || 0xffffffff) : 0xffffffff;
-		return '#' + ((tint >> 8) & 0xFFFFFF).toString(16).padStart(6, '0');
-	}
-
-	set entitySpriteTint(value: string) {
-		const hex = parseInt(value.replace('#', ''), 16);
-		const tint = ((hex & 0xFFFFFF) << 8) | 0xFF;
-		this.editor.selectedEntities.forEach(e => {
-			(e as any).spriteTint = tint;
-		});
-		if (this.spriteTintSendTimer) clearTimeout(this.spriteTintSendTimer);
-		this.spriteTintSendTimer = setTimeout(() => {
-			this.game.send(server => server.editorAction({
-				type: 'settint',
-				entities: this.editor.selectedEntities.map(e => e.id),
-				spriteTint: tint,
 			}));
 		}, 100);
 	}
@@ -878,33 +782,11 @@ export class EditorBox implements OnInit, OnDestroy {
 	showEntitiesInfo() {
 		console.log(this.editor.selectedEntities);
 	}
-	saveEntityName() {
-		const entities = this.editor.selectedEntities.map(e => e.id);
-		this.game.send(server => server.editorAction({
-			type: 'setname',
-			entities,
-			name: this.entityNameInput.substring(0, 30),
-			entityMessage: this.entityMessageInput.substring(0, 100),
-			messageColor: this.entityMessageColor,
-		}));
-	}
 	holdSelectedItem() {
 		const entities = this.editor.selectedEntities.map(e => e.id);
 		if (entities.length) {
 			this.game.send(server => server.editorAction({ type: 'holdentity', entities }));
 		}
-	}
-	becomeSelectedItem() {
-		const entities = this.editor.selectedEntities.map(e => e.id);
-		if (entities.length) {
-			this.game.send(server => server.editorAction({ type: 'becomeentity', entities }));
-		}
-	}
-	loadEntityFields(entity: Entity) {
-		const e = entity as any;
-		this.entityNameInput = e.name || '';
-		this.entityMessageInput = e.entityMessage || '';
-		this.entityMessageColor = e.messageColor || '#bbbbbb';
 	}
 	toggleShow(field: keyof DebugFlags) {
 		(this.game.debug as any)[field] = !this.isShow(field);

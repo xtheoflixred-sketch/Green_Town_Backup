@@ -52,7 +52,6 @@
 					span.toy-number {{ '#' + toy.id }}
 
 		.msgcolor-picker(*ngIf="showColorPicker" [ngStyle]="colorPickerStyle")
-			button.msgcolor-reset((click)="resetColor()") default
 			color-picker([color]="msgColor" [isOpen]="showColorPicker" (colorChange)="onColorChange($event)" openUp)
 
 		.chat-input#chat-input(
@@ -114,15 +113,8 @@
 							[class.badge-say-colored]="option.mode === chatType.Say && msgColor !== '#bbbbbb'"
 							[class.badge-think-dark]="option.mode === chatType.Think"
 						)
-							fa-icon.mr-1(*ngIf="option.icon" [icon]="option.icon" [fixedWidth]="true")
+						fa-icon.mr-1(*ngIf="option.icon" [icon]="option.icon" [fixedWidth]="true")
 							| {{ option.label }}
-
-							button.badge-reset(
-								*ngIf="option.mode === chatType.Say && msgColor !== '#bbbbbb'"
-								(click)="onResetSayColorFromMenu($event)"
-								title="Reset color"
-							)
-								fa-icon([icon]="'times'" [fixedWidth]="true")
 
 		.chat-char-count(*ngIf="showRemainingCharacters" [class.danger]="remainingCharactersDanger") {{ remainingCharacters }}
 

@@ -165,17 +165,15 @@ export function updatePony(pony: ServerEntity, account: IAccount, character: ICh
 
 	if (character.supportTag && character.supportTag !== 'hidden' && canUseTag(account, character.supportTag)) {
 		options.tag = character.supportTag;
-	} else if (character.tag && canUseTag(account, character.tag) && !hasFlag(character.flags, CharacterFlags.HideSupport)) {
-		options.tag = `sup${level}`;
 	} else if (character.tag && canUseTag(account, character.tag)) {
 		options.tag = character.tag;
 	} else if (level && !hasFlag(character.flags, CharacterFlags.HideSupport)) {
 		options.tag = `sup${level}`;
 	}
 
-	// Propagate custom tag color override
 	if (character.tagColor) {
 		pony.tagColor = character.tagColor;
+		options.tagColor = character.tagColor;
 	}
 
 	pony.options = options;

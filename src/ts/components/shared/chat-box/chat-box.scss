@@ -397,33 +397,7 @@
 			&.badge-think-dark {
 				background: #4a4a4a !important;
 				color: #d8d8d8 !important;
-				border: 1px solid rgba(255, 255, 255, 0.08);
-			}
-		}
-
-		.badge-reset {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			width: 18px;
-			height: 18px;
-			padding: 0;
-			margin: 0;
-			border: none;
-			background: rgba(255, 255, 255, 0.15);
-			color: inherit;
-			cursor: pointer;
-			border-radius: 3px;
-			transition: all 0.15s ease;
-			font-size: 10px;
-
-			&:hover {
-				background: rgba(255, 255, 255, 0.25);
-				transform: scale(1.1);
-			}
-
-			fa-icon {
-				font-size: 9px;
+			border: 1px solid rgba(255, 255, 255, 0.08);
 			}
 		}
 	}
@@ -551,6 +525,7 @@
 			bottom: -6px;
 		}
 	}
+<<<<<<< HEAD
 
 	.msgcolor-reset {
 		display: block;
@@ -580,4 +555,6 @@
 	text-transform: uppercase;
 	user-select: none;
 	pointer-events: none;
+=======
+>>>>>>> f379775 (add /graballtoys, fix tag/badge colors, fix tag display)
 }

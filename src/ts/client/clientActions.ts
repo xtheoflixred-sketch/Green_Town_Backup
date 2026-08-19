@@ -258,6 +258,15 @@ export class ClientActions implements SocketClient {
 			console.log(`ENTITIES:\n${list}`);
 		}
 	}
+	@Method({ binary: [Bin.U32] })
+	updateToysBitmask(bitmask: number) {
+		if (this.model.account) {
+			if (!this.model.account.state) {
+				(this.model.account as any).state = {};
+			}
+			(this.model.account.state as any).toys = bitmask;
+		}
+	}
 	@Method({ binary: [Bin.Obj] })
 	testPositions(data: { frame: number; x: number | undefined; y: number | undefined; moved: boolean; }[]) {
 		if (DEVELOPMENT) {

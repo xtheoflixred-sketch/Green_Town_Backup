@@ -57,6 +57,7 @@ page-loader(*ngIf="!playing")
 					[noShadow]="fixed"
 					[name]="hidePreviewName ? '' : previewName"
 					[tag]="hidePreviewTag ? '' : previewTag"
+					[tagColor]="pony.tagColor"
 					[namePlateOffsetY]="10"
 					[tagOnlyNamePlateOffsetY]="10"
 					[namePlateTextY]="11"
@@ -754,6 +755,7 @@ page-loader(*ngIf="!playing")
 												ng-container(*ngIf="(tagPreview || tag).id")
 													span.badge.character-tag-badge(
 														[ngClass]="'badge-' + (tagPreview || tag).className"
+														[style.background-color]="pony.tagColor ? '#' + pony.tagColor : null"
 													)
 														fa-icon.mr-1(
 															*ngIf="(tagPreview || tag).icon"
@@ -804,6 +806,7 @@ page-loader(*ngIf="!playing")
 												ng-container(*ngIf="t.id")
 													span.badge.character-tag-badge(
 														[ngClass]="'badge-' + t.className"
+														[style.background-color]="pony.tagColor && t.id === (tag && tag.id) ? '#' + pony.tagColor : null"
 													)
 														fa-icon.mr-1(
 															*ngIf="t.icon"

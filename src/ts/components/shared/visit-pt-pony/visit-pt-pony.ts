@@ -56,6 +56,7 @@ export class VisitPTPony implements OnInit, OnDestroy {
 	@Input() showTag = true;
 	@Input() noShadow = true;
 	@Input() topOffset = -20;
+	@Input() tagColor?: string;
 	private defaultPony = decompressPonyString(MENO);
 	state = defaultPonyState();
 	private expression?: Expression;

@@ -115,7 +115,12 @@ export class CharacterList implements OnInit {
 		return pony.site ? findById(this.model.sites, pony.site) : undefined;
 	}
 	getCharacterTag(pony: PonyObject) {
-		return getTag(pony.tag);
+		return getTag(pony.tag, pony.tagColor);
+	}
+	getCharacterTagBgColor(pony: PonyObject): string | undefined {
+		const customColor = pony.tagColor;
+		if (!customColor) return undefined;
+		return `#${customColor}`;
 	}
 	getCharacterTagTooltip(pony: PonyObject) {
 		return getTagTooltip(this.getCharacterTag(pony));

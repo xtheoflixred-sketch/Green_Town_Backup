@@ -1,6 +1,6 @@
 .pony-box(*ngIf="pony" [class.pony-box-wide]="canUseWideRect" [class.pony-box-compact]="isCompactRect" [class.pony-box-resized]="isRectResized")
 	.pony-box-tags(#tagsBox)
-		.pony-box-tag(*ngIf="specialTag" [ngClass]="specialClass" [tooltip]="specialTagTooltip" placement="top" container="body")
+		.pony-box-tag(*ngIf="specialTag" [ngClass]="specialClass" [style.background]="specialTagBgColor || undefined" [tooltip]="specialTagTooltip" placement="top" container="body")
 			fa-icon.mr-1(*ngIf="specialTag.icon" [icon]="specialTag.icon" [fixedWidth]="true" [style.color]="specialTag.color")
 			span.pony-box-tag-label {{specialTag.name}}
 

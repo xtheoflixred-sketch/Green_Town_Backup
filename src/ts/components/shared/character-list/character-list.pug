@@ -162,6 +162,7 @@ ul.character-select-list(
 					ng-container(*ngIf="getCharacterTag(p) as tag")
 						span.badge.character-tag-badge(
 							[ngClass]="'badge-' + tag.className"
+							[style.background-color]="getCharacterTagBgColor(p) || undefined"
 							[tooltip]="getCharacterTagTooltip(p)"
 							placement="top")
 							fa-icon(

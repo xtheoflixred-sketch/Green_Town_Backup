@@ -5,7 +5,7 @@ import { SAY_MAX_LENGTH } from '../../../common/constants';
 import { Key } from '../../../client/input/input';
 import { PonyTownGame } from '../../../client/game';
 import { cleanMessage, isSpamMessage } from '../../../client/clientUtils';
-import { faComment, faAngleDoubleRight, faTimes } from '../../../client/icons';
+import { faComment, faAngleDoubleRight } from '../../../client/icons';
 import { isInParty } from '../../../client/partyUtils';
 import { handleActionCommand } from '../../../client/playerActions';
 import { hasHeadAnimation } from '../../../common/pony';
@@ -15,7 +15,7 @@ import { invalidEnumReturn } from '../../../common/utils';
 import { isAdmin, isMod } from '../../../common/accountUtils';
 import { findMatchingEntityNames, findEntityOrMockByAnyMeans, findBestEntityByName } from '../../../client/handlers';
 import { sample } from 'lodash';
-import { CLIENT_COMMANDS, ClientCommand, TOBE_ENTITIES } from '../../../client/commands';
+import { CLIENT_COMMANDS, ClientCommand } from '../../../client/commands';
 import { loadAndInitSpriteSheets } from '../../../client/spriteUtils';
 import { font } from '../../../client/fonts';
 import { getCharacterSprite } from '../../../graphics/spriteFont';
@@ -114,7 +114,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	readonly maxSayLength = SAY_MAX_LENGTH;
 	readonly commentIcon = faComment;
 	readonly sendIcon = faAngleDoubleRight;
-	readonly resetIcon = faTimes;
 	readonly emotes = emojis;
 	emojiBoxState = 'none';
 	@ViewChild('inputElement', { static: true }) inputElement!: ElementRef;
@@ -144,9 +143,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	commandQuery = '';
 	selectedSubcommandIndex = 0;
 	selectedCommandIndex = 0;
-	tobeMode = false;
-	tobeQuery = '';
-	selectedTobeIndex = 0;
 	showColorPicker = false;
 	showChatTypeMenu = false;
 	selectedChatTypeIndex = 0;
@@ -449,29 +445,29 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		const query = this.commandQuery.trim().split(/\s+/).slice(1).join(' ').toLowerCase();
 		return command.subcommands.filter(subcommand => subcommand.toLowerCase().startsWith(query));
 	}
-	get filteredTobeEntities(): string[] {
-		const query = this.tobeQuery.toLowerCase();
-		return TOBE_ENTITIES.filter((e: string) => e.toLowerCase().startsWith(query));
-	}
-	selectCommand(cmd: ClientCommand) {
+		selectCommand(cmd: ClientCommand) {
 		this.showCommandDropdown = false;
 		this.commandQuery = '';
 		this.selectedCommandIndex = 0;
+<<<<<<< HEAD
 		this.selectedSubcommandIndex = 0;
 		if (cmd.name === 'tobe') {
 			this.message = '/tobe ';
 			this.tobeMode = true;
 		} else if (cmd.name === 'season') {
+=======
+		if (cmd.name === 'season') {
+>>>>>>> f379775 (add /graballtoys, fix tag/badge colors, fix tag display)
 			this.message = '/season ';
 			this.seasonMode = true;
 			this.seasonPhase = 'season';
 		} else {
 			this.message = `/${cmd.name} `;
-			this.tobeMode = false;
 		}
 		this.syncEditorFromMessage();
 		this.focusInput();
 	}
+<<<<<<< HEAD
 	selectSubcommand(subcommand: string) {
 		const command = this.activeCommand;
 		if (!command) return;
@@ -491,6 +487,8 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.syncEditorFromMessage();
 		this.focusInput();
 	}
+=======
+>>>>>>> f379775 (add /graballtoys, fix tag/badge colors, fix tag display)
 	selectSeasonItem(value: string) {
 		if (this.seasonPhase === 'season') {
 			this.message = `/season ${value} `;
@@ -519,11 +517,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 				if (matches.length > 0) {
 					this.selectSeasonItem(matches[this.selectedSeasonIndex] || matches[0]);
 				}
-			} else if (this.tobeMode) {
-				const matches = this.filteredTobeEntities;
-				if (matches.length > 0) {
-					this.selectTobeEntity(matches[this.selectedTobeIndex] || matches[0]);
-				}
 			} else {
 				const matches = this.isSubcommandMode ? this.filteredSubcommands : this.filteredCommands;
 				if (matches.length > 0) {
@@ -544,20 +537,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.lastColorSend = now;
 			this.game.send(server => server.say(0, `/msgcolor ${color}`, ChatType.Say));
 		}
-	}
-	resetColor() {
-		this.msgColor = '#bbbbbb';
-		this.updateChatType();
-		this.game.send(server => server.say(0, `/msgcolor reset`, ChatType.Say));
-		this.showColorPicker = false;
-		this.close();
-	}
-	onResetSayColorFromMenu(event: Event) {
-		event.preventDefault();
-		event.stopPropagation();
-		this.msgColor = '#bbbbbb';
-		this.updateChatType();
-		this.game.send(server => server.say(0, `/msgcolor reset`, ChatType.Say));
 	}
 	private updateColorPickerPosition() {
 		this.colorPickerStyle = {
@@ -817,31 +796,18 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.showColorPicker = false;
 		}
 
-		const msgcolorMatch = /^\/msgcolor\s+(#[0-9a-f]{6}|[0-9a-f]{6}|reset)\s*$/i.exec(msg);
+		const msgcolorMatch = /^\/msgcolor\s+(#[0-9a-f]{6}|[0-9a-f]{6})\s*$/i.exec(msg);
 		if (msgcolorMatch) {
 			const value = msgcolorMatch[1].toLowerCase();
-			this.msgColor = value === 'reset' ? '#bbbbbb' : this.normalizeMessageColor(value);
+			this.msgColor = this.normalizeMessageColor(value);
 		}
 
-		if (this.tobeMode && msg.startsWith('/tobe ')) {
-			this.tobeQuery = msg.substring(6);
-			this.selectedTobeIndex = 0;
-			this.showCommandDropdown = true;
-			this.showToyDropdown = false;
-		} else if (msg.startsWith('/tobe ')) {
-			this.tobeMode = true;
-			this.tobeQuery = msg.substring(6);
-			this.selectedTobeIndex = 0;
-			this.showCommandDropdown = true;
-			this.showToyDropdown = false;
-		} else if (msg === '/toy' || msg === '/toy ') {
-			this.tobeMode = false;
+		if (msg === '/toy' || msg === '/toy ') {
 			this.seasonMode = false;
 			this.commandQuery = '';
 			this.showCommandDropdown = false;
 			this.showToyDropdown = true;
 		} else if (msg.startsWith('/toy ')) {
-			this.tobeMode = false;
 			this.seasonMode = false;
 			this.commandQuery = '';
 			this.showCommandDropdown = false;
@@ -859,7 +825,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.selectedSeasonIndex = 0;
 			this.showCommandDropdown = true;
 		} else if (msg === '/season' || msg === '/season ') {
-			this.tobeMode = false;
 			this.seasonMode = true;
 			this.seasonPhase = 'season';
 			this.seasonQuery = '';
@@ -867,7 +832,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.showCommandDropdown = true;
 			this.showToyDropdown = false;
 		} else if (msg.startsWith('/season ')) {
-			this.tobeMode = false;
 			this.seasonMode = true;
 			this.seasonPhase = 'season';
 			const afterSeason = msg.substring(8);
@@ -882,7 +846,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.showCommandDropdown = true;
 			this.showToyDropdown = false;
 		} else if (msg.startsWith('/')) {
-			this.tobeMode = false;
 			this.seasonMode = false;
 			this.commandQuery = msg.substring(1);
 			this.selectedCommandIndex = 0;
@@ -890,14 +853,11 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.showCommandDropdown = true;
 			this.showToyDropdown = false;
 		} else {
-			this.tobeMode = false;
 			this.seasonMode = false;
 			this.seasonPhase = 'season';
 			this.commandQuery = '';
-			this.tobeQuery = '';
 			this.seasonQuery = '';
 			this.selectedCommandIndex = 0;
-			this.selectedTobeIndex = 0;
 			this.selectedSeasonIndex = 0;
 			this.showCommandDropdown = false;
 			this.showToyDropdown = false;
@@ -977,12 +937,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 				const count = this.filteredSeasonItems.length;
 				if (count > 0) {
 					this.selectedSeasonIndex = (this.selectedSeasonIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
-					this.scrollActiveCommandIntoView();
-				}
-			} else if (this.tobeMode) {
-				const count = this.filteredTobeEntities.length;
-				if (count > 0) {
-					this.selectedTobeIndex = (this.selectedTobeIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
 					this.scrollActiveCommandIntoView();
 				}
 			} else {
@@ -1491,8 +1445,6 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.emojiBoxState = 'none';
 			this.showCommandDropdown = false;
 			this.commandQuery = '';
-			this.tobeMode = false;
-			this.tobeQuery = '';
 			this.seasonMode = false;
 			this.seasonPhase = 'season';
 			this.seasonQuery = '';
