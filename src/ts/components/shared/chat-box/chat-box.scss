@@ -474,3 +474,14 @@
 		}
 	}
 }
+
+.command-dropdown-category {
+	padding: 4px 8px 2px;
+	color: rgba(255, 255, 255, 0.5);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	user-select: none;
+	pointer-events: none;
+}

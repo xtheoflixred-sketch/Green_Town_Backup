@@ -23,8 +23,7 @@ import { buildAccountSessionEntries } from '../../../common/accountSessionUtils'
 export class Account implements OnInit, OnDestroy {
 	readonly refreshIcon = faSync;
 
-	private playtimeInterval: any;
-	private lastSync = Date.now();
+	private accountInfoInterval: any;
 	readonly starIcon = faStar;
 	readonly alertIcon = faExclamationCircle;
 	readonly copyIcon = faCopy;
@@ -90,16 +89,15 @@ export class Account implements OnInit, OnDestroy {
 
 		this.pageChanged();
 
-		// start timer to refresh playtime display
-		this.lastSync = Date.now();
-		this.playtimeInterval = setInterval(() => {
+		// Refresh relative account timestamps.
+		this.accountInfoInterval = setInterval(() => {
 			// trigger change detection by updating a dummy property
 		}, 1000);
 	}
 	ngOnDestroy() {
 		this.model.mergedAccount = false;
-		if (this.playtimeInterval) {
-			clearInterval(this.playtimeInterval);
+		if (this.accountInfoInterval) {
+			clearInterval(this.accountInfoInterval);
 		}
 	}
 	pageChanged() {
@@ -119,9 +117,25 @@ export class Account implements OnInit, OnDestroy {
 	get displayPlaytime() {
 		const acc = this.account;
 		if (!acc || acc.playtimeSeconds == null) return '';
-		const base = acc.playtimeSeconds;
-		const delta = Math.floor((Date.now() - this.lastSync) / 1000);
-		return this.formatPlaytime(base + delta);
+		return this.formatPlaytime(acc.playtimeSeconds);
+	}
+	get displayLastGameEntry() {
+		const value = this.model.ponies
+			.map(pony => pony.lastUsed)
+			.filter((lastUsed): lastUsed is string => !!lastUsed)
+			.sort((a, b) => Number(new Date(b)) - Number(new Date(a)))[0];
+		if (!value) return '-';
+		const timestamp = new Date(value).getTime();
+		const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+		if (elapsedSeconds < 3600) {
+			const minutes = Math.floor(elapsedSeconds / 60);
+			return `${minutes} min ago`;
+		}
+		return new Date(value).toLocaleString();
+	}
+	get displayLastSessionPlaytime() {
+		const seconds = this.account && this.account.lastSessionSeconds;
+		return seconds == null ? '-' : this.formatPlaytime(seconds);
 	}
 	get supporter() {
 		return this.model.supporter;

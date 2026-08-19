@@ -63,6 +63,33 @@ function isActionCommand(message: string) {
 	return /^\/(yawn|sneeze|excite|tada|achoo|laugh|lol|haha|хаха|jaja)/i.test(message);
 }
 
+function canUseCommand(command: ClientCommand, account: { roles?: string[]; supporter?: number } | undefined) {
+	const role = command.role;
+	if (!role) return true;
+	if (!account) return false;
+	if (role === 'mod') return isMod(account);
+	if (role === 'admin') return isAdmin(account);
+	if (role === 'sup1' || role === 'sup2' || role === 'sup3' || role === 'sup4') {
+		return isMod(account) || (account.supporter || 0) >= parseInt(role.substring(3), 10);
+	}
+	return !!account.roles && account.roles.indexOf(role) !== -1;
+}
+
+function getCommandCategory(command: ClientCommand): string {
+	if (command.role === 'sup1' || command.role === 'sup2' || command.role === 'sup3' || command.role === 'sup4') return 'Supporters';
+	if (command.role === 'mod') return 'Moderation';
+	if (command.role === 'admin') return 'Administration';
+	if (command.role === 'owner' || command.role === 'dev') return 'Developer';
+	const name = command.name.toLowerCase();
+	if (['w', 'whisper', 'r', 'reply', 's', 'say', 'p', 'party', 't', 'think', 'shrug', 'roll'].includes(name)) return 'Chat';
+	if (['blush', 'love', 'sleep', 'cry', 'yawn', 'laugh', 'lol', 'haha', 'sneeze', 'achoo', 'excite', 'tada', 'magic', 'kiss', 'dance', 'dance1'].includes(name)) return 'Emotes';
+	if (['accountdate', 'accountid', 'playtime', 'lastgame', 'lastsession', 'age', 'supporter', 'supinfo'].includes(name)) return 'Account';
+	if (['savehouse', 'loadhouse', 'resethouse', 'clearhouse', 'lockhouse', 'unlockhouse', 'removetoolbox', 'restoretoolbox'].includes(name)) return 'House';
+	if (['gifts', 'candies', 'eggs', 'clovers', 'toys', 'collections', 'achievements'].includes(name)) return 'Collections';
+	if (['drop', 'droptoy', 'open', 'swap', 'bunnies', 'tobe'].includes(name)) return 'Gameplay';
+	return 'Other';
+}
+
 const typingIndicatorShowDelay = 300;
 const typingIndicatorHideDelay = 1000;
 @Component({
@@ -102,6 +129,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	private typingHideTimeout: any;
 	showCommandDropdown = false;
 	commandQuery = '';
+	selectedSubcommandIndex = 0;
 	selectedCommandIndex = 0;
 	tobeMode = false;
 	tobeQuery = '';
@@ -197,8 +225,39 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	private initialized = false;
 	private updatingMessage = false;
 	get filteredCommands(): ClientCommand[] {
+		if (this.isSubcommandMode) return [];
 		const query = this.commandQuery.toLowerCase();
-		return CLIENT_COMMANDS.filter((c: ClientCommand) => c.name.toLowerCase().startsWith(query));
+		return CLIENT_COMMANDS.filter((c: ClientCommand) =>
+			canUseCommand(c, this.game.model.account) && c.name.toLowerCase().startsWith(query));
+	}
+	get filteredCommandGroups(): Array<{ category: string; commands: ClientCommand[] }> {
+		const groups: Array<{ category: string; commands: ClientCommand[] }> = [];
+		for (const command of this.filteredCommands) {
+			const category = getCommandCategory(command);
+			let group = groups.find(item => item.category === category);
+			if (!group) {
+				group = { category, commands: [] };
+				groups.push(group);
+			}
+			group.commands.push(command);
+		}
+		return groups;
+	}
+	isSelectedCommand(command: ClientCommand) {
+		return this.filteredCommands[this.selectedCommandIndex] === command;
+	}
+	get isSubcommandMode() {
+		return /\s/.test(this.commandQuery);
+	}
+	get activeCommand(): ClientCommand | undefined {
+		const name = this.commandQuery.trim().split(/\s+/)[0].toLowerCase();
+		return CLIENT_COMMANDS.find(command => command.name.toLowerCase() === name && canUseCommand(command, this.game.model.account));
+	}
+	get filteredSubcommands(): string[] {
+		const command = this.activeCommand;
+		if (!command || !command.subcommands) return [];
+		const query = this.commandQuery.trim().split(/\s+/).slice(1).join(' ').toLowerCase();
+		return command.subcommands.filter(subcommand => subcommand.toLowerCase().startsWith(query));
 	}
 	get filteredTobeEntities(): string[] {
 		const query = this.tobeQuery.toLowerCase();
@@ -208,6 +267,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.showCommandDropdown = false;
 		this.commandQuery = '';
 		this.selectedCommandIndex = 0;
+		this.selectedSubcommandIndex = 0;
 		if (cmd.name === 'tobe') {
 			this.message = '/tobe ';
 			this.tobeMode = true;
@@ -215,6 +275,16 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.message = `/${cmd.name} `;
 			this.tobeMode = false;
 		}
+		this.syncEditorFromMessage();
+		this.focusInput();
+	}
+	selectSubcommand(subcommand: string) {
+		const command = this.activeCommand;
+		if (!command) return;
+		this.showCommandDropdown = false;
+		this.commandQuery = '';
+		this.selectedSubcommandIndex = 0;
+		this.message = `/${command.name} ${subcommand} `;
 		this.syncEditorFromMessage();
 		this.focusInput();
 	}
@@ -235,9 +305,13 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 					this.selectTobeEntity(matches[this.selectedTobeIndex] || matches[0]);
 				}
 			} else {
-				const matches = this.filteredCommands;
+				const matches = this.isSubcommandMode ? this.filteredSubcommands : this.filteredCommands;
 				if (matches.length > 0) {
-					this.selectCommand(matches[this.selectedCommandIndex] || matches[0]);
+					if (this.isSubcommandMode) {
+						this.selectSubcommand(matches[this.selectedSubcommandIndex] || matches[0]);
+					} else {
+						this.selectCommand(matches[this.selectedCommandIndex] || matches[0]);
+					}
 				}
 			}
 		}
@@ -540,6 +614,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.tobeMode = false;
 			this.commandQuery = msg.substring(1);
 			this.selectedCommandIndex = 0;
+			this.selectedSubcommandIndex = 0;
 			this.showCommandDropdown = true;
 		} else {
 			this.tobeMode = false;
@@ -627,9 +702,13 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 					this.scrollActiveCommandIntoView();
 				}
 			} else {
-				const count = this.filteredCommands.length;
+				const count = this.isSubcommandMode ? this.filteredSubcommands.length : this.filteredCommands.length;
 				if (count > 0) {
-					this.selectedCommandIndex = (this.selectedCommandIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
+					if (this.isSubcommandMode) {
+						this.selectedSubcommandIndex = (this.selectedSubcommandIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
+					} else {
+						this.selectedCommandIndex = (this.selectedCommandIndex + (e.keyCode === Key.UP ? -1 : 1) + count) % count;
+					}
 					this.scrollActiveCommandIntoView();
 				}
 			}

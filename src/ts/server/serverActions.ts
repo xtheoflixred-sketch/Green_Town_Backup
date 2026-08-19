@@ -198,12 +198,16 @@ export class ServerActions implements IServerActions, SocketServer {
 		this.friends.clientDisconnected(this.client);
 		this.holdItemService.clientDisconnected(this.client);
 		this.states.add(this.client.characterId, state);
+		const sessionSeconds = Math.max(0, Math.round(duration / 1000));
 
 		await Promise.all([
 			this.accountService.updateAccount(this.client.accountId, { lastVisit: new Date(), state: this.account.state }),
 			this.accountService.updateCharacterState(this.client.characterId, state),
 			// increment playtime (stored in seconds in counters.playtime)
-			updateAccount(this.client.accountId, { $inc: { ['counters.playtime']: Math.round(duration / 1000) } }).catch(() => { /* ignore update errors */ }),
+			updateAccount(this.client.accountId, {
+				$inc: { ['counters.playtime']: sessionSeconds },
+				$set: { lastSessionSeconds: sessionSeconds },
+			}).catch(() => { /* ignore update errors */ }),
 		]);
 	}
 	@Method({ rateLimit: '2/s', binary: [Bin.U32, Bin.Str, Bin.U8] })

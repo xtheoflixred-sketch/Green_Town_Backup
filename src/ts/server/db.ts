@@ -102,6 +102,7 @@ const accountSchema = new Schema({
 	lastOnline: Date,
 	lastLogin: Date,
 	lastLogout: Date,
+	lastSessionSeconds: Number,
 	lastCharacter: Schema.Types.ObjectId,
 	roles: [String],
 	origins: [originInfo],

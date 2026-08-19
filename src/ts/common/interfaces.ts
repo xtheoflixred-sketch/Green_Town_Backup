@@ -893,6 +893,8 @@ export interface AccountData extends AccountDataExtra {
 	lastOnline?: string;
 	lastLogin?: string;
 	lastLogout?: string;
+	/** Duration of the last completed game session in seconds. */
+	lastSessionSeconds?: number;
 	lastUserAgent?: string;
 }
 

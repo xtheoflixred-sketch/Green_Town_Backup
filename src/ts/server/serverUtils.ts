@@ -50,6 +50,7 @@ export function toAccountData(account: IAccount): AccountData {
 		lastOnline: account.lastOnline ? account.lastOnline.toISOString() : undefined,
 		lastLogin: account.lastLogin ? account.lastLogin.toISOString() : undefined,
 		lastLogout: account.lastLogout ? account.lastLogout.toISOString() : undefined,
+		lastSessionSeconds: account.lastSessionSeconds,
 		lastUserAgent: account.lastUserAgent,
 	};
 }

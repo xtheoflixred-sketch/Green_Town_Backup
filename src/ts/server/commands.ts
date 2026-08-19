@@ -37,7 +37,7 @@ import { PartyService } from './services/party';
 import { getRegionGlobal } from '../common/worldMap';
 import { swapCharacter } from './characterUtils';
 import { writeFileAsync } from 'fs';
-import { Account } from './db';
+import { Account, Character } from './db';
 import { defaultHouseSave, removeToolbox, restoreToolbox } from './maps/houseMap';
 import { createFollowerBunny } from './mapUtils';
 
@@ -838,6 +838,15 @@ let interval: any;
 const playtimeBackup = new WeakMap<IClient, number>();
 const createdBackup = new WeakMap<IClient, Date | undefined>();
 
+function formatLastGameEntry(date?: Date) {
+	if (!date) return 'unknown';
+	const elapsedSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+	if (elapsedSeconds < 3600) {
+		return `${Math.floor(elapsedSeconds / 60)} min ago`;
+	}
+	return date.toLocaleString();
+}
+
 export function createCommands(world: World): Command[] {
 	const commands = compact([
 		// chat
@@ -1081,7 +1090,17 @@ export function createCommands(world: World): Command[] {
 		const stored = (client.account.counters && (client.account.counters as any).playtime) ? (client.account.counters as any).playtime : 0;
 		const session = Math.round((Date.now() - client.connectedTime) / 1000);
 		const totalSeconds = stored + session;
-		const text = `Total Playtime: ${formatPlaytime(totalSeconds)}`;
+		const text = `Total Playtime: ${formatPlaytime(totalSeconds)} (${totalSeconds} sec)`;
+		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
+	}, false, 'Other'),
+	command(['lastgame', 'lastentry', 'lastused'], '/lastgame - show when you last entered the game', '', async ({ }, client, _message, type, target, settings) => {
+		const pony = await Character.findOne({ account: client.accountId }, 'lastUsed').sort('-lastUsed').lean().exec();
+		const text = `Last game entry: ${formatLastGameEntry(pony && pony.lastUsed)}`;
+		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
+	}, false, 'Other'),
+	command(['lastsession', 'sessiontime'], '/lastsession - show the duration of your last game session', '', ({ }, client, _message, type, target, settings) => {
+		const seconds = client.account.lastSessionSeconds;
+		const text = seconds == null ? 'Last session playtime: unknown' : `Last session playtime: ${formatPlaytime(seconds)} (${seconds} sec)`;
 		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
 	}, false, 'Other'),
 
@@ -1382,6 +1401,31 @@ export function createCommands(world: World): Command[] {
 			const regex = new RegExp(`^${escapeRegExp(message)}$`, 'i');
 			const query = { account: client.account._id, name: { $regex: regex } };
 			await swapCharacter(client, world, query);
+		}, false, 'Supporters'),
+		command(['supporter', 'supinfo'], '/supporter [info|perks|level] - show supporter information', 'sup1', ({ }, client, message) => {
+			const subcommand = (message || '').trim().toLowerCase();
+			const level = client.supporterLevel;
+			if (!subcommand || subcommand === 'info' || subcommand === 'level') {
+				saySystem(client, `Supporter level: ${level}`);
+				return;
+			}
+			if (subcommand === 'perks' || subcommand === 'help' || subcommand === '?') {
+				saySystem(client,
+					`Supporter ${level} perks: supporter chat colors, supporter character slots and supporter commands\n` +
+					`Available supporter chat: /ss, /s1, /s2, /s3, /s4`
+				);
+				return;
+			}
+			saySystem(client, 'Unknown subcommand. Use /supporter info, /supporter perks or /supporter level');
+		}, false, 'Supporters'),
+		command(['supglow', 'supmagic'], '/supglow - play a supporter magic effect', 'sup2', ({ }, client, _message, _type, _target, settings) => {
+			execAction(client, Action.Magic, settings);
+		}, false, 'Supporters'),
+		command(['supcelebrate', 'supdance'], '/supcelebrate - play a supporter celebration effect', 'sup3', ({ }, client, _message, _type, _target, settings) => {
+			execAction(client, Action.Dance1, settings);
+		}, false, 'Supporters'),
+		command(['supheart', 'supkiss'], '/supheart - play a special supporter heart effect', 'sup4', ({ }, client, _message, _type, _target, settings) => {
+			execAction(client, Action.Kiss, settings);
 		}, false, 'Supporters'),
 
 		// mod

@@ -1,12 +1,20 @@
 .chat-box(#chatBox (mousedown)="onChatBoxMouseDown($event)" (click)="onChatBoxClick($event)")
 	div(#chatBoxInput)
 		.command-dropdown(*ngIf="showCommandDropdown")
-			ul.command-dropdown-menu(*ngIf="!tobeMode")
-				li.command-dropdown-item(*ngFor="let cmd of filteredCommands; let i = index" [class.active]="selectedCommandIndex === i" (click)="selectCommand(cmd)")
-					| /{{cmd.name}}
-					span.command-help(*ngIf="cmd.help") {{cmd.help}}
+			ul.command-dropdown-menu(*ngIf="!tobeMode && !isSubcommandMode")
+				ng-container(*ngFor="let group of filteredCommandGroups")
+					li.command-dropdown-category [attr.aria-hidden]="true" {{group.category}}
+					li.command-dropdown-item(*ngFor="let cmd of group.commands" [class.active]="isSelectedCommand(cmd)" (click)="selectCommand(cmd)")
+						| /{{cmd.name}}
+						span.command-help(*ngIf="cmd.help") {{cmd.help}}
 				li.command-dropdown-empty(*ngIf="filteredCommands.length === 0")
 					i команды не найдены
+
+			ul.command-dropdown-menu(*ngIf="!tobeMode && isSubcommandMode")
+				li.command-dropdown-item(*ngFor="let subcommand of filteredSubcommands; let i = index" [class.active]="selectedSubcommandIndex === i" (click)="selectSubcommand(subcommand)")
+					| {{subcommand}}
+				li.command-dropdown-empty(*ngIf="filteredSubcommands.length === 0")
+					i подкоманды не найдены
 
 			ul.command-dropdown-menu(*ngIf="tobeMode")
 				li.command-dropdown-item(*ngFor="let entity of filteredTobeEntities; let i = index" [class.active]="selectedTobeIndex === i" (click)="selectTobeEntity(entity)")

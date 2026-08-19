@@ -13,52 +13,74 @@ ng-template(#signOutModal)
 
 nav.navbar.navbar-expand.justify-content-end(role="navigation")
 	.d-none.d-md-block
-		a.pixelart.logo(*ngIf="logo" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }")
-			img.pixelart.logo-large(revSrc="images/logo-large.png" alt="Green Town" width="auto" height="auto")
-			img.pixelart.logo-small(revSrc="images/logo-small.png" alt="Green Town" width="auto" height="auto")
+		a.pixelart.logo(
+			*ngIf="logo"
+			routerLink="/"
+			routerLinkActive="active"
+			[routerLinkActiveOptions]="{ exact: true }"
+		)
+			img.pixelart.logo-large(
+				revSrc="images/logo-large.png"
+				alt="Green Town"
+				width="auto"
+				height="auto"
+			)
+			img.pixelart.logo-small(
+				revSrc="images/logo-small.png"
+				alt="Green Town"
+				width="auto"
+				height="auto"
+			)
 
 	.navbar-collapse.text-right
 		.navbar-nav.ml-auto
 			ng-content
 
-			.dropdown(*ngIf="account" #dropdown="ag-dropdown" dropdown autoClose="outsideClick")
+			.dropdown(
+				*ngIf="account"
+				#dropdown="ag-dropdown"
+				dropdown
+				autoClose="outsideClick"
+			)
 				button.btn.cursor-pointer.dropdown-toggle(
 					dropdownToggle
 					[attr.aria-label]="'Signed-in as ' + account.name"
+					[title]="account.name"
 				)
-					fa-icon.mr-1(
-						*ngIf="hasSupporterIcon"
-						[icon]="starIcon"
-						[ngClass]="supporterClass"
-						[title]="supporterTitle"
-						[attr.aria-label]="supporterTitle"
-						aria-hidden="true"
-					)
+					.menu-bar-portrait-wrapper
+						portrait-box.menu-bar-portrait(
+							*ngIf="currentPony; else portraitFallback"
+							[pony]="currentPony"
+							size="small"
+						)
 
-				.d-none.d-sm-inline([emojiText]="account.name")
+						ng-template(#portraitFallback)
+							fa-icon.menu-bar-portrait-fallback(
+								[icon]="userIcon"
+								[fixedWidth]="true"
+								aria-hidden="true"
+							)
+						
+						fa-icon.menu-bar-supporter-star(
+							*ngIf="hasSupporterIcon"
+							[icon]="starIcon"
+							[ngClass]="supporterClass"
+							[title]="supporterTitle"
+							[attr.aria-label]="supporterTitle"
+							aria-hidden="true"
+						)
 
-					fa-icon.d-inline-block.d-sm-none(
-						[icon]="userIcon"
-						[title]="account.name"
-						[fixedWidth]="true"
-						size="lg"
-						aria-hidden="true"
-					)
-
-					fa-icon.text-danger.account-alert-icon(
-						*ngIf="showAccountAlert"
-						[icon]="alertIcon"
-						[fixedWidth]="true"
-						size="sm"
-						aria-hidden="true"
-					)
+					span.d-none.d-sm-inline([emojiText]="account.name")
 
 				.dropdown-menu.dropdown-menu-right(*dropdownMenu)
 
 					<!-- STATUS -->
 					.dropdown-item.d-flex.align-items-center
 						.flex-grow-1.mr-3
-							fa-icon.mr-2([icon]="userIcon" [fixedWidth]="true")
+							fa-icon.mr-2(
+								[icon]="userIcon"
+								[fixedWidth]="true"
+							)
 							| Status:
 
 						.dropdown(dropdown style="width: 65px;")
@@ -68,8 +90,10 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 									[fixedWidth]="true"
 									[ngClass]="hidden ? 'text-muted' : 'text-success'"
 								)
+
 								span.text-success(*ngIf="!hidden")
 									| online
+
 								span.text-muted(*ngIf="hidden")
 									| offline
 
@@ -95,7 +119,10 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 						routerLink="/account"
 						(click)="dropdown.close()"
 					)
-						fa-icon.mr-2([icon]="userCogIcon" [fixedWidth]="true")
+						fa-icon.mr-2(
+							[icon]="userCogIcon"
+							[fixedWidth]="true"
+						)
 						| Account settings
 
 						fa-icon.text-danger.ml-1(
@@ -108,7 +135,10 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 						type="button"
 						(click)="openSettings.emit(); dropdown.close()"
 					)
-						fa-icon.mr-2([icon]="cogIcon" [fixedWidth]="true")
+						fa-icon.mr-2(
+							[icon]="cogIcon"
+							[fixedWidth]="true"
+						)
 						| Open Settings
 
 					<!-- DIVIDER BEFORE ADMIN -->
@@ -166,7 +196,9 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 						| Ponies
 
 					<!-- DIVIDER BEFORE TOOLS -->
-					.dropdown-divider(*ngIf="canOpenAnimatorTools || canOpenArtistStudio || canOpenMapBuilder")
+					.dropdown-divider(
+						*ngIf="canOpenAnimatorTools || canOpenArtistStudio || canOpenMapBuilder"
+					)
 
 					<!-- TOOLS -->
 					a.dropdown-item(
@@ -174,8 +206,12 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 						*ngIf="canOpenAnimatorTools"
 						(click)="dropdown.close()"
 					)
-						fa-icon.mr-2([icon]="animatorIcon" [fixedWidth]="true")
+						fa-icon.mr-2(
+							[icon]="animatorIcon"
+							[fixedWidth]="true"
+						)
 						| Animation
+
 						span.badge.badge-dev.ml-2
 							| animator
 
@@ -184,8 +220,12 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 						*ngIf="canOpenArtistStudio"
 						(click)="dropdown.close()"
 					)
-						fa-icon.mr-2([icon]="artistIcon" [fixedWidth]="true")
+						fa-icon.mr-2(
+							[icon]="artistIcon"
+							[fixedWidth]="true"
+						)
 						| Sprite palette
+
 						span.badge.badge-dev.ml-2
 							| artist
 
@@ -194,8 +234,12 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 						*ngIf="canOpenMapBuilder"
 						(click)="dropdown.close()"
 					)
-						fa-icon.mr-2([icon]="builderIcon" [fixedWidth]="true")
+						fa-icon.mr-2(
+							[icon]="builderIcon"
+							[fixedWidth]="true"
+						)
 						| Map Preview
+
 						span.badge.badge-builder.ml-2
 							| builder
 
@@ -203,12 +247,21 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 
 					<!-- SIGN OUT -->
 					button.dropdown-item((click)="dropdown.close(); openSignOutModal()")
-						fa-icon.mr-2([icon]="signOutIcon" [fixedWidth]="true")
+						fa-icon.mr-2(
+							[icon]="signOutIcon"
+							[fixedWidth]="true"
+						)
 						| Sign out
 
-
-		.text-muted(*ngIf="loading" style="font-size: 20px; padding: 10px 20px;")
-			fa-icon([icon]="spinnerIcon" [fixedWidth]="true" [spin]="true")
+		.text-muted(
+			*ngIf="loading"
+			style="font-size: 20px; padding: 10px 20px;"
+		)
+			fa-icon(
+				[icon]="spinnerIcon"
+				[fixedWidth]="true"
+				[spin]="true"
+			)
 
 		form.navbar-form.ml-2(*ngIf="!loading && !account")
 			.button-group.dropdown(dropdown)
@@ -217,7 +270,6 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 					dropdownToggle
 					[disabled]="!!loadingError"
 				)
-
 					fa-icon(
 						[icon]="userIcon"
 						[fixedWidth]="true"
@@ -226,16 +278,10 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 					span
 						| Login & Reg
 
-
-
 				.dropdown-menu.dropdown-menu-right(*dropdownMenu)
-
-
 
 					.dropdown-header(*ngIf="signUpProviders.length")
 						| Log In or Register
-
-
 
 					button.dropdown-item.provider-item(
 						*ngFor="let p of signUpProviders"
@@ -245,10 +291,8 @@ nav.navbar.navbar-expand.justify-content-end(role="navigation")
 						span.provider-badge
 							| {{p.name}}
 
-
 					.dropdown-header(*ngIf="signInProviders.length")
 						| Log In only
-
 
 					button.dropdown-item.provider-item.sign-in-only(
 						*ngFor="let p of signInProviders"

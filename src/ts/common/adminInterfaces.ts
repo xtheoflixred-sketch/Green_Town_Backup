@@ -405,6 +405,7 @@ export interface AccountBase<ID> extends TimestampsBase, BannedMuted {
 	lastOnline?: Date;
 	lastLogin?: Date;
 	lastLogout?: Date;
+	lastSessionSeconds?: number;
 	lastCharacter?: ID;
 	ignores?: string[];
 	flags: AccountFlags;
