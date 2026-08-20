@@ -1092,14 +1092,14 @@ export function createCommands(world: World): Command[] {
 		const text = `Total Playtime: ${formatPlaytime(totalSeconds)} (${totalSeconds} sec)`;
 		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
 	}, false, 'Other'),
-	command(['lastgame', 'lastentry', 'lastused'], '/lastgame - show when you last entered the game', '', async ({ }, client, _message, type, target, settings) => {
+	command(['lastgame', 'lastentry', 'lastused'], '/lastgame - показать дату последнего входа в игру', '', async ({ }, client, _message, type, target, settings) => {
 		const pony = await Character.findOne({ account: client.accountId }, 'lastUsed').sort('-lastUsed').lean().exec();
-		const text = `Last game entry: ${formatLastGameEntry(pony && pony.lastUsed)}`;
+		const text = `Последний вход в игру: ${formatLastGameEntry(pony && pony.lastUsed)}`;
 		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
 	}, false, 'Other'),
-	command(['lastsession', 'sessiontime'], '/lastsession - show the duration of your last game session', '', ({ }, client, _message, type, target, settings) => {
+	command(['lastsession', 'sessiontime'], '/lastsession - показать длительность последней игровой сессии', '', ({ }, client, _message, type, target, settings) => {
 		const seconds = client.account.lastSessionSeconds;
-		const text = seconds == null ? 'Last session playtime: unknown' : `Last session playtime: ${formatPlaytime(seconds)} (${seconds} sec)`;
+		const text = seconds == null ? 'Длительность последней сессии неизвестна' : `Длительность последней сессии: ${formatPlaytime(seconds)} (${seconds} сек.)`;
 		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
 	}, false, 'Other'),
 
@@ -1444,8 +1444,8 @@ export function createCommands(world: World): Command[] {
 
 			sayTo(client, client.pony, text, MessageType.Chat);
 		}, false, 'Mod'),
-		command(['rareitems', 'rare'], '/rareitems - show rare hold items', 'mod', ({ }, client) => {
-			saySystem(client, `Rare items: ${rareHoldTypeNames.join(', ')}`);
+			command(['rareitems', 'rare'], '/rare - показать список редких предметов', 'mod', ({ }, client) => {
+				saySystem(client, `Редкие предметы: ${rareHoldTypeNames.join(', ')}`);
 		}, false, 'Mod'),
 		command(['msgcolor'], '/msgcolor <#hex> - set custom chat message color', '', ({ }, client, message) => {
 			const color = message.trim().toLowerCase();
