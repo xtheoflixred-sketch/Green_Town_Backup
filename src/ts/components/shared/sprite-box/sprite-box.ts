@@ -119,7 +119,7 @@ export class SpriteBox implements AfterViewInit, OnChanges, DoCheck {
 			const fills = Array.isArray(this.fill) ? this.fill : [this.fill];
 			const outlines = Array.isArray(this.outline) ? this.outline : [this.outline];
 			const paletteColors = toColorList(getColorsFromSet({ fills, outlines }, '000000', this.darken));
-			const palette = mockPaletteManager.addArray(paletteColors);
+			const palette = sprite.palette ? mockPaletteManager.addArray(sprite.palette) : mockPaletteManager.addArray(paletteColors);
 			const extraPalette = sprite.palettes && mockPaletteManager.addArray(sprite.palettes[0]);
 
 			// Check if sprite has actual geometry (sprite.color)

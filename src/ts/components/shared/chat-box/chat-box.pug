@@ -3,7 +3,7 @@
 		.command-dropdown(*ngIf="showCommandDropdown")
 			ul.command-dropdown-menu(*ngIf="!tobeMode && !isSubcommandMode")
 				ng-container(*ngFor="let group of filteredCommandGroups")
-					li.command-dropdown-category [attr.aria-hidden]="true" {{group.category}}
+					li.command-dropdown-category {{group.category}}
 					li.command-dropdown-item(*ngFor="let cmd of group.commands" [class.active]="isSelectedCommand(cmd)" (click)="selectCommand(cmd)")
 						| /{{cmd.name}}
 						span.command-help(*ngIf="cmd.help") {{cmd.help}}
@@ -41,12 +41,12 @@
 					(click)="selectToyById(toy.id)"
 				)
 					span.toy-icon-frame
-						img.toy-sprite-img(
-							*ngIf="getToySpriteUrl(toy.id)",
-							[src]="getToySpriteUrl(toy.id)",
-							width="30",
-							height="30",
-							draggable="false"
+						sprite-box(
+							*ngIf="getToyPreview(toy.id)"
+							[sprite]="getToyPreview(toy.id)"
+							size="30"
+							scale="1"
+							[darken]="false"
 						)
 					span.toy-name {{toy.name}}
 					span.toy-number {{ '#' + toy.id }}
@@ -54,6 +54,54 @@
 		.msgcolor-picker(*ngIf="showColorPicker" [ngStyle]="colorPickerStyle")
 			button.msgcolor-reset((click)="resetColor()") default
 			color-picker([color]="msgColor" [isOpen]="showColorPicker" (colorChange)="onColorChange($event)" openUp)
+
+		.chat-markdown-toolbar(
+			*ngIf="showMarkdownToolbar"
+			[ngStyle]="markdownToolbarStyle"
+			(mousedown)="$event.preventDefault(); $event.stopPropagation()"
+			(click)="$event.stopPropagation()"
+		)
+			.chat-markdown-toolbar-actions
+				button.chat-markdown-tool(
+					type="button"
+					title="Bold"
+					aria-label="Bold"
+					(click)="applyMarkdownWrap('**')"
+				)
+					strong B
+				button.chat-markdown-tool(
+					type="button"
+					title="Italic"
+					aria-label="Italic"
+					(click)="applyMarkdownWrap('*')"
+				)
+					em I
+				button.chat-markdown-tool(
+					type="button"
+					title="Strikethrough"
+					aria-label="Strikethrough"
+					(click)="applyMarkdownWrap('~~')"
+				)
+					del S
+				button.chat-markdown-tool(
+					type="button"
+					title="Inline code"
+					aria-label="Inline code"
+					(click)="applyMarkdownWrap('`')"
+				)
+					| code
+				button.chat-markdown-tool(
+					type="button"
+					title="Link"
+					aria-label="Link"
+					(click)="applyMarkdownLink()"
+				)
+					| 🔗
+
+			.chat-markdown-preview(
+				*ngIf="markdownPreviewHtml"
+				[innerHTML]="markdownPreviewHtml"
+			)
 
 		.chat-input#chat-input(
 			#inputElement
@@ -65,6 +113,8 @@
 			(input)="onEditorInput($event)"
 			(click)="onInputClick($event)"
 			(mousedown)="onInputMouseDown($event)"
+			(mouseup)="updateMarkdownSelection()"
+			(keyup)="updateMarkdownSelection()"
 			(blur)="onEditorBlur($event)"
 			(paste)="onEditorPaste($event)"
 			aria-label="Chat message"

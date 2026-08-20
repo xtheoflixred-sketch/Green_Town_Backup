@@ -1,5 +1,5 @@
 import {
-	PonyEye, PonyState, PalettePonyInfo, PaletteSpriteSet, Palette, HeadAnimationFrame,
+	PonyEye, PonyState, PalettePonyInfo, PaletteSpriteSet, Palette, HeadAnimationFrame, ColorExtra,
 	Eye, Iris, ColorExtraSets, ExpressionExtra, BodyAnimationFrame, DrawPonyOptions, Muzzle, BodyShadow, DrawOptions,
 	NoDraw, PaletteSpriteBatch, defaultDrawOptions, PonyStateFlags, PaletteManager, Matrix2D, HeadAnimationProperties,
 	getEyeOpenness, Expression, getMuzzleOpenness,
@@ -232,6 +232,32 @@ export function initializeToys(paletteManager: PaletteManager) {
 // export accessor for toy data
 export function getToySprite(id: number): PaletteSpriteSet | undefined {
 	return toys[id];
+}
+
+export function getToyColorExtra(id: number): ColorExtra | undefined {
+	const toySet = getToySprite(id);
+	if (!toySet) return undefined;
+
+	const layers = [
+		sprites.extraAccessoriesBehind[toySet.type],
+		sprites.extraAccessories[toySet.type],
+	]
+		.map(patterns => patterns && patterns[toySet.pattern])
+		.filter((pattern): pattern is NonNullable<typeof pattern> => !!pattern);
+	const colors = layers
+		.map(layer => layer.color)
+		.filter((color): color is NonNullable<typeof color> => !!color);
+	const firstColor = colors[0];
+	if (!firstColor) return undefined;
+	const item: ColorExtra = { color: firstColor };
+	if (colors.length > 1) item.colorMany = colors;
+	const extra = layers.map(layer => layer.extra).find(value => !!value);
+	if (extra) item.extra = extra;
+	if (toySet.palette && toySet.palette.colors) {
+		item.palette = toySet.palette.colors;
+		item.palettes = [toySet.palette.colors];
+	}
+	return colors.length > 0 ? item : undefined;
 }
 
 // Draw a preview of a toy on a pony's head for icon rendering

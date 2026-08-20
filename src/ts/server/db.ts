@@ -244,6 +244,7 @@ export interface MongoQueryExpr<T> {
 
 export interface MongoUpdateExprField<T> {
 	$inc?: any;
+	$set?: any;
 	$dec?: any;
 	$pull?: any;
 	$push?: any;

@@ -138,34 +138,28 @@ export function drawTextAligned(
 }
 
 export function lineBreak(text: string, font: SpriteFont, width: number) {
-	const lines: string[][] = [];
 	const spaceWidth = measureChar(font, SPACE) + font.letterSpacing * 2;
+	return text.split('\n').map(paragraph => {
+		const lines: string[][] = [];
+		let line: string[] = [];
+		let lineWidth = 0;
 
-	let line: string[] = [];
-	let lineWidth = 0;
-
-	for (const word of text.split(' ')) {
-		const { w } = measureText(word, font);
-
-		if (lineWidth) {
-			lineWidth += spaceWidth;
-
-			if (lineWidth + w > width) {
-				lines.push(line);
-				line = [];
-				lineWidth = 0;
+		for (const word of paragraph.split(' ')) {
+			const { w } = measureText(word, font);
+			if (lineWidth) {
+				lineWidth += spaceWidth;
+				if (lineWidth + w > width) {
+					lines.push(line);
+					line = [];
+					lineWidth = 0;
+				}
 			}
+			line.push(word);
+			lineWidth += w;
 		}
-
-		line.push(word);
-		lineWidth += w;
-	}
-
-	if (line.length) {
 		lines.push(line);
-	}
-
-	return lines.map(x => x.join(' ')).join('\n');
+		return lines.map(x => x.join(' ')).join('\n');
+	}).join('\n');
 }
 
 function measureChars(chars: Uint32Array, length: number, font: SpriteFont): { w: number; h: number; } {

@@ -1,6 +1,6 @@
 import { Component, ElementRef, NgZone, AfterViewInit, ViewChild, OnDestroy, Input } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ChatType, MessageType, isPartyChat, Entity, FakeEntity, isTypingIndicatorMessage } from '../../../common/interfaces';
+import { ChatType, MessageType, isPartyChat, Entity, FakeEntity, isTypingIndicatorMessage, ColorExtra } from '../../../common/interfaces';
 import { SAY_MAX_LENGTH } from '../../../common/constants';
 import { Key } from '../../../client/input/input';
 import { PonyTownGame } from '../../../client/game';
@@ -22,11 +22,7 @@ import { getCharacterSprite } from '../../../graphics/spriteFont';
 import { getTag } from '../../../common/tags';
 import { isMobile } from '../../../client/data';
 import { Model } from '../../services/model';
-import { getToySprite, initializeToys } from '../../../client/ponyDraw';
-import * as sprites from '../../../generated/sprites';
-import { drawCanvas } from '../../../graphics/contextSpriteBatch';
-import { mockPaletteManager } from '../../../common/ponyInfo';
-import { WHITE } from '../../../common/colors';
+import { getToyColorExtra, initializeToys } from '../../../client/ponyDraw';
 
 interface ToyEntry {
 	id: number;
@@ -105,6 +101,8 @@ function getCommandCategory(command: ClientCommand): string {
 
 const typingIndicatorShowDelay = 300;
 const typingIndicatorHideDelay = 1000;
+const chatInputMinHeight = 37;
+const chatInputMaxHeight = 180;
 @Component({
 	selector: 'chat-box',
 	templateUrl: 'chat-box.pug',
@@ -163,6 +161,16 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	private chatTypeMenuCacheReady = false;
 	chatTypeDeveloperCollapsed = false;
 	chatTypeSupporterCollapsed = false;
+
+	// Markdown selection toolbar. This is intentionally layered on top of the
+	// existing contenteditable and stores Markdown as plain text, never HTML.
+	showMarkdownToolbar = false;
+	markdownToolbarStyle: { [key: string]: string } = {};
+	markdownPreviewHtml = '';
+	private savedMarkdownRange: Range | undefined;
+	private markdownSelecting = false;
+	private documentSelectionChangeHandler: () => void = () => undefined;
+	private documentMouseUpHandler: () => void = () => undefined;
 
 	get chatTypeMenuOptions(): ChatTypeMenuOption[] {
 		if (!this.chatTypeMenuCacheReady) {
@@ -244,12 +252,18 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	selectedSeasonIndex = 0;
 	private readonly _seasonValues = ['spring', 'summer', 'autumn', 'winter'];
 	private readonly _holidayValues = ['none', 'christmas', 'halloween', 'stpatricks', 'easter'];
+
+	// Stable autocomplete caches. The template reads these through getters,
+	// but the getters no longer create new arrays during every change-detection pass.
+	private filteredCommandsCache: ClientCommand[] = [];
+	private filteredCommandGroupsCache: Array<{ category: string; commands: ClientCommand[] }> = [];
+	private filteredSubcommandsCache: string[] = [];
+	private filteredTobeEntitiesCache: string[] = [];
+	private filteredSeasonItemsCache: string[] = [];
+	private activeCommandCache: ClientCommand | undefined;
+
 	get filteredSeasonItems(): string[] {
-		const q = this.seasonQuery.toLowerCase();
-		if (this.seasonPhase === 'holiday') {
-			return this._holidayValues.filter(h => h.startsWith(q));
-		}
-		return this._seasonValues.filter(s => s.startsWith(q));
+		return this.filteredSeasonItemsCache;
 	}
 	private readonly _allToys: ToyEntry[] = [
 		{ id: 1, name: 'Red Hat', color: '#ff2525', category: 'hat' },
@@ -308,156 +322,140 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.syncEditorFromMessage();
 		this.focusInput();
 	}
-	private toySpriteUrls = new Map<number, string>();
-	getToySpriteUrl(toyId: number): string | undefined {
-		return this.toySpriteUrls.get(toyId);
+	private toySprites = new Map<number, ColorExtra>();
+	getToyPreview(toyId: number): ColorExtra | undefined {
+		return this.toySprites.get(toyId);
 	}
 	private initToyPreviewActions() {
-		if (this.toySpriteUrls.size > 0) return;
-		const size = 30;
-		const pad = 2;
-		const fit = size - pad * 2;
-
-		const sheetDataOk = !!sprites.paletteSpriteSheet.data;
-		if (!sheetDataOk) {
-			console.warn('[toy preview] paletteSpriteSheet.data is not loaded');
-		}
-
+		if (this.toySprites.size > 0) return;
 		for (const toy of this._allToys) {
-			const toySet = getToySprite(toy.id);
-			if (!toySet) continue;
-			const patterns = (sprites.extraAccessoriesBehind as any)[toySet.type]
-				|| (sprites.extraAccessories as any)[toySet.type];
-			
-			// Fallback for palette-only toys (no sprite geometry)
-			if (!patterns || !patterns[toySet.pattern] || !patterns[toySet.pattern].color) {
-				if (toySet.palette && toySet.palette.colors && toySet.palette.colors.length > 1) {
-					const rgbaArray = new Uint32Array(toySet.palette.colors);
-					const color = rgbaArray[1] || 0xFFFFFFFF;
-					const colorHex = '#' + ((color >>> 8) & 0xFFFFFF).toString(16).padStart(6, '0');
-					
-					const final = drawCanvas(size, size, sprites.paletteSpriteSheet, undefined, batch => {
-						const ctx = batch.canvas.getContext('2d')!;
-						ctx.globalAlpha = 0.7;
-						ctx.fillStyle = colorHex;
-						const rectSize = Math.min(size - 4, 24);
-						const x = Math.round((size - rectSize) / 2);
-						const y = Math.round((size - rectSize) / 2);
-						ctx.fillRect(x, y, rectSize, rectSize);
-						ctx.globalAlpha = 1.0;
-					});
-					this.toySpriteUrls.set(toy.id, final.toDataURL());
-				}
-				continue;
-			}
-
-			const patternSprite = patterns[toySet.pattern];
-			const sprite = patternSprite.color;
-			const palette = mockPaletteManager.addArray(toySet.palette!.colors!);
-
-			if (sprite.w === 0 || sprite.h === 0) {
-				console.warn(`[toy preview] toy ${toy.id} has zero-size sprite`);
-				continue;
-			}
-
-			const tmp = drawCanvas(sprite.w, sprite.h, sprites.paletteSpriteSheet, undefined, batch => {
-				batch.drawSprite(sprite, WHITE, palette, 0, 0);
-			});
-			const ctx = tmp.getContext('2d')!;
-			const imgData = ctx.getImageData(0, 0, sprite.w, sprite.h);
-			const d = imgData.data;
-			let x0 = sprite.w, y0 = sprite.h, x1 = 0, y1 = 0;
-			for (let r = 0; r < sprite.h; r++) {
-				for (let c = 0; c < sprite.w; c++) {
-					const a = d[(r * sprite.w + c) * 4 + 3];
-					if (a > 0) {
-						if (c < x0) x0 = c;
-						if (r < y0) y0 = r;
-						if (c > x1) x1 = c;
-						if (r > y1) y1 = r;
-					}
-				}
-			}
-			if (x1 < x0 || y1 < y0) {
-				console.warn(`[toy preview] toy ${toy.id} (${toy.name}): no visible pixels, sprite: w=${sprite.w} h=${sprite.h} ox=${sprite.ox} oy=${sprite.oy} type=${sprite.type}, palette colors: ${palette.colors.length}`);
-				if (toySet.palette && toySet.palette.colors && toySet.palette.colors.length > 1) {
-					const rgbaArray = new Uint32Array(toySet.palette.colors);
-					const color = rgbaArray[1] || 0xFFFFFFFF;
-					const colorHex = '#' + ((color >>> 8) & 0xFFFFFF).toString(16).padStart(6, '0');
-
-					const final = drawCanvas(size, size, sprites.paletteSpriteSheet, undefined, batch => {
-						const ctx = batch.canvas.getContext('2d')!;
-						ctx.globalAlpha = 0.7;
-						ctx.fillStyle = colorHex;
-						const rectSize = Math.min(size - 4, 24);
-						const x = Math.round((size - rectSize) / 2);
-						const y = Math.round((size - rectSize) / 2);
-						ctx.fillRect(x, y, rectSize, rectSize);
-						ctx.globalAlpha = 1.0;
-					});
-					this.toySpriteUrls.set(toy.id, final.toDataURL());
-				}
-				continue;
-			}
-
-			const cw = x1 - x0 + 1;
-			const ch = y1 - y0 + 1;
-			const sc = Math.min(1, fit / Math.max(cw, ch));
-			const sw = Math.round(cw * sc);
-			const sh = Math.round(ch * sc);
-			const ox = Math.round((size - sw) / 2) - x0;
-			const oy = Math.round((size - sh) / 2) - y0;
-
-			const final = drawCanvas(size, size, sprites.paletteSpriteSheet, undefined, batch => {
-				batch.drawSprite(sprite, WHITE, palette, ox, oy);
-			});
-			this.toySpriteUrls.set(toy.id, final.toDataURL());
+			const preview = getToyColorExtra(toy.id);
+			if (preview) this.toySprites.set(toy.id, preview);
 		}
 	}
 	get filteredCommands(): ClientCommand[] {
-		if (this.isSubcommandMode) return [];
-		const query = this.commandQuery.toLowerCase();
-		return CLIENT_COMMANDS.filter((c: ClientCommand) =>
-			canUseCommand(c, this.game.model.account) && c.name.toLowerCase().startsWith(query));
+		return this.filteredCommandsCache;
 	}
+
 	get filteredCommandGroups(): Array<{ category: string; commands: ClientCommand[] }> {
-		const groups: Array<{ category: string; commands: ClientCommand[] }> = [];
-		for (const command of this.filteredCommands) {
-			const category = getCommandCategory(command);
-			let group = groups.find(item => item.category === category);
-			if (!group) {
-				group = { category, commands: [] };
-				groups.push(group);
-			}
-			group.commands.push(command);
-		}
-		return groups;
+		return this.filteredCommandGroupsCache;
 	}
+
 	isSelectedCommand(command: ClientCommand) {
-		return this.filteredCommands[this.selectedCommandIndex] === command;
+		return this.filteredCommandsCache[this.selectedCommandIndex] === command;
 	}
+
 	get isSubcommandMode() {
 		return /\s/.test(this.commandQuery);
 	}
+
 	get activeCommand(): ClientCommand | undefined {
-		const name = this.commandQuery.trim().split(/\s+/)[0].toLowerCase();
-		return CLIENT_COMMANDS.find(command => command.name.toLowerCase() === name && canUseCommand(command, this.game.model.account));
+		return this.activeCommandCache;
 	}
+
 	get filteredSubcommands(): string[] {
-		const command = this.activeCommand;
-		if (!command || !command.subcommands) return [];
-		const query = this.commandQuery.trim().split(/\s+/).slice(1).join(' ').toLowerCase();
-		return command.subcommands.filter(subcommand => subcommand.toLowerCase().startsWith(query));
+		return this.filteredSubcommandsCache;
 	}
+
 	get filteredTobeEntities(): string[] {
+		return this.filteredTobeEntitiesCache;
+	}
+
+	private refreshAutocompleteCaches() {
+		const commandQuery = this.commandQuery.toLowerCase();
+
+		if (this.isSubcommandMode) {
+			this.filteredCommandsCache = [];
+			this.filteredCommandGroupsCache = [];
+
+			const commandName = this.commandQuery.trim().split(/\s+/)[0].toLowerCase();
+			this.activeCommandCache = CLIENT_COMMANDS.find(
+				command =>
+					command.name.toLowerCase() === commandName &&
+					canUseCommand(command, this.game.model.account)
+			);
+
+			if (this.activeCommandCache && this.activeCommandCache.subcommands) {
+				const query = this.commandQuery
+					.trim()
+					.split(/\s+/)
+					.slice(1)
+					.join(' ')
+					.toLowerCase();
+
+				this.filteredSubcommandsCache = this.activeCommandCache.subcommands.filter(
+					subcommand => subcommand.toLowerCase().startsWith(query)
+				);
+			} else {
+				this.filteredSubcommandsCache = [];
+			}
+
+			return;
+		}
+
+		this.activeCommandCache = undefined;
+		this.filteredSubcommandsCache = [];
+
+		const commands = CLIENT_COMMANDS.filter(
+			(c: ClientCommand) =>
+				canUseCommand(c, this.game.model.account) &&
+				c.name.toLowerCase().startsWith(commandQuery)
+		);
+
+		this.filteredCommandsCache = commands;
+
+		const groups: Array<{ category: string; commands: ClientCommand[] }> = [];
+		for (const command of commands) {
+			const category = getCommandCategory(command);
+			let group = groups.find(item => item.category === category);
+
+			if (!group) {
+				group = {
+					category,
+					commands: [],
+				};
+				groups.push(group);
+			}
+
+			group.commands.push(command);
+		}
+
+		this.filteredCommandGroupsCache = groups;
+	}
+
+	private refreshTobeAutocomplete() {
 		const query = this.tobeQuery.toLowerCase();
-		return TOBE_ENTITIES.filter((e: string) => e.toLowerCase().startsWith(query));
+
+		this.filteredTobeEntitiesCache = TOBE_ENTITIES.filter(
+			(e: string) => e.toLowerCase().startsWith(query)
+		);
+	}
+
+	private refreshSeasonAutocomplete() {
+		const query = this.seasonQuery.toLowerCase();
+		const values = this.seasonPhase === 'holiday'
+			? this._holidayValues
+			: this._seasonValues;
+
+		this.filteredSeasonItemsCache = values.filter(
+			value => value.startsWith(query)
+		);
+	}
+
+	private clearAutocompleteCaches() {
+		this.filteredCommandsCache = [];
+		this.filteredCommandGroupsCache = [];
+		this.filteredSubcommandsCache = [];
+		this.filteredTobeEntitiesCache = [];
+		this.filteredSeasonItemsCache = [];
+		this.activeCommandCache = undefined;
 	}
 	selectCommand(cmd: ClientCommand) {
 		this.showCommandDropdown = false;
 		this.commandQuery = '';
 		this.selectedCommandIndex = 0;
 		this.selectedSubcommandIndex = 0;
+		this.refreshAutocompleteCaches();
 		if (cmd.name === 'tobe') {
 			this.message = '/tobe ';
 			this.tobeMode = true;
@@ -478,6 +476,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.showCommandDropdown = false;
 		this.commandQuery = '';
 		this.selectedSubcommandIndex = 0;
+		this.refreshAutocompleteCaches();
 		this.message = `/${command.name} ${subcommand} `;
 		this.syncEditorFromMessage();
 		this.focusInput();
@@ -487,6 +486,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.tobeMode = false;
 		this.tobeQuery = '';
 		this.selectedTobeIndex = 0;
+		this.refreshTobeAutocomplete();
 		this.message = `/tobe ${entity} `;
 		this.syncEditorFromMessage();
 		this.focusInput();
@@ -525,11 +525,14 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 					this.selectTobeEntity(matches[this.selectedTobeIndex] || matches[0]);
 				}
 			} else {
-				const matches = this.isSubcommandMode ? this.filteredSubcommands : this.filteredCommands;
-				if (matches.length > 0) {
-					if (this.isSubcommandMode) {
+				if (this.isSubcommandMode) {
+					const matches = this.filteredSubcommands;
+					if (matches.length > 0) {
 						this.selectSubcommand(matches[this.selectedSubcommandIndex] || matches[0]);
-					} else {
+					}
+				} else {
+					const matches = this.filteredCommands;
+					if (matches.length > 0) {
 						this.selectCommand(matches[this.selectedCommandIndex] || matches[0]);
 					}
 				}
@@ -598,11 +601,11 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			activeItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 		}
 	}
-	constructor(private game: PonyTownGame, private model: Model, zone: NgZone) {
+	constructor(private game: PonyTownGame, private model: Model, private zone: NgZone) {
 		this.subscriptions = [
-			this.game.onChat.subscribe(() => zone.run(() => this.chat(undefined))),
-			this.game.onToggleChat.subscribe(() => zone.run(() => this.toggle())),
-			this.game.onCommand.subscribe(() => zone.run(() => this.command())),
+			this.game.onChat.subscribe(() => this.zone.run(() => this.chat(undefined))),
+			this.game.onToggleChat.subscribe(() => this.zone.run(() => this.toggle())),
+			this.game.onCommand.subscribe(() => this.zone.run(() => this.command())),
 			this.game.onLeft.subscribe(() => {
 				this.chatType = ChatType.Say;
 				this.chatModeOverride = undefined;
@@ -693,11 +696,28 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			}
 		};
 		document.addEventListener('keydown', this.documentKeydownHandler);
+
+		this.documentSelectionChangeHandler = () => {
+			// Do not put the floating toolbar under the mouse while the user is
+			// still dragging a selection. It must appear only after selection ends.
+			if (!this.markdownSelecting) {
+				this.updateMarkdownSelection();
+			}
+		};
+		document.addEventListener('selectionchange', this.documentSelectionChangeHandler);
+		this.documentMouseUpHandler = () => {
+			if (!this.markdownSelecting) return;
+			this.markdownSelecting = false;
+			requestAnimationFrame(() => this.updateMarkdownSelection());
+		};
+		document.addEventListener('mouseup', this.documentMouseUpHandler);
 		loadAndInitSpriteSheets().then(() => {
-			this.initialized = true;
-			initializeToys(this.game.paletteManager);
-			this.initToyPreviewActions();
-			this.syncEditorFromMessage();
+			this.zone.run(() => {
+				this.initialized = true;
+				initializeToys(this.game.paletteManager);
+				this.initToyPreviewActions();
+				this.syncEditorFromMessage();
+			});
 		});
 	}
 	ngOnDestroy() {
@@ -707,6 +727,12 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		}
 		if (this.documentKeydownHandler) {
 			document.removeEventListener('keydown', this.documentKeydownHandler);
+		}
+		if (this.documentSelectionChangeHandler) {
+			document.removeEventListener('selectionchange', this.documentSelectionChangeHandler);
+		}
+		if (this.documentMouseUpHandler) {
+			document.removeEventListener('mouseup', this.documentMouseUpHandler);
 		}
 		if (this.isOpen) {
 			this.game.setKeyboardDisabled(false);
@@ -727,6 +753,192 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		}
 		this.syncEditorFromMessage();
 		this.updateTypingIndicator();
+	}
+
+	private updateMarkdownSelection() {
+		if (this.markdownSelecting) return;
+		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
+		const selection = window.getSelection();
+		if (!el || !selection || !selection.rangeCount) {
+			this.hideMarkdownToolbar();
+			return;
+		}
+
+		const range = selection.getRangeAt(0);
+		const insideEditor = el.contains(range.commonAncestorContainer);
+		const selectedText = selection.toString();
+
+		if (!insideEditor || !selectedText.trim()) {
+			this.hideMarkdownToolbar();
+			return;
+		}
+
+		this.savedMarkdownRange = range.cloneRange();
+		const rect = range.getBoundingClientRect();
+		const toolbarWidth = 236;
+		const toolbarHeight = 72;
+		const left = Math.max(8, Math.min(
+			window.innerWidth - toolbarWidth - 8,
+			rect.left + rect.width / 2 - toolbarWidth / 2
+		));
+		const top = rect.top >= toolbarHeight + 12
+			? rect.top - toolbarHeight - 8
+			: rect.bottom + 8;
+
+		this.markdownToolbarStyle = {
+			left: `${left}px`,
+			top: `${Math.max(8, top)}px`,
+		};
+		this.markdownPreviewHtml = this.renderMarkdownPreview(selectedText);
+		this.showMarkdownToolbar = true;
+	}
+
+	private hideMarkdownToolbar() {
+		this.showMarkdownToolbar = false;
+		this.markdownPreviewHtml = '';
+		this.savedMarkdownRange = undefined;
+	}
+
+	private restoreMarkdownSelection(): Range | undefined {
+		const selection = window.getSelection();
+		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
+		const range = this.savedMarkdownRange;
+		if (!selection || !el || !range) return undefined;
+
+		selection.removeAllRanges();
+		selection.addRange(range);
+		return range;
+	}
+
+	applyMarkdownWrap(marker: string) {
+		const range = this.restoreMarkdownSelection();
+		if (!range || range.collapsed) return;
+
+		const selected = range.toString();
+		if (!selected.trim()) return;
+
+		const alreadyWrapped = selected.length >= marker.length * 2
+			&& selected.startsWith(marker)
+			&& selected.endsWith(marker);
+
+		const replacement = alreadyWrapped
+			? selected.substring(marker.length, selected.length - marker.length)
+			: `${marker}${selected}${marker}`;
+
+		range.deleteContents();
+		const textNode = document.createTextNode(replacement);
+		range.insertNode(textNode);
+
+		const nextRange = document.createRange();
+		if (alreadyWrapped) {
+			nextRange.setStart(textNode, 0);
+			nextRange.setEnd(textNode, replacement.length);
+		} else {
+			nextRange.setStart(textNode, marker.length);
+			nextRange.setEnd(textNode, replacement.length - marker.length);
+		}
+
+		const selection = window.getSelection();
+		if (selection) {
+			selection.removeAllRanges();
+			selection.addRange(nextRange);
+		}
+
+		this.savedMarkdownRange = nextRange.cloneRange();
+		this.onMessageChange();
+		this.updateMarkdownSelection();
+	}
+
+	applyMarkdownLink() {
+		const range = this.restoreMarkdownSelection();
+		if (!range || range.collapsed) return;
+
+		const selected = range.toString();
+		if (!selected.trim()) return;
+
+		const url = window.prompt('Link URL', 'https://');
+		if (!url) {
+			this.updateMarkdownSelection();
+			return;
+		}
+
+		const replacement = `[${selected}](${url.trim()})`;
+		range.deleteContents();
+		const textNode = document.createTextNode(replacement);
+		range.insertNode(textNode);
+
+		const nextRange = document.createRange();
+		nextRange.setStart(textNode, 1);
+		nextRange.setEnd(textNode, 1 + selected.length);
+
+		const selection = window.getSelection();
+		if (selection) {
+			selection.removeAllRanges();
+			selection.addRange(nextRange);
+		}
+
+		this.savedMarkdownRange = nextRange.cloneRange();
+		this.onMessageChange();
+		this.updateMarkdownSelection();
+	}
+
+	private renderMarkdownPreview(value: string): string {
+		const escapeHtml = (text: string) => text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+
+		let html = escapeHtml(value);
+		html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+		html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+		html = html.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+		html = html.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+		html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+		html = html.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+		html = html.replace(
+			/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,
+			'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+		);
+		return html.replace(/\n/g, '<br>');
+	}
+
+	private resizeChatInput() {
+		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
+		if (!el) return;
+
+		el.style.height = 'auto';
+		const nextHeight = Math.max(chatInputMinHeight, Math.min(el.scrollHeight, chatInputMaxHeight));
+		el.style.height = `${nextHeight}px`;
+		el.style.overflowY = el.scrollHeight > chatInputMaxHeight ? 'auto' : 'hidden';
+
+		const box = this.chatBox && this.chatBox.nativeElement as HTMLElement;
+		if (box) {
+			box.style.height = `${nextHeight}px`;
+		}
+	}
+
+	private insertLineBreakAtCursor() {
+		const selection = window.getSelection();
+		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
+		if (!selection || !el) return;
+
+		if (!selection.rangeCount || !el.contains(selection.anchorNode)) {
+			this.focusInput();
+			return;
+		}
+
+		const range = selection.getRangeAt(0);
+		range.deleteContents();
+
+		const lineBreak = document.createElement('br');
+		range.insertNode(lineBreak);
+		range.setStartAfter(lineBreak);
+		range.collapse(true);
+
+		selection.removeAllRanges();
+		selection.addRange(range);
 	}
 
 	private syncEditorFromMessage() {
@@ -764,25 +976,42 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		} else {
 			el.classList.remove('empty');
 		}
+
+		requestAnimationFrame(() => this.resizeChatInput());
 	}
 
 	private extractMessageFromEditor(): string {
 		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
 		if (!el) return '';
-		let result = '';
-		for (const node of Array.from(el.childNodes)) {
+
+		const extractNode = (node: Node): string => {
 			if (node.nodeType === Node.TEXT_NODE) {
-				result += node.textContent || '';
-			} else if (node.nodeType === Node.ELEMENT_NODE) {
-				const elem = node as HTMLElement;
-				if (elem.tagName === 'IMG' && (elem as HTMLImageElement).alt) {
-					result += (elem as HTMLImageElement).alt;
-				} else if (elem.tagName !== 'BR') {
-					result += elem.textContent || '';
-				}
+				return node.textContent || '';
 			}
-		}
-		return result.replace(/[\u200B\u00A0]/g, ' ').replace(/\s+/g, ' ');
+
+			if (node.nodeType !== Node.ELEMENT_NODE) {
+				return '';
+			}
+
+			const elem = node as HTMLElement;
+			if (elem.tagName === 'IMG' && (elem as HTMLImageElement).alt) {
+				return (elem as HTMLImageElement).alt;
+			}
+
+			if (elem.tagName === 'BR') {
+				return '\n';
+			}
+
+			return Array.from(elem.childNodes).map(extractNode).join('');
+		};
+
+		const extracted = Array.from(el.childNodes)
+			.map(extractNode)
+			.join('')
+			.replace(/[\u200B\u00A0]/g, ' ')
+			.replace(/[ \t]+\n/g, '\n')
+			.replace(/\n[ \t]+/g, '\n');
+		return extracted;
 	}
 	toggleEmojiBox() {
 		if (this.emojiBoxState === 'none') {
@@ -802,6 +1031,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.message = extracted;
 		}
 		this.updatingMessage = false;
+		this.resizeChatInput();
 		this.updateTypingIndicator();
 
 		const msg = this.message || '';
@@ -901,6 +1131,28 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.selectedSeasonIndex = 0;
 			this.showCommandDropdown = false;
 			this.showToyDropdown = false;
+		}
+
+		if (this.tobeMode) {
+			this.refreshTobeAutocomplete();
+			this.filteredCommandsCache = [];
+			this.filteredCommandGroupsCache = [];
+			this.filteredSubcommandsCache = [];
+			this.filteredSeasonItemsCache = [];
+			this.activeCommandCache = undefined;
+		} else if (this.seasonMode) {
+			this.refreshSeasonAutocomplete();
+			this.filteredCommandsCache = [];
+			this.filteredCommandGroupsCache = [];
+			this.filteredSubcommandsCache = [];
+			this.filteredTobeEntitiesCache = [];
+			this.activeCommandCache = undefined;
+		} else if (msg.startsWith('/')) {
+			this.refreshAutocompleteCaches();
+			this.filteredTobeEntitiesCache = [];
+			this.filteredSeasonItemsCache = [];
+		} else {
+			this.clearAutocompleteCaches();
 		}
 	}
 
@@ -1032,6 +1284,12 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 
 			e.preventDefault();
 		} else if (e.keyCode === Key.ENTER && this.isOpen) {
+			if (e.shiftKey) {
+				this.insertLineBreakAtCursor();
+				e.preventDefault();
+				this.onMessageChange();
+				return;
+			}
 			if (this.showChatTypeMenu) {
 				const options = this.selectableChatTypeMenuOptions;
 				if (options.length > 0) {
@@ -1057,6 +1315,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			} else if (this.showCommandDropdown) {
 				this.showCommandDropdown = false;
 				this.commandQuery = '';
+				this.clearAutocompleteCaches();
 			} else {
 				this.close();
 			}
@@ -1467,6 +1726,8 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		if (!this.isOpen) {
 			this.chat(undefined);
 			this.message = '/';
+			this.commandQuery = '';
+			this.refreshAutocompleteCaches();
 			this.syncEditorFromMessage();
 			this.focusInput();
 		}
@@ -1486,6 +1747,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.updateTypingIndicator();
 	}
 	private close() {
+		this.hideMarkdownToolbar();
 		if (this.isOpen) {
 			this.stopTypingIndicator();
 			this.emojiBoxState = 'none';
@@ -1493,6 +1755,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			this.commandQuery = '';
 			this.tobeMode = false;
 			this.tobeQuery = '';
+			this.clearAutocompleteCaches();
 			this.seasonMode = false;
 			this.seasonPhase = 'season';
 			this.seasonQuery = '';
@@ -1520,11 +1783,27 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		event.stopPropagation();
 		event.preventDefault();
 		if (this.isOpen) {
-			this.focusInput();
+			const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
+			const selection = window.getSelection();
+			const hasSelection = !!(
+				el &&
+				selection &&
+				selection.rangeCount &&
+				!selection.isCollapsed &&
+				el.contains(selection.anchorNode)
+			);
+
+			if (hasSelection) {
+				this.updateMarkdownSelection();
+			} else {
+				this.focusInput();
+			}
 		}
 	}
 	onInputMouseDown(event: MouseEvent) {
 		event.stopPropagation();
+		this.markdownSelecting = true;
+		this.hideMarkdownToolbar();
 		if (!this.isOpen) {
 			this.open();
 		}
@@ -1538,7 +1817,8 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			!(event.target as HTMLElement).closest('.chat-box-type') &&
 			!(event.target as HTMLElement).closest('.command-dropdown-menu') &&
 			!(event.target as HTMLElement).closest('.chat-type-menu') &&
-			!(event.target as HTMLElement).closest('.msgcolor-picker')) {
+			!(event.target as HTMLElement).closest('.msgcolor-picker') &&
+			!(event.target as HTMLElement).closest('.chat-markdown-toolbar')) {
 			this.showChatTypeMenu = false;
 			this.selectedChatTypeIndex = 0;
 			this.focusInput();

@@ -699,7 +699,7 @@ get previewState(): PonyState {
 			return;
 		}
 
-		this.lockIrises = !!this.info.lockEyes || this.state.expression.leftIris === this.state.expression.rightIris;
+		this.lockIrises = !!this.info.lockEyes || this.lockIrises;
 	}
 
 	setRightIris(iris: Iris) {
@@ -708,7 +708,6 @@ get previewState(): PonyState {
 			if (this.lockIrises || this.info.lockEyes) {
 				this.state.expression.leftIris = iris;
 			}
-			this.syncIrisLockState();
 			this.renderChanged();
 		}
 	}
@@ -718,7 +717,6 @@ get previewState(): PonyState {
 			if (this.lockIrises || this.info.lockEyes) {
 				this.state.expression.rightIris = iris;
 			}
-			this.syncIrisLockState();
 			this.renderChanged();
 		}
 	}
@@ -1151,7 +1149,6 @@ get previewState(): PonyState {
 		if (locked) {
 			this.info.eyeOpennessLeft = this.info.eyeOpennessRight;
 		}
-		this.syncIrisLockState();
 		this.changed();
 	}
 	irisLockChanged(locked: boolean) {

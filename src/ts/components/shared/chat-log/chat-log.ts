@@ -7,7 +7,7 @@ import { PonyTownGame } from '../../../client/game';
 import { MessageType, isPartyMessage, ChatMessage, Pony, FakeEntity, isWhisper, isWhisperTo } from '../../../common/interfaces';
 import { SettingsService } from '../../services/settingsService';
 import { AgDragEvent } from '../directives/agDrag';
-import { element, textNode, removeAllNodes, replaceNodes } from '../../../client/htmlUtils';
+import { element, textNode, removeAllNodes, createHtmlNodes, replaceNodes } from '../../../client/htmlUtils';
 import { DEFAULT_CHATLOG_OPACITY, PONY_TYPE, SECOND } from '../../../common/constants';
 import { faCaretUp, faArrowDown, faSearch, faComment, faUsers } from '../../../client/icons';
 import { icon } from '@fortawesome/fontawesome-svg-core';
@@ -20,6 +20,60 @@ import { colorToRGBA, rgb2hsl, HSL, hsl2CSS } from '../../../common/color';
 import * as moment from 'moment';
 import { isMobile } from '../../../client/data';
 import { RubberPanelController, RubberPanelState, rubberPanelResizeEdgesFromCorner } from '../shared-physics/rubber-panel-controller';
+
+const marked = require('markdown-tree/node_modules/marked');
+
+const MARKDOWN_ELEMENTS: { [tag: string]: boolean } = {
+	A: true, B: true, CODE: true, DEL: true, EM: true, I: true, LI: true, OL: true, P: true, PRE: true, S: true,
+	STRONG: true, UL: true, BR: true,
+};
+
+function createMarkdownNodes(message: string): Node[] {
+	const html = marked.inlineLexer(message, {}, { gfm: true, breaks: true, sanitize: true });
+	const template = document.createElement('template');
+	template.innerHTML = html;
+
+	const sanitize = (node: Node): Node | undefined => {
+		if (node.nodeType === Node.TEXT_NODE) {
+			const text = document.createDocumentFragment();
+			for (const child of createHtmlNodes(node.nodeValue || '', 2)) {
+				text.appendChild(child);
+			}
+			return text;
+		}
+		if (node.nodeType !== Node.ELEMENT_NODE) {
+			return undefined;
+		}
+
+		const source = node as HTMLElement;
+		if (!MARKDOWN_ELEMENTS[source.tagName]) {
+			return document.createTextNode(source.textContent || '');
+		}
+
+		const target = document.createElement(source.tagName.toLowerCase());
+		if (source.tagName === 'A') {
+			const href = source.getAttribute('href') || '';
+			if (!/^(https?:|mailto:)/i.test(href)) {
+				return document.createTextNode(source.textContent || '');
+			}
+			target.setAttribute('href', href);
+			target.setAttribute('target', '_blank');
+			target.setAttribute('rel', 'noopener noreferrer');
+		}
+		Array.prototype.forEach.call(source.childNodes, (child: Node) => {
+			const safeChild = sanitize(child);
+			if (safeChild) target.appendChild(safeChild);
+		});
+		return target;
+	};
+
+	const nodes: Node[] = [];
+	Array.prototype.forEach.call(template.content.childNodes, (node: Node) => {
+		const safeNode = sanitize(node);
+		if (safeNode) nodes.push(safeNode);
+	});
+	return nodes;
+}
 
 interface IndexEntryUser {
 	id: number;
@@ -323,7 +377,8 @@ export function updateChatLogLine(line: ChatLogLineDOM, entry: ChatLogMessage, h
 
 	line.prefixText.nodeValue = prefix || '';
 	line.suffixText.nodeValue = suffix ? ` ${suffix}: ` : ': ';
-	replaceNodes(line.message, message);
+	removeAllNodes(line.message);
+	line.message.append(...createMarkdownNodes(message));
 
 	const { color } = entry;
 

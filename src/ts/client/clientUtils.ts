@@ -123,12 +123,10 @@ export function cleanName(name: string | undefined): string {
 }
 
 export function cleanMessage(text: string | undefined): string {
-	return filterString(text, isValidForMessage)
+	return (text || '').replace(/\r\n?/g, '\n').split('\n').map(line => filterString(line, isValidForMessage)
 		.replace(matchOtherWhitespace, ' ') // whitespace characters
-		.replace(/[\r\n]/g, '')
 		.replace(matchRomaji, replaceRomaji)
-		.trim()
-		.substr(0, SAY_MAX_LENGTH);
+	).join('\n').trim().substr(0, SAY_MAX_LENGTH);
 }
 
 export function filterString(value: string | undefined, filter: (code: number) => boolean): string {

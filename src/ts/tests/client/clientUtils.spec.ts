@@ -49,6 +49,7 @@ const cleanMessageTests: [string | undefined, string][] = [
 	[undefined, ''],
 	['', ''],
 	['hello', 'hello'],
+	['first\r\nsecond', 'first\nsecond'], // preserves multiline messages
 	['😺🦇🤡⏰', '😺🦇🤡⏰'], // emoji
 	['🍪🥚', '🍪🥚'], // egg
 	['a_po-ny(yay)[foo].,/|&#@!?aaa', 'a_po-ny(yay)[foo].,/|&#@!?aaa'], // allowed symbols

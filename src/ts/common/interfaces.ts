@@ -1696,6 +1696,7 @@ export interface ColorExtra {
 	color: Sprite;
 	colors?: number;
 	extra?: Sprite;
+	palette?: Uint32Array;
 	palettes?: Uint32Array[];
 	title?: string;
 	label?: string;

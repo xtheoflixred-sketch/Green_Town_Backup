@@ -2,9 +2,8 @@ import { Component, Output, EventEmitter, ChangeDetectorRef, OnDestroy, OnInit }
 import { Model } from '../../services/model';
 import { PalettePonyInfo, Action } from '../../../common/interfaces';
 import { toPalette } from '../../../common/ponyInfo';
-import { getToySprite } from '../../../client/ponyDraw';
+import { getToySprite, getToyColorExtra } from '../../../client/ponyDraw';
 import { PonyTownGame } from '../../../client/game';
-import * as sprites from '../../../generated/sprites';
 
 @Component({
 	selector: 'select-toy-modal',
@@ -66,19 +65,10 @@ export class SelectToyModal implements OnInit, OnDestroy {
 
 				this._toys.push(n);
 
-				// Create ColorExtra entry using actual sprite from extraAccessories
-				const item: any = {};
-				const patterns = (sprites.extraAccessoriesBehind as any)[toySet.type]
-					|| (sprites.extraAccessories as any)[toySet.type];
-				if (patterns && patterns[toySet.pattern]) {
-					if (patterns[toySet.pattern].color) {
-						item.color = patterns[toySet.pattern].color;
-					}
-					if (patterns[toySet.pattern].extra) {
-						item.extra = patterns[toySet.pattern].extra;
-					}
-				}
+				const item = getToyColorExtra(n);
+				if (!item) continue;
 				if (toySet.palette && toySet.palette.colors) {
+					item.palette = toySet.palette.colors;
 					item.palettes = [toySet.palette.colors];
 				}
 				item.label = `Toy ${n}`;

@@ -2,7 +2,8 @@
 
 .chat-box {
 	max-width: 500px;
-	height: 37px;
+	min-height: 37px;
+	height: auto;
 	position: absolute;
 	bottom: 0;
 	left: 0;
@@ -44,13 +45,29 @@
 	border-radius: $border-radius-base;
 	outline: none;
 	width: 100%;
+	min-height: 37px;
+	max-height: 180px;
 	height: 37px;
+	box-sizing: border-box;
 	line-height: 21px;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	word-break: keep-all;
-	overflow-wrap: normal;
+	white-space: pre-wrap;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	word-break: normal;
+	overflow-wrap: anywhere;
+
+	&::-webkit-scrollbar {
+		width: 7px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.22);
+		border-radius: 4px;
+	}
 
 	&.empty::before {
 		content: attr(data-placeholder) '';
@@ -504,14 +521,6 @@
 	pointer-events: none;
 }
 
-.toy-sprite-img {
-	display: block;
-	width: 30px;
-	height: 30px;
-	image-rendering: pixelated;
-	image-rendering: crisp-edges;
-}
-
 .toy-name {
 	flex: 1;
 	white-space: nowrap;
@@ -580,4 +589,145 @@
 	text-transform: uppercase;
 	user-select: none;
 	pointer-events: none;
+}
+
+/* Floating Markdown editor toolbar.
+ * It is fixed to the viewport so it can sit above selected text without
+ * changing the existing chat-box layout or pushing any controls around.
+ */
+.chat-markdown-toolbar {
+	position: fixed;
+	z-index: 2000;
+	width: 236px;
+	padding: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	border-radius: 7px;
+	background: rgba(18, 18, 18, 0.97);
+	box-shadow:
+		0 7px 20px rgba(0, 0, 0, 0.35),
+		inset 0 1px 0 rgba(255, 255, 255, 0.07);
+	backdrop-filter: blur(5px);
+	-webkit-backdrop-filter: blur(5px);
+	user-select: none;
+	pointer-events: auto;
+		animation: chat-markdown-toolbar-in 0.08s ease-out;
+
+	&::after {
+		content: '';
+		position: absolute;
+		left: 50%;
+		bottom: -5px;
+		width: 9px;
+		height: 9px;
+		transform: translateX(-50%) rotate(45deg);
+		background: rgba(18, 18, 18, 0.97);
+		border-right: 1px solid rgba(255, 255, 255, 0.12);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+	}
+}
+
+.chat-markdown-toolbar-actions {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+}
+
+.chat-markdown-tool {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 25px;
+	padding: 0;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.9);
+	font: inherit;
+	font-size: 13px;
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background-color 0.1s ease,
+		border-color 0.1s ease,
+		color 0.1s ease,
+		transform 0.1s ease;
+
+	&:hover {
+		background: rgba(255, 255, 255, 0.1);
+		border-color: rgba(255, 255, 255, 0.12);
+		color: #fff;
+		transform: translateY(-1px);
+	}
+
+	&:active {
+		transform: translateY(0);
+		background: rgba(255, 255, 255, 0.15);
+	}
+
+	strong,
+	em,
+	del {
+		pointer-events: none;
+	}
+
+	&:focus {
+		outline: none;
+	}
+}
+
+.chat-markdown-preview {
+	margin-top: 3px;
+	padding: 4px 6px 3px;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.82);
+	font-size: 12px;
+	line-height: 16px;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	max-height: 48px;
+	overflow: hidden;
+
+	strong {
+		font-weight: 700;
+		color: #fff;
+	}
+
+	em {
+		font-style: italic;
+	}
+
+	del {
+		opacity: 0.75;
+	}
+
+	code {
+		padding: 1px 4px;
+		border-radius: 3px;
+		background: rgba(255, 255, 255, 0.1);
+		font-family: monospace;
+		font-size: 11px;
+	}
+
+	a {
+		color: #8fc7ff;
+		text-decoration: underline;
+	}
+
+	br {
+		line-height: 16px;
+	}
+}
+
+@keyframes chat-markdown-toolbar-in {
+	from {
+		opacity: 0;
+		transform: translateY(3px) scale(0.98);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
 }
