@@ -1417,16 +1417,6 @@ export function createCommands(world: World): Command[] {
 			}
 			saySystem(client, 'Unknown subcommand. Use /supporter info, /supporter perks or /supporter level');
 		}, false, 'Supporters'),
-		command(['supglow', 'supmagic'], '/supglow - play a supporter magic effect', 'sup2', ({ }, client, _message, _type, _target, settings) => {
-			execAction(client, Action.Magic, settings);
-		}, false, 'Supporters'),
-		command(['supcelebrate', 'supdance'], '/supcelebrate - play a supporter celebration effect', 'sup3', ({ }, client, _message, _type, _target, settings) => {
-			execAction(client, Action.Dance1, settings);
-		}, false, 'Supporters'),
-		command(['supheart', 'supkiss'], '/supheart - play a special supporter heart effect', 'sup4', ({ }, client, _message, _type, _target, settings) => {
-			execAction(client, Action.Kiss, settings);
-		}, false, 'Supporters'),
-
 		// mod
 		adminModChat(['m'], '/m - mod text', 'mod', MessageType.Mod, 'Mod'),
 		command(['emotetest'], '/emotetest - print all emotes', 'mod', (_context, client) => {
