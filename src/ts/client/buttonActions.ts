@@ -237,16 +237,13 @@ export function createDefaultButtonActions(): ButtonActionSlot[] {
 		{ action: getActionAction('switch-entity-rev') },
 		{ action: getActionAction('dance-1') },
 
-		// Новый инструмент: верёвка (drag entity tool)
 		{ action: entityButtonAction('rope') },
 
-		// item actions (оставил как у тебя в системе)
 		{ action: itemButtonAction(sprites.flower_2, 14) },
 		{ action: itemButtonAction(sprites.apple_1, 5) },
 		{ action: itemButtonAction(sprites.pumpkin_default) },
 		{ action: itemButtonAction(sprites.tree_1, 2) },
 
-		// special expressions
 		{
 			action: expressionButtonAction(
 				createExpression(
@@ -423,17 +420,13 @@ function adjustHeldItemOffset(game: PonyTownGame, dx: number, dy: number) {
 
 	saveHeldItemOffset(player, holding);
 
-	// Coalesce frequent adjustments: schedule a single system bubble after short debounce.
 	const message = `высота ${pickableY} ширина ${pickableX}`;
 	const total = getSaysTime(message);
 
-	// Update pending message and reset debounce timer
 	heldOffsetPending = { game, message, total };
 	if (heldOffsetDebounceTimer !== undefined) {
 		clearTimeout(heldOffsetDebounceTimer);
 	}
-	// Delay showing the bubble to avoid creating many chat objects during rapid changes
-	// 250ms gives immediate feedback while batching rapid presses
 	heldOffsetDebounceTimer = setTimeout(() => flushHeldOffsetMessage(), 250) as unknown as number;
 
 }

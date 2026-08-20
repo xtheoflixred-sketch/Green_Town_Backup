@@ -43,6 +43,7 @@ export class TeamPony implements OnInit, OnDestroy, OnChanges {
 	@Input() showTag = true;
 	@Input() noShadow = true;
 	@Input() topOffset = -20;
+	@Input() tagColor?: string;
 	ponyData = decompressPonyString(SUPPORTER_PONY);
 	state = defaultPonyState();
 

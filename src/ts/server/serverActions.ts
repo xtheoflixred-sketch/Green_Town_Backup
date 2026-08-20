@@ -1204,12 +1204,12 @@ export class ServerActions implements IServerActions, SocketServer {
 					const entity = this.world.getEntityById(id);
 					if (entity && entity.type !== PONY_TYPE) {
 						if (action.name !== undefined) entity.name = action.name;
-						if (action.entityMessage !== undefined) (entity as any).entityMessage = action.entityMessage;
 						if (action.messageColor !== undefined) (entity as any).messageColor = action.messageColor;
+						if (action.tagColor !== undefined) (entity as any).tagColor = action.tagColor;
 						updateEntityOptions(entity, {
 							name: entity.name,
-							entityMessage: (entity as any).entityMessage,
 							messageColor: (entity as any).messageColor,
+							tagColor: (entity as any).tagColor,
 						} as any);
 					}
 				}
@@ -1220,11 +1220,6 @@ export class ServerActions implements IServerActions, SocketServer {
 					const entity = this.world.getEntityById(id);
 					if (entity) {
 						const options: any = {};
-
-						if (action.spriteTint !== undefined) {
-							(entity as any).spriteTint = action.spriteTint;
-							options.spriteTint = action.spriteTint;
-						}
 
 						if (action.customImageScale !== undefined) {
 							(entity as any).customImageScale = action.customImageScale;
@@ -1298,12 +1293,6 @@ export class ServerActions implements IServerActions, SocketServer {
 								(entity as any).collidersBounds = scaleRect((entity as any).collidersBounds, (entity as any)._originalCollidersBounds);
 							}
 						}
-
-						if (action.entityOpacity !== undefined) {
-							(entity as any).entityOpacity = action.entityOpacity;
-							options.entityOpacity = action.entityOpacity;
-						}
-
 						updateEntityOptions(entity, options);
 					}
 				}
@@ -1314,28 +1303,6 @@ export class ServerActions implements IServerActions, SocketServer {
 					const entity = this.world.getEntityById(id);
 					if (entity && entity.type !== PONY_TYPE) {
 						holdItem(this.client.pony, entity.type);
-					}
-				}
-				break;
-			}
-			case 'becomeentity': {
-				for (const id of action.entities) {
-					const entity = this.world.getEntityById(id);
-					if (entity && entity.type !== PONY_TYPE) {
-						const entityType = entity.type;
-						const x = this.client.pony.x;
-						const y = this.client.pony.y;
-						const newEntity = createAnEntity(entityType, 0, x, y, {}, mockPaletteManager, this.world) as ServerEntity;
-						if (newEntity) {
-							this.client.tobedPony = this.client.pony;
-							this.client.pony.client = undefined;
-							this.world.removeEntity(this.client.pony, this.client.map);
-							newEntity.client = this.client;
-							this.world.addEntity(newEntity, this.client.map);
-							this.client.pony = newEntity;
-							this.client.safeX = newEntity.x;
-							this.client.safeY = newEntity.y;
-						}
 					}
 				}
 				break;

@@ -4,9 +4,8 @@ import {
 	MessageType, ChatType, Expression, Eye, Muzzle, Action, Weather, toAnnouncementMessageType, EntityState, TileType,
 } from '../common/interfaces';
 import { hasRole } from '../common/accountUtils';
-import { butterfly, bat, firefly, cloud, getEntityType, getEntityTypeName, createAnEntity, getEntityTypesAndNames, woodenWalls, BunnyAnimation } from '../common/entities';
+import { butterfly, bat, firefly, cloud, getEntityType, getEntityTypeName, woodenWalls, BunnyAnimation } from '../common/entities';
 import { emojis } from '../client/emoji';
-import { mockPaletteManager } from '../common/ponyInfo';
 import { IClient, ServerEntity, ServerMap } from './serverInterfaces';
 import { World } from './world';
 import { NotificationService } from './services/notification';
@@ -1448,10 +1447,10 @@ export function createCommands(world: World): Command[] {
 		command(['rareitems', 'rare'], '/rareitems - show rare hold items', 'mod', ({ }, client) => {
 			saySystem(client, `Rare items: ${rareHoldTypeNames.join(', ')}`);
 		}, false, 'Mod'),
-		command(['msgcolor'], '/msgcolor <#hex|reset> - set custom chat message color', '', ({ }, client, message) => {
+		command(['msgcolor'], '/msgcolor <#hex> - set custom chat message color', '', ({ }, client, message) => {
 			const color = message.trim().toLowerCase();
 
-			if (!color || color === 'reset' || color === 'off' || color === 'clear') {
+			if (!color) {
 				(client.pony as any).messageColor = undefined;
 				updateEntityOptions(client.pony, { messageColor: undefined } as any);
 				saySystem(client, 'Message color reset to default');
@@ -1559,82 +1558,6 @@ export function createCommands(world: World): Command[] {
 			client.pony.noclip = !client.pony.noclip;
 			updateEntityOptions(client.pony, { noclip: client.pony.noclip } as any);
 			saySystem(client, `noclip: ${client.pony.noclip ? 'on' : 'off'}`);
-		}, false, 'Mod'),
-		command(['tobe'], '/tobe <type|none|list> - transform into entity', 'mod', ({ world }, client, message) => {
-			const input = (message || '').trim().toLowerCase();
-
-			if (input === 'list') {
-				const types = getEntityTypesAndNames()
-					.filter(e => e.name && e.type > 0)
-					.map(e => e.name);
-				saySystem(client, `Entity types: ${types.join(', ')}`);
-				return;
-			}
-
-			if (input === 'none' || input === 'pony') {
-				if (client.tobedPony) {
-					world.removeEntity(client.pony, client.map);
-					const pony = client.tobedPony;
-					pony.x = client.pony.x;
-					pony.y = client.pony.y;
-					pony.client = client;
-					world.addEntity(pony, client.map);
-					client.pony = pony;
-					client.tobedPony = undefined;
-					saySystem(client, 'Restored to pony');
-				} else {
-					saySystem(client, 'Already a pony');
-				}
-				return;
-			}
-
-			if (input === 'npc') {
-				const entityType = getEntityType('cat');
-				if (!entityType) {
-					saySystem(client, 'Failed to create NPC');
-					return;
-				}
-				const x = client.pony.x;
-				const y = client.pony.y;
-				const entity = createAnEntity(entityType, 0, x, y, {}, mockPaletteManager, world) as ServerEntity;
-				if (!entity) {
-					saySystem(client, 'Failed to create entity');
-					return;
-				}
-				client.tobedPony = client.pony;
-				client.pony.client = undefined;
-				world.removeEntity(client.pony, client.map);
-				entity.client = client;
-				world.addEntity(entity, client.map);
-				client.pony = entity;
-				client.safeX = entity.x;
-				client.safeY = entity.y;
-				saySystem(client, 'Transformed into NPC (cat)');
-				return;
-			}
-
-			const entityType = getEntityType(input);
-			if (!entityType) {
-				saySystem(client, `Unknown entity type: "${input}". Use /tobe list to see available types`);
-				return;
-			}
-
-			const x = client.pony.x;
-			const y = client.pony.y;
-			const entity = createAnEntity(entityType, 0, x, y, {}, mockPaletteManager, world) as ServerEntity;
-			if (!entity) {
-				saySystem(client, 'Failed to create entity');
-				return;
-			}
-			client.tobedPony = client.pony;
-			client.pony.client = undefined;
-			world.removeEntity(client.pony, client.map);
-			entity.client = client;
-			world.addEntity(entity, client.map);
-			client.pony = entity;
-			client.safeX = entity.x;
-			client.safeY = entity.y;
-			saySystem(client, `Transformed into ${input}`);
 		}, false, 'Mod'),
 		command(['tp'], '/tp <location|x y|to <player>|here <player>|? - teleport around', 'mod', (_context, client, message) => {
 		const input = message.trim();
@@ -2287,6 +2210,13 @@ export function createCommands(world: World): Command[] {
 			}
 			holdToy(client.pony, toyId);
 		}, false, 'Actions'),
+		command(['graballtoys'], '/graballtoys - unlock all toys (developer)', 'dev', ({ }, client) => {
+			const ALL_TOYS_BITMASK = (1 << 31) - 1;
+			updateAccountState(client.account, (state: any) => state.toys = ALL_TOYS_BITMASK);
+			client.updateToysBitmask(ALL_TOYS_BITMASK);
+			const { collected, total } = getCollectedToysCount(client);
+			saySystem(client, `All toys unlocked: ${collected}/${total}`);
+		}, false, 'Dev'),
 		BETA && command(['dc'], '/dc', 'owner', ({ }, client) => {
 			client.disconnect(true, false);
 		}, false, 'Owner'),

@@ -934,6 +934,7 @@ export type InventoryState = InventorySlot[];
 export interface PonyOptions {
 	expr?: number; // TODO: move to dedicated field
 	tag?: string; // TODO: move to flags ?
+	tagColor?: string;
 	extra?: boolean; // TODO: move to flags ?
 	hold?: number;
 	toy?: number;
@@ -1429,28 +1430,21 @@ export interface EditorSetNameAction {
 	type: 'setname';
 	entities: number[];
 	name?: string;
-	entityMessage?: string;
 	messageColor?: string;
+	tagColor?: string;
 }
 
 export interface EditorSetTintAction {
 	type: 'settint';
 	entities: number[];
-	spriteTint?: number;
 	customImageScale?: number;
 	customImageOpacity?: number;
 	customImageZOrder?: 'above' | 'below';
 	entityScale?: number;
-	entityOpacity?: number;
 }
 
 export interface EditorHoldEntityAction {
 	type: 'holdentity';
-	entities: number[];
-}
-
-export interface EditorBecomeEntityAction {
-	type: 'becomeentity';
 	entities: number[];
 }
 
@@ -1474,8 +1468,7 @@ export type EditorAction =
 	EditorSetCustomImageAction |
 	EditorSetNameAction |
 	EditorSetTintAction |
-	EditorHoldEntityAction |
-	EditorBecomeEntityAction;
+	EditorHoldEntityAction;
 
 export const enum SelectFlags {
 	None = 0,

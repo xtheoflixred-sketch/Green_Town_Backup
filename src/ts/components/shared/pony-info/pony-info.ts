@@ -10,6 +10,7 @@ export class PonyPreview {
 	@Input() pony?: PonyInfo;
 	@Input() name?: string;
 	@Input() tag?: string;
+	@Input() tagColor?: string;
 	@Input() passive = true;
 	@Input() scale = 1;
 	@Input() noBackground = false;

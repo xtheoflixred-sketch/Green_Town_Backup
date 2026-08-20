@@ -384,7 +384,6 @@ export class PonyTownGame implements Game {
 	private irisModeActive = false;
 
 	   getCurrentIrisMode(): EyeIrisMode {
-			   // Для UI и логики: ручной режим всегда в приоритете только если он явно активен
 			   var expr = this.player && this.player.ponyState && this.player.ponyState.expression;
 			   if (this.irisModeActive) {
 				   return {
@@ -970,8 +969,8 @@ export class PonyTownGame implements Game {
 			this.initialized = true;
 			this.input.onAnyInput(() => this.resetAfk());
 			this.input.onPressed(Key.ENTER, () => this.onChat.next());
-			this.input.onPressed(Key.KEY_O, () => this.zoomOut());
-			this.input.onPressed(Key.KEY_P, () => this.zoomIn());
+			this.input.onPressed(Key.DASH, () => this.zoomOut());
+			this.input.onPressed(Key.EQUALS, () => this.zoomIn());
 			this.input.onPressed(Key.ESCAPE, () => this.escape());
 			this.input.onPressed(Key.GAMEPAD_BUTTON_X, () => this.onToggleChat.next());
 			// this.input.onPressed(Key.BACKSPACE, () => this.backspace());

@@ -214,6 +214,12 @@ export class PonyBox implements AfterViewChecked {
 		const tag = this.specialTag;
 		return tag && tag.tagClass;
 	}
+	get specialTagBgColor() {
+		const pony = this.pony as any;
+		const customColor = pony && pony.tagColor;
+		if (!customColor) return undefined;
+		return `#${customColor}`;
+	}
 	get specialTagTooltip() {
 		return getTagTooltip(this.specialTag);
 	}
