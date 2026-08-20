@@ -2,6 +2,7 @@ import { Injectable, NgZone, ErrorHandler } from '@angular/core';
 import { merge } from 'lodash';
 import { createClientSocket, SocketService, ClientOptions, ClientErrorHandler } from 'ag-sockets/dist/browser';
 import { ServerInfo, IServerActions, GameStatus, AccountData, LeaveReason } from '../../common/interfaces';
+import { PONY_TYPE } from '../../common/constants';
 import { RequestError, findById, includes } from '../../common/utils';
 import { OFFLINE_ERROR, PROTECTION_ERROR, BROWSER_NOT_SUPPORTED_ERROR, VERSION_ERROR } from '../../common/errors';
 import { startGameLoop, GameLoop } from '../../client/gameLoop';
@@ -64,6 +65,22 @@ export class GameService {
 	}
 	get selected() {
 		return this.game.selected;
+	}
+	get player() {
+		if (this.game.player) return this.game.player;
+		if (this.game.playerId !== undefined) {
+			return this.game.map.entities.find(entity => entity.id === this.game.playerId && entity.type === PONY_TYPE) as any;
+		}
+		return this.game.map.entities.find(entity => entity.type === PONY_TYPE && !!(entity as any).options && ((entity as any).options.hold || (entity as any).ponyState && (entity as any).ponyState.holding)) as any;
+	}
+	get heldItemType() {
+		const player = this.player as any;
+		if (!player) return 0;
+		if (typeof player.hold === 'number' && player.hold > 0) return player.hold;
+		if (player.options && typeof player.options.hold === 'number' && player.options.hold > 0) return player.options.hold;
+		return player.ponyState && player.ponyState.holding && typeof player.ponyState.holding.type === 'number'
+			? player.ponyState.holding.type
+			: 0;
 	}
 	get hoveredChatHoverColor() {
 		const hovered = this.game.hoveredChatPony;

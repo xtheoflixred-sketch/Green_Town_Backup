@@ -711,7 +711,7 @@ page-loader(*ngIf="!playing")
 										span
 											| For the main appearance controls described from the other side of the editor, see the
 											strong.ml-1
-												| Body
+												| Body 
 											| tab.
 
 						// Character options
@@ -757,6 +757,7 @@ page-loader(*ngIf="!playing")
 													span.badge.character-tag-badge(
 														[ngClass]="'badge-' + (tagPreview || tag).className"
 														[style.background-color]="pony.tagColor ? '#' + pony.tagColor : null"
+														[style.color]="pony.tagColor ? tagTextColor : null"
 													)
 														fa-icon.mr-1(
 															*ngIf="(tagPreview || tag).icon"
@@ -808,6 +809,7 @@ page-loader(*ngIf="!playing")
 													span.badge.character-tag-badge(
 														[ngClass]="'badge-' + t.className"
 														[style.background-color]="pony.tagColor && t.id === (tag && tag.id) ? '#' + pony.tagColor : null"
+														[style.color]="pony.tagColor && t.id === (tag && tag.id) ? tagTextColor : null"
 													)
 														fa-icon.mr-1(
 															*ngIf="t.icon"
@@ -838,7 +840,7 @@ page-loader(*ngIf="!playing")
 									color-picker(
 										type="text"
 										id="tag-color"
-										[(color)]="pony.tagColor"
+										[(color)]="tagColor"
 										(colorChangeStart)="beginColorChange()"
 										(colorChange)="colorChanged()"
 										(colorChangeEnd)="colorChangeDone()"
@@ -937,7 +939,7 @@ page-loader(*ngIf="!playing")
 													fa-icon.mr-1([icon]="hideIcon")
 													span Hide tag
 
-							.row.form-group
+							.row.form-group(*ngIf="tag.id && displayedSupporterTag !== 'hidden'")
 								label.col-sm-4.col-form-label Display supporter tag
 								.col-sm-8
 									custom-checkbox([(checked)]="supportTagPriority")
@@ -1344,17 +1346,16 @@ page-loader(*ngIf="!playing")
 														type="file"
 														(change)="importPonies(importFile.files[0])"
 													)
-												
 
 										button.btn.btn-default(
-												*ngIf="canSaveFiles"
-												type="button"
-												(click)="export(activeAnimation)"
-												title="Save as PNG"
-												aria-label="Save as PNG"
-											)
-												fa-icon.mr-1([icon]="saveIcon")
-												| Save PNG
+											*ngIf="canSaveFiles"
+											type="button"
+											(click)="export(activeAnimation)"
+											title="Save as PNG"
+											aria-label="Save as PNG"
+										)
+											fa-icon.mr-1([icon]="saveIcon")
+											| Save PNG
 
 										.dropdown.btn-group(dropdown)
 											button.btn.btn-default.dropdown-toggle(
@@ -1362,12 +1363,18 @@ page-loader(*ngIf="!playing")
 												style="min-width: 110px;"
 											)
 												strong {{animations[activeAnimation]().name}}
-											.dropdown-menu.dropdown-menu-right(*dropdownMenu)
+											.dropdown-menu.dropdown-menu-right(
+												*dropdownMenu
+												style="max-height: 300px; overflow-y: auto; overflow-x: hidden;"
+											)
+												ng-container(*ngFor="let group of animationGroups; let groupIndex = index")
+													.dropdown-header {{group.name}}
 													a.dropdown-item(
-													*ngFor="let a of animations; let i = index"
-													(click)="setActiveAnimation(i)"
-												)
-													| {{a().name}}
+														*ngFor="let index of group.indexes"
+														(click)="setActiveAnimation(index)"
+													)
+														| {{animations[index]().name}}
+													.dropdown-divider(*ngIf="groupIndex < animationGroups.length - 1")
 
 							// All compact animator controls are above; the PNG/animation
 							// controls remain directly accessible.

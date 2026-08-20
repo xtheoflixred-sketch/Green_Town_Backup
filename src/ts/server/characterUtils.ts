@@ -162,6 +162,14 @@ export function updatePony(pony: ServerEntity, account: IAccount, character: ICh
 	const allowedName = filterForbidden(originalName);
 	const options: PonyOptions = {};
 	const level = supporterLevel(account);
+	const currentOptions = pony.options;
+
+	if (currentOptions && currentOptions.hold) {
+		options.hold = currentOptions.hold;
+	}
+	if (currentOptions && currentOptions.toy) {
+		options.toy = currentOptions.toy;
+	}
 
 	if (character.supportTag && character.supportTag !== 'hidden' && canUseTag(account, character.supportTag)) {
 		options.tag = character.supportTag;

@@ -6,7 +6,7 @@ import {
 	SUPPORTER2_COLOR, SUPPORTER3_COLOR, SUPPORTER4_COLOR
 } from '../../common/colors';
 import { MessageType } from '../../common/interfaces';
-import { parseColorFast } from '../../common/color';
+import { getContrastTextColor, parseColorFast } from '../../common/color';
 import { getTag } from '../../common/tags';
 
 describe('colors', () => {
@@ -16,6 +16,16 @@ describe('colors', () => {
 			expect(tag).not.undefined;
 			expect(tag!.id).equals('mod');
 			expect(tag!.color).equals(parseColorFast('00ff00'));
+		});
+	});
+
+	describe('getContrastTextColor()', () => {
+		it('uses dark text for light backgrounds', () => {
+			expect(getContrastTextColor('ffffff')).equals('#222');
+		});
+
+		it('uses light text for dark backgrounds', () => {
+			expect(getContrastTextColor('000000')).equals('#fff');
 		});
 	});
 

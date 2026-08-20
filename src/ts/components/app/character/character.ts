@@ -17,7 +17,12 @@ import {
 import { defaultPonyState, defaultDrawPonyOptions } from '../../../client/ponyHelpers';
 import { toPalette, getBaseFill, syncLockedPonyInfo } from '../../../common/ponyInfo';
 import * as sprites from '../../../generated/sprites';
-import { boop, trot, stand, sitDownUp, lieDownUp, fly, flyBug } from '../../../client/ponyAnimations';
+import {
+	boop, boopSit, boopLie, boopSwim, boopFly, boopFlyBug, trot, stand, swim, sit, sitDown, standUp, lie, lieDown, sitUp,
+	sitToTrot, lieToTrot, fly, flyBug, flyUp, flyUpBug, flyDown, flyDownBug, trotToSwim, swimToTrot, flyToSwim, swimToFly,
+	flyToTrot, flyToTrotBug, kissBody, kissLiftHoofBody, kissFlyBody, kissFlyBugBody, kissLieBody, kissSitBody, kissSwimBody,
+	kissToTrot, dance1, dance2, dance3, sitDownUp, lieDownUp,
+} from '../../../client/ponyAnimations';
 import { drawCanvas } from '../../../graphics/contextSpriteBatch';
 import { Model, getPonyTag } from '../../services/model';
 import { StorageService } from '../../services/storageService';
@@ -25,6 +30,7 @@ import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
 import { loadAndInitSpriteSheets, addTitles, createEyeSprite, addLabels } from '../../../client/spriteUtils';
 import { GameService } from '../../services/gameService';
 import { TRANSPARENT, BLACK, blushColor } from '../../../common/colors';
+import { colorToHexRGB } from '../../../common/color';
 import { precompressPony, compressPonyString, decompressPony, decompressPonyString } from '../../../common/compressPony';
 import { saveCanvas } from '../../../client/canvasUtils';
 import { drawPony } from '../../../client/ponyDraw';
@@ -34,7 +40,7 @@ import { isFileSaverSupported, createExpression, readFileAsText } from '../../..
 import { isMobile } from '../../../client/data';
 import { emptyTag, getAvailableTags } from '../../../common/tags';
 import { ButtMarkEditorState } from '../../shared/butt-mark-editor/butt-mark-editor';
-import { parseColorWithAlpha } from '../../../common/color';
+import { getContrastTextColor, parseColorWithAlpha } from '../../../common/color';
 import { createAnEntity } from '../../../common/entities';
 import { mockPaletteManager } from '../../../common/ponyInfo';
 import { syncLockedIrisPair } from '../../../common/expressionUtils';
@@ -136,12 +142,23 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	readonly frontHooves = addTitles(frontHooves[1], frontHoofTitles);
 	readonly backHooves = addTitles(sprites.backLegHooves[1], backHoofTitles);
 	readonly animations = [
-		() => stand,
-		() => trot,
-		() => boop,
-		() => sitDownUp,
-		() => lieDownUp,
-		() => flyAnimations[this.previewInfo!.wings!.type || 0],
+		() => stand, () => trot, () => swim,
+		() => boop, () => boopSit, () => boopLie, () => boopSwim, () => boopFly, () => boopFlyBug,
+		() => sit, () => sitDownUp, () => sitDown, () => standUp, () => sitToTrot,
+		() => lie, () => lieDownUp, () => lieDown, () => sitUp, () => lieToTrot,
+		() => flyAnimations[this.previewInfo!.wings!.type || 0], () => flyUp, () => flyUpBug, () => flyDown, () => flyDownBug,
+		() => trotToSwim, () => swimToTrot, () => flyToSwim, () => swimToFly, () => flyToTrot, () => flyToTrotBug,
+		() => kissBody, () => kissLiftHoofBody, () => kissFlyBody, () => kissFlyBugBody, () => kissLieBody, () => kissSitBody,
+		() => kissSwimBody, () => kissToTrot,
+		() => dance1, () => dance2, () => dance3,	
+	];
+	readonly animationGroups = [
+		{ name: 'Basic', indexes: [0, 1, 2] },
+		{ name: 'Boop', indexes: [3, 4, 5, 6, 7, 8] },
+		{ name: 'Ground', indexes: [9, 10, 11, 12, 13, 14, 15, 16, 17] },
+		{ name: 'Flight', indexes: [18, 19, 20, 21, 22, 23, 24, 25, 26, 27] },
+		{ name: 'Kiss', indexes: [28, 29, 30, 31, 32, 33, 34, 35] },
+		{ name: 'Dance', indexes: [36, 37, 38] },
 	];
 	readonly eyelashes: ColorExtraSet = sprites.eyeLeft[1]!.map(eyeSprite);
 	readonly eyesLeft: ColorExtraSet = sprites.eyeLeft.map(e => e && e[0]).map(eyeSprite);
@@ -426,8 +443,14 @@ get previewState(): PonyState {
 		this.changed();
 	}
 	get currentHoldItemType() {
+		const serviceHold = this.gameService.heldItemType;
+		if (serviceHold) return serviceHold;
 		const player = (window as any).game && (window as any).game.player;
-		return player && typeof player.hold === 'number' ? player.hold : 0;
+		if (!player) return 0;
+		if (typeof player.hold === 'number' && player.hold > 0) return player.hold;
+		if (player.options && typeof player.options.hold === 'number' && player.options.hold > 0) return player.options.hold;
+		const holding = player.ponyState && player.ponyState.holding;
+		return holding && typeof holding.type === 'number' ? holding.type : 0;
 	}
 	get canPreviewHoldItem() {
 		return this.currentHoldItemType > 0;
@@ -510,6 +533,18 @@ get previewState(): PonyState {
 
 	set tag(value: CharacterTag) {
 		this.pony.tag = value.id;
+	}
+
+	get tagColor() {
+		return this.pony.tagColor || colorToHexRGB(this.tag.color);
+	}
+
+	set tagColor(value: string) {
+		this.pony.tagColor = value;
+	}
+
+	get tagTextColor() {
+		return getContrastTextColor(this.tagColor);
 	}
 
 	get lockEyeWhites() {
@@ -1026,6 +1061,9 @@ get previewState(): PonyState {
 	}
 	update(delta: number) {
 		this.animationTime += delta;
+		if (this.state.holding && this.state.holding.update) {
+			this.state.holding.update(delta, this.animationTime);
+		}
 
 		const animation = this.animations[this.activeAnimation]();
 		this.state.animation = animation;

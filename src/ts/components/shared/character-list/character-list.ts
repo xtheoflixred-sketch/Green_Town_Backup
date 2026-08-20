@@ -8,6 +8,7 @@ import { Model } from '../../services/model';
 import { faHashtag, faEllipsisV, faStar, faSlash, faPencilAlt } from '../../../client/icons';
 import { toPalette, createDefaultPony } from '../../../common/ponyInfo';
 import { getTag, getTagTooltip } from '../../../common/tags';
+import { getContrastTextColor } from '../../../common/color';
 import { getProviderIcon } from '../sign-in-box/sign-in-box';
 import { BASE_CHARACTER_LIMIT } from '../../../common/constants';
 
@@ -121,6 +122,9 @@ export class CharacterList implements OnInit {
 		const customColor = pony.tagColor;
 		if (!customColor) return undefined;
 		return `#${customColor}`;
+	}
+	getCharacterTagTextColor(pony: PonyObject): string | undefined {
+		return pony.tagColor ? getContrastTextColor(pony.tagColor) : undefined;
 	}
 	getCharacterTagTooltip(pony: PonyObject) {
 		return getTagTooltip(this.getCharacterTag(pony));

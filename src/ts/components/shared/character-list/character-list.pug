@@ -163,6 +163,7 @@ ul.character-select-list(
 						span.badge.character-tag-badge(
 							[ngClass]="'badge-' + tag.className"
 							[style.background-color]="getCharacterTagBgColor(p) || undefined"
+							[style.color]="getCharacterTagTextColor(p) || undefined"
 							[tooltip]="getCharacterTagTooltip(p)"
 							placement="top")
 							fa-icon(

@@ -222,6 +222,19 @@ export function colorToCSS(color: number): string {
 	}
 }
 
+export function getContrastTextColor(color: string | number): string {
+	const value = typeof color === 'string' ? parseColorFast(color) : color;
+	const channels = [getR(value), getG(value), getB(value)].map(channel => {
+		const normalized = channel / 255;
+		return normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
+	});
+	const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+	const whiteContrast = 1.05 / (luminance + 0.05);
+	const darkContrast = (luminance + 0.05) / 0.05;
+
+	return darkContrast >= whiteContrast ? '#222' : '#fff';
+}
+
 function toHex(value: number, length: number): string {
 	return value.toString(16).padStart(length, '0');
 }

@@ -16,6 +16,7 @@ import { getTag, getTagTooltip } from '../../../common/tags';
 import { isIgnored, isHidden, isFriend, isTyping, isEditingCharacter, isNpcEntity } from '../../../common/entityUtils';
 import { hasFlag, setFlag, distanceXY } from '../../../common/utils';
 import { AgDragEvent } from '../directives/agDrag';
+import { getContrastTextColor } from '../../../common/color';
 
 @Component({
 	selector: 'pony-box',
@@ -219,6 +220,11 @@ export class PonyBox implements AfterViewChecked {
 		const customColor = pony && pony.tagColor;
 		if (!customColor) return undefined;
 		return `#${customColor}`;
+	}
+	get specialTagTextColor() {
+		const pony = this.pony as any;
+		const customColor = pony && pony.tagColor;
+		return customColor ? getContrastTextColor(customColor) : undefined;
 	}
 	get specialTagTooltip() {
 		return getTagTooltip(this.specialTag);
