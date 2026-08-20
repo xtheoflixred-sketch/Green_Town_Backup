@@ -15,7 +15,7 @@ import { invalidEnumReturn } from '../../../common/utils';
 import { isAdmin, isMod } from '../../../common/accountUtils';
 import { findMatchingEntityNames, findEntityOrMockByAnyMeans, findBestEntityByName } from '../../../client/handlers';
 import { sample } from 'lodash';
-import { CLIENT_COMMANDS, ClientCommand } from '../../../client/commands';
+import { CLIENT_COMMANDS, ClientCommand, TOBE_ENTITIES } from '../../../client/commands';
 import { loadAndInitSpriteSheets } from '../../../client/spriteUtils';
 import { font } from '../../../client/fonts';
 import { getCharacterSprite } from '../../../graphics/spriteFont';
@@ -139,6 +139,9 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	private typingHideTimeout: any;
 	showCommandDropdown = false;
 	commandQuery = '';
+	tobeMode = false;
+	tobeQuery = '';
+	selectedTobeIndex = 0;
 	selectedSubcommandIndex = 0;
 	selectedCommandIndex = 0;
 	showColorPicker = false;
