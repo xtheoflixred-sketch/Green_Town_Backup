@@ -939,6 +939,10 @@ export function createCommands(world: World): Command[] {
 			const now = Date.now();
 			const { collected, total } = getCollectedToysCount(client);
 			const cmd = (message || '').trim().toLowerCase();
+			if (collected === 0) {
+				saySystem(client, 'Сначала соберите первую игрушку из подарка');
+				return;
+			}
 
 			if (cmd === 'list') {
 				const list = getCollectedToysList(client);
@@ -1972,6 +1976,7 @@ export function createCommands(world: World): Command[] {
 
 			if (amountStr === 'clear') {
 				updateAccountState(client.account, (state: any) => state.toys = 0);
+				client.updateToysBitmask(0);
 				saySystem(client, 'Toys cleared');
 			} else {
 				const amount = parseInt(amountStr, 10);
@@ -1997,6 +2002,7 @@ export function createCommands(world: World): Command[] {
 					}
 					state.toys = mask;
 				});
+				client.updateToysBitmask(toInt(client.account.state && client.account.state.toys));
 
 				const { collected } = getCollectedToysCount(client);
 				saySystem(client, `${amount >= 0 ? 'Given' : 'Removed'} toys #1-${m}, total: ${collected}/${total}`);
@@ -2190,6 +2196,10 @@ export function createCommands(world: World): Command[] {
 		}, false, 'Owner'),
 		command(['toy'], '/toy <number> - hold toy', '', ({ }, client, message) => {
 			const toyId = parseInt(message, 10) | 0;
+			if (getCollectedToysCount(client).collected === 0) {
+				saySystem(client, 'Сначала соберите первую игрушку из подарка');
+				return;
+			}
 			if (toyId > 0) {
 				const stateToys = toInt((client.account.state || {}).toys);
 				const toyIndex = toyId - 1;
@@ -2201,7 +2211,7 @@ export function createCommands(world: World): Command[] {
 			holdToy(client.pony, toyId);
 		}, false, 'Actions'),
 		command(['graballtoys'], '/graballtoys - unlock all toys (developer)', 'dev', ({ }, client) => {
-			const ALL_TOYS_BITMASK = (1 << 31) - 1;
+			const ALL_TOYS_BITMASK = 0xffffffff;
 			updateAccountState(client.account, (state: any) => state.toys = ALL_TOYS_BITMASK);
 			client.updateToysBitmask(ALL_TOYS_BITMASK);
 			const { collected, total } = getCollectedToysCount(client);

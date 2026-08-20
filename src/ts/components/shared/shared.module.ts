@@ -27,6 +27,7 @@ import { SpriteSelection } from './sprite-selection/sprite-selection';
 import { SetSelection, SetOutlineHidden } from './set-selection/set-selection';
 import { CheckBox } from './check-box/check-box';
 import { PortraitBox } from './portrait-box/portrait-box';
+import { SquarePortraitBox } from './square-portrait-box/square-portrait-box';
 import { ScalePicker } from './scale-picker/scale-picker';
 import { ColorPicker } from './color-picker/color-picker';
 import { CustomCheckbox } from './custom-checkbox/custom-checkbox';
@@ -132,6 +133,7 @@ const declarations = [
 	SetOutlineHidden,
 	CheckBox,
 	PortraitBox,
+	SquarePortraitBox,
 	ScalePicker,
 	SwapBox,
 	ColorPicker,

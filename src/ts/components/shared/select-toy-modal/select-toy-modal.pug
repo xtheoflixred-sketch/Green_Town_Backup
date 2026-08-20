@@ -2,9 +2,8 @@
 	h4.modal-title Toys
 
 .modal-body
-	-// Preview pony using portrait-box (properly renders toys)
 	.preview-section.mb-3.text-center
-		portrait-box([pony]="previewPony" size="large" noBorder="true")
+		square-portrait-box([pony]="previewPony" size="large" noBorder="true")
 
 	-// Toy collection stats
 	.stats.mb-3.text-center
@@ -19,11 +18,13 @@
 				set-selection(
 					[set]="toySet"
 					[sets]="toySets"
+					[empty]="true"
+					[disabledItems]="disabledToys"
 					[darken]="false"
 					(change)="onToySetChanged()"
 				)
 
 .modal-footer
-	button.btn.btn-outline-secondary(type='button' (click)='closeModal()') Close
-	button.btn.btn-outline-primary(type='button' (click)='confirmSelection()') Confirm
+	button.btn.btn-wide.btn-outline-secondary(type='button' (click)='closeModal()') Close
+	button.btn.btn-wide.btn-primary(type='button' (click)='confirmSelection()') Confirm
 

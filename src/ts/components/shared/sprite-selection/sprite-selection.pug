@@ -1,11 +1,21 @@
 .selection-list
+	button.btn-unstyled.selection-item.selection-item-empty(
+		*ngIf="empty"
+		(click)="selectEmpty()"
+		role="radio"
+		[class.active]="selected === -1"
+		[class.disabled]="disabled"
+		[attr.aria-label]="emptyLabel || 'None'"
+		[attr.aria-checked]="selected === -1")
+		fa-icon([icon]="emptyIcon" [fixedWidth]="true")
 	.selection-item(
 		*ngFor="let s of sprites | slice:skip:end; let i = index"
 		role="radio"
 		(click)="select(i + skip)"
 		[id]="id + '-' + i"
 		[class.active]="isSelected(i)"
-		[class.disabled]="disabled"
+		[class.disabled]="disabled || disabledItems[i + skip]"
+		[attr.aria-disabled]="disabled || disabledItems[i + skip]"
 		[attr.aria-label]="(s ? s.label : emptyLabel) || ''"
 		[attr.aria-setsize]="sprites.length - skip"
 		[attr.aria-checked]="isSelected(i)")

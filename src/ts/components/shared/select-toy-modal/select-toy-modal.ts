@@ -76,14 +76,18 @@ export class SelectToyModal implements OnInit, OnDestroy {
 				this.toySets.push([item]);
 			}
 
-			const selectedIndex = this.selectedToy ? this._toys.indexOf(this.selectedToy) : 0;
-			this.toySet = { type: selectedIndex >= 0 ? selectedIndex : 0, pattern: 0 };
+			const selectedIndex = this.selectedToy ? this._toys.indexOf(this.selectedToy) : -1;
+			this.toySet = { type: selectedIndex, pattern: 0 };
 			this._toysLoaded = true;
 		}
 	}
 
 	onToySetChanged() {
 		const idx = this.toySet && typeof this.toySet.type === 'number' ? this.toySet.type : 0;
+		if (idx === -1) {
+			this.clearToySelection();
+			return;
+		}
 		const toyId = (this._toys && this._toys[idx]) || 0;
 		if (toyId && this.isCollected(toyId)) {
 			this.selectToyInternal(toyId);
@@ -92,6 +96,10 @@ export class SelectToyModal implements OnInit, OnDestroy {
 
 	get toys(): number[] {
 		return this._toys;
+	}
+
+	get disabledToys(): boolean[] {
+		return this._toys.map(toyId => !this.isCollected(toyId));
 	}
 
 	get toyBitmask(): number {
@@ -110,7 +118,7 @@ export class SelectToyModal implements OnInit, OnDestroy {
 
 	isCollected(toyId: number): boolean {
 		const bitIndex = toyId - 1;
-		return !!(this.toyBitmask & (1 << bitIndex));
+		return bitIndex >= 0 && bitIndex < 32 && !!((this.toyBitmask >>> bitIndex) & 1);
 	}
 
 	private selectToyInternal(toyId: number) {
@@ -123,14 +131,20 @@ export class SelectToyModal implements OnInit, OnDestroy {
 		}
 	}
 
+	private clearToySelection() {
+		this.selectedToy = undefined;
+		if (this.previewPony) {
+			this.previewPony = { ...this.previewPony, toy: 0 } as PalettePonyInfo;
+			this.cdr.markForCheck();
+		}
+	}
+
 	confirmSelection() {
-		if (this.selectedToy && this.selectedToy > 0) {
+		if (this.previewPony) {
 			const current = this.previewPony;
-			if (current) {
-				this.previewPony = { ...current, toy: this.selectedToy } as PalettePonyInfo;
-				this.cdr.markForCheck();
-			}
-			this.game.send(server => server.actionParam(Action.DropToy, this.selectedToy));
+			this.previewPony = { ...current, toy: this.selectedToy || 0 } as PalettePonyInfo;
+			this.cdr.markForCheck();
+			this.game.send(server => server.actionParam(Action.DropToy, this.selectedToy || 0));
 		}
 		this.closeModal();
 	}

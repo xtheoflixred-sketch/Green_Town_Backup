@@ -299,11 +299,12 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		{ id: 32, name: 'Halo', color: '#ffd94f', category: 'halo' },
 	];
 	get filteredToys(): ToyEntry[] {
-		return this._allToys;
+		return this._allToys.filter(toy => this.isToyCollected(toy.id));
 	}
 	isToyCollected(toyId: number): boolean {
 		const bitmask = this.getToyBitmask();
-		return !!(bitmask & (1 << (toyId - 1)));
+		const bitIndex = toyId - 1;
+		return bitIndex >= 0 && bitIndex < 32 && !!((bitmask >>> bitIndex) & 1);
 	}
 	private getToyBitmask(): number {
 		const acct: any = this.model && this.model.account;
@@ -370,6 +371,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			const commandName = this.commandQuery.trim().split(/\s+/)[0].toLowerCase();
 			this.activeCommandCache = CLIENT_COMMANDS.find(
 				command =>
+					(this.getToyBitmask() !== 0 || (command.name !== 'toy' && command.name !== 'toys')) &&
 					command.name.toLowerCase() === commandName &&
 					canUseCommand(command, this.game.model.account)
 			);
@@ -395,8 +397,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.activeCommandCache = undefined;
 		this.filteredSubcommandsCache = [];
 
+		const hasToys = this.getToyBitmask() !== 0;
 		const commands = CLIENT_COMMANDS.filter(
 			(c: ClientCommand) =>
+				(hasToys || (c.name !== 'toy' && c.name !== 'toys')) &&
 				canUseCommand(c, this.game.model.account) &&
 				c.name.toLowerCase().startsWith(commandQuery)
 		);

@@ -1,0 +1,7 @@
+@import '../../../../styles/partials/variables';
+
+:host {
+	display: block;
+	border-radius: $border-radius-base;
+	overflow: hidden;
+}

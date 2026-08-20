@@ -4,7 +4,7 @@ div(*ngIf="compact && !onlyPatterns")
 		.col-sm-8
 			sprite-selection(
 				[(selected)]="set.type" [sprites]="sprites" [fill]="set.fills" [outline]="set.outlines" [darken]="darken"
-				(selectedChange)="onChange()" [circle]="circle" [attr.aria-label]="'Select ' + label" emptyLabel="No {{label}}")
+				(selectedChange)="onChange($event)" [circle]="circle" [attr.aria-label]="'Select ' + label" [empty]="empty" [disabledItems]="disabledItems" emptyLabel="No {{label}}")
 
 div(*ngIf="!compact && !onlyPatterns")
 	.row.form-group
@@ -13,7 +13,7 @@ div(*ngIf="!compact && !onlyPatterns")
 		.col-sm-12
 			sprite-selection(
 				[(selected)]="set.type" [sprites]="sprites" [fill]="set.fills" [outline]="set.outlines" [darken]="darken"
-				(selectedChange)="onChange()" [circle]="circle" [attr.aria-label]="'Select ' + label" emptyLabel="No {{label}}")
+				(selectedChange)="onChange($event)" [circle]="circle" [attr.aria-label]="'Select ' + label" [empty]="empty" [disabledItems]="disabledItems" emptyLabel="No {{label}}")
 
 div(*ngIf="showColorPatterns && !onlyPatterns")
 	.row.form-group

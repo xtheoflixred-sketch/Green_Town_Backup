@@ -68,7 +68,8 @@ this.draw();
 }
 private draw() {
 const canvas = this.canvas.nativeElement as HTMLCanvasElement;
-const size = sizes[this.size];
+const baseSize = this.size.replace('-square', '');
+const size = sizes[baseSize];
 resizeCanvasWithRatio(canvas, size, size);
 
 const context = canvas.getContext('2d');
@@ -79,7 +80,7 @@ context.fillStyle = '#444';
 context.fillRect(0, 0, canvas.width, canvas.height);
 
 if (this.pony) {
-const scale = scales[this.size] * getPixelRatio();
+const scale = scales[baseSize] * getPixelRatio();
 this.batch = this.batch || new ContextSpriteBatch(createCanvas(BUFFER_SIZE, BUFFER_SIZE));
 this.options.flipped = !this.flip;
 this.options.outlineColor = this.chatHoverColor;

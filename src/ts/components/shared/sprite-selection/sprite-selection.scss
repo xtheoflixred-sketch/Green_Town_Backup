@@ -54,3 +54,11 @@
 	font-size: 27px;
 	text-align: center;
 }
+
+.selection-item-empty {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 24px;
+	color: darken($text-muted, 20%);
+}

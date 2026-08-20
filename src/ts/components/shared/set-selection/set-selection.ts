@@ -31,6 +31,8 @@ export class SetSelection implements OnChanges {
 	@Input() nonLockable = false;
 	@Input() compact = false;
 	@Input() onlyPatterns = false;
+	@Input() empty = false;
+	@Input() disabledItems: boolean[] = [];
 	@Input() darken = true;
 	@Output() change = new EventEmitter<void>();
 	constructor(@Optional() private hidden: SetOutlineHidden) {
@@ -58,7 +60,11 @@ export class SetSelection implements OnChanges {
 	ngOnChanges() {
 		this.sprites = this.sets ? this.sets.map(s => s ? s[0] : undefined) : undefined;
 	}
-	onChange() {
+	onChange(index?: number) {
+		if (index === -1 && this.set) {
+			this.set.type = -1;
+			this.set.pattern = 0;
+		}
 		const set = this.getSet();
 
 		if (this.set && set) {

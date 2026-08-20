@@ -168,7 +168,13 @@ ng-template(#testModal)
 				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
 				| Actions
 
-			a.dropdown-item.mb-1((click)="openToys()")
+			a.dropdown-item.mb-1(
+				*ngIf="showToysButton"
+				(click)="openToys()"
+				[class.disabled]="!hasCollectedToys"
+				[class.text-muted]="!hasCollectedToys"
+				[attr.aria-disabled]="!hasCollectedToys"
+			)
 				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
 				| Select toys
 

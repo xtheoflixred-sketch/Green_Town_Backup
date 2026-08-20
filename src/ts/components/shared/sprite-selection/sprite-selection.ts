@@ -3,6 +3,7 @@ import { uniqueId } from 'lodash';
 import { ColorExtra } from '../../../common/interfaces';
 import { Key } from '../../../client/input/input';
 import { focusElementAfterTimeout } from '../../../client/htmlUtils';
+import { faTimes } from '../../../client/icons';
 
 const MAX = 999999;
 
@@ -18,6 +19,7 @@ const MAX = 999999;
 	},
 })
 export class SpriteSelection {
+	readonly emptyIcon = faTimes;
 	@Input() selected = 0;
 	@Output() selectedChange = new EventEmitter<number>();
 	@Input() sprites?: ColorExtra[];
@@ -28,7 +30,9 @@ export class SpriteSelection {
 	@Input() limit = MAX;
 	@Input() skip = 0;
 	@Input() disabled = false;
+	@Input() disabledItems: boolean[] = [];
 	@Input() emptyLabel?: string;
+	@Input() empty = false;
 	@Input() invisible = false;
 	@Input() darken = true;
 	id = uniqueId('sprite-selection-');
@@ -47,7 +51,7 @@ export class SpriteSelection {
 		return this.selected === (index + this.skip);
 	}
 	select(index: number, focus = false) {
-		if (!this.disabled && this.selected !== index) {
+		if (!this.disabled && !this.disabledItems[index] && this.selected !== index) {
 			this.selected = index;
 			this.selectedChange.emit(index);
 
@@ -58,6 +62,12 @@ export class SpriteSelection {
 			if (focus) {
 				focusElementAfterTimeout(this.element.nativeElement, '.active');
 			}
+		}
+	}
+	selectEmpty() {
+		if (!this.disabled && this.empty) {
+			this.selected = -1;
+			this.selectedChange.emit(-1);
 		}
 	}
 	showMore() {

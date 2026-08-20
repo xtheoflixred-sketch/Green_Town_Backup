@@ -858,6 +858,7 @@ export function openGift(client: IClient) {
 			updateAccountState(client.account, state => {
 				state.toys = unlockToy(toyType, toInt(state.toys));
 			});
+			client.updateToysBitmask(toInt(client.account.state && client.account.state.toys));
 
 			// notification logic
 			const now = Date.now();
@@ -866,6 +867,7 @@ export function openGift(client: IClient) {
 			// first toy collected -> announcement
 			if (prev === 0 && after === 1) {
 				sayToOthers(client, 'Вы собрали свою первую игрушку!', MessageType.Announcement, undefined, {} as any);
+				saySystem(client, 'В настройках открылись игрушки. Теперь доступны команды /toy и /toys.');
 				sayToOthers(client, `Открыта игрушка #${toyType}`, MessageType.Announcement, undefined, {} as any);
 			} else if (after === total) {
 				// collected all -> announcement

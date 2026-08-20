@@ -14,7 +14,7 @@ import {
 import { SettingsService } from '../../services/settingsService';
 import { Audio } from '../../services/audio';
 import { getZoomScaleBounds, MIN_SCALE, MAX_SCALE } from '../../../common/constants';
-import { EntityPlayerState } from '../../../common/interfaces';
+import { EntityPlayerState, Holiday } from '../../../common/interfaces';
 import { hasFlag } from '../../../common/utils';
 
 @Component({
@@ -167,6 +167,16 @@ export class SettingsBox implements OnInit, OnDestroy {
 
 	get settings() {
 		return this.model.account && this.model.account.settings || {};
+	}
+
+	get hasCollectedToys() {
+		const account: any = this.model.account;
+		const toys = account && account.state && account.state.toys;
+		return (typeof toys === 'number' ? toys : parseInt(toys, 10) || 0) !== 0;
+	}
+
+	get showToysButton() {
+		return this.hasCollectedToys || this.game.holiday === Holiday.Christmas;
 	}
 
 	get isMobile() {
@@ -378,6 +388,7 @@ export class SettingsBox implements OnInit, OnDestroy {
 	}
 
 	openToys() {
+		if (!this.showToysButton || !this.hasCollectedToys) return;
 		this.openModal(this.toyModal);
 		this.dropdown.close();
 	}
