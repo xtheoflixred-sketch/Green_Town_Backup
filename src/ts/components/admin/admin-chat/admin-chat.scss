@@ -1,0 +1,10 @@
+.admin-chat-page {
+	.chatlog {
+		max-height: calc(100vh - 260px);
+		overflow: auto;
+	}
+
+	label {
+		color: #aaa;
+	}
+}

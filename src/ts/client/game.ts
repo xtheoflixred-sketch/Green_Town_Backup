@@ -179,6 +179,7 @@ import { ErrorReporter } from '../components/services/errorReporter';
 import { mockPaletteManager } from '../common/ponyInfo';
 import { timeStart, timeEnd, timingCollate, timeReset } from './timing';
 import { createFrameBuffer, bindFrameBuffer, unbindFrameBuffer, disposeFrameBuffer } from '../graphics/webgl/frameBuffer';
+import { setActiveGameSession, removeActiveGameSession } from '../common/accountSessionUtils';
 import { WebGL, initWebGL, disposeWebGL, initWebGLResources } from './webgl';
 import { bindTexture } from '../graphics/webgl/texture2d';
 import { normalSpriteSheet, paletteSpriteSheet, defaultPalette } from '../generated/sprites';
@@ -512,6 +513,9 @@ export class PonyTownGame implements Game {
 	private baseTime = 0;
 	private targetBaseTime = 0;
 	private connectedTime = 0;
+	private gameSessionId?: string;
+	private gameSessionStartedAt?: number;
+	private gameSessionHeartbeat?: any;
 	private lastPixelRatio = pixelRatio();
 	private resized = true;
 	private resizedCamera = true;
@@ -1139,6 +1143,7 @@ window.addEventListener('resize', () => {
 		}
 	}
 	leave() {
+		this.stopGameSessionHeartbeat();
 		if (this.socket) {
 			if (this.socket.isConnected) {
 				this.socket.server.leave();
@@ -1149,7 +1154,27 @@ window.addEventListener('resize', () => {
 	}
 	joined() {
 		this.connectedTime = Math.round(performance.now());
+		this.startGameSessionHeartbeat();
 		this.onJoined.next();
+	}
+	private startGameSessionHeartbeat() {
+		this.stopGameSessionHeartbeat();
+		this.gameSessionId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+		const startedAt = Date.now();
+		this.gameSessionStartedAt = startedAt;
+		const update = () => setActiveGameSession(this.model.account!.id, this.gameSessionId!, startedAt);
+		update();
+		this.gameSessionHeartbeat = setInterval(update, 1000);
+		window.addEventListener('beforeunload', () => this.stopGameSessionHeartbeat(), { once: true });
+	}
+	private stopGameSessionHeartbeat() {
+		if (this.gameSessionHeartbeat) clearInterval(this.gameSessionHeartbeat);
+		if (this.gameSessionId && this.gameSessionStartedAt && this.model.account) {
+			removeActiveGameSession(this.model.account.id, this.gameSessionId, this.gameSessionStartedAt);
+		}
+		this.gameSessionHeartbeat = undefined;
+		this.gameSessionId = undefined;
+		this.gameSessionStartedAt = undefined;
 	}
 	togglePixelRatio() {
 		pixelRatioEnabled = !pixelRatioEnabled;

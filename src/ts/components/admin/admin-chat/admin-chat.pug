@@ -1,0 +1,39 @@
+.container-fluid.admin-chat-page
+	.d-flex.justify-content-between.align-items-center.mb-3
+		h2.mb-0
+			| Server chat log
+			span.text-muted.ml-2(*ngIf="loading")
+				fa-icon([icon]="spinnerIcon" [spin]="true")
+		.form-inline
+			button.btn.btn-sm.btn-default.ml-2((click)="refresh()" title="Refresh chat log")
+				fa-icon([icon]="syncIcon" [fixedWidth]="true")
+			button.btn.btn-sm.btn-default.ml-2((click)="openLog()" title="Open plain text log")
+				fa-icon([icon]="fileIcon" [fixedWidth]="true")
+
+	.card.card-dark.mb-3
+		.card-body
+			form.form-row((submit)="refresh()")
+				.form-group.col-md-2
+					label(for="chat-from") From
+					input#chat-from.form-control(type="date" name="from" [(ngModel)]="from")
+				.form-group.col-md-2
+					label(for="chat-to") To
+					input#chat-to.form-control(type="date" name="to" [(ngModel)]="to")
+				.form-group.col-md-2
+					label(for="chat-server") Server
+					input#chat-server.form-control(type="search" name="server" [(ngModel)]="server" placeholder="main")
+				.form-group.col-md-2
+					label(for="chat-map") Map
+					input#chat-map.form-control(type="search" name="map" [(ngModel)]="map" placeholder="map id")
+				.form-group.col-md-2
+					label(for="chat-user") User / account
+					input#chat-user.form-control(type="search" name="user" [(ngModel)]="user" placeholder="name or id")
+				.form-group.col-md-2
+					label(for="chat-search") Message
+					input#chat-search.form-control(type="search" name="search" [(ngModel)]="search" placeholder="phrase")
+				.form-group.col-12.text-right.mb-0
+					button.btn.btn-primary(type="submit")
+						fa-icon.mr-1([icon]="searchIcon" [fixedWidth]="true")
+						| Load chat
+
+	.well.pre.chatlog

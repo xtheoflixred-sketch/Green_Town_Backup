@@ -1,6 +1,6 @@
 {
   "name": "green-town",
-  "version": "1.6.0",
+  "version": "1.8.0",
   "description": "Green Town is a private server for Pony Town, a multiplayer online game where players can create and customize their own ponies and interact with others in a virtual world.",
   "main": "pony-town.js",
   "scripts": {

@@ -45,6 +45,7 @@ import { UAInfo } from './shared/ua-info/ua-info';
 
 import { AdminState } from './admin-state/admin-state';
 import { AdminEvents } from './admin-events/admin-events';
+import { AdminChat } from './admin-chat/admin-chat';
 import { AdminOther } from './admin-other/admin-other';
 import { AdminAccounts } from './admin-accounts/admin-accounts';
 import { AdminAccountDetails } from './admin-account-details/admin-account-details';
@@ -62,6 +63,7 @@ export const routes: Routes = [
 	{ path: '', component: AdminState },
 	{ path: 'sign-in', component: AdminSignIn },
 	{ path: 'events', component: AdminEvents },
+	{ path: 'chat', component: AdminChat },
 	{ path: 'accounts', component: AdminAccounts },
 	{ path: 'accounts/:id', component: AdminAccountDetails },
 	{ path: 'ponies', component: AdminPonies },
@@ -125,6 +127,7 @@ export const routes: Routes = [
 		UAInfo,
 		AdminState,
 		AdminEvents,
+		AdminChat,
 		AdminOther,
 		AdminAccounts,
 		AdminAccountDetails,

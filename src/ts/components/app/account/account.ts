@@ -4,6 +4,7 @@ import { UpdateAccountData, SocialSiteInfo, OAuthProvider, HiddenPlayer, PonyInf
 import {
 	toSocialSiteInfo, cleanName, supporterTitle, supporterClass, isSupporterOrPastSupporter, supporterRewards
 } from '../../../client/clientUtils';
+import { getRolePrivileges } from '../../../common/accountUtils';
 import { oauthProviders } from '../../../client/data';
 import { Model } from '../../services/model';
 import { getProviderIcon } from '../../shared/sign-in-box/sign-in-box';
@@ -12,7 +13,7 @@ import { Router } from '@angular/router';
 import { formatPlaytime } from '../../../common/utils';
 import { AccountDataFlags } from '../../../common/interfaces';
 import { hasFlag } from '../../../common/utils';
-import { buildAccountSessionEntries } from '../../../common/accountSessionUtils';
+import { buildAccountSessionEntries, getActiveGameSessions, getLastGameSession } from '../../../common/accountSessionUtils';
 
 @Component({
 
@@ -24,6 +25,8 @@ export class Account implements OnInit, OnDestroy {
 	readonly refreshIcon = faSync;
 
 	private accountInfoInterval: any;
+	private sessionInfoInterval: any;
+	currentTime = Date.now();
 	readonly starIcon = faStar;
 	readonly alertIcon = faExclamationCircle;
 	readonly copyIcon = faCopy;
@@ -89,16 +92,25 @@ export class Account implements OnInit, OnDestroy {
 
 		this.pageChanged();
 
-		// Refresh relative account timestamps.
-		this.accountInfoInterval = setInterval(() => {
-			// trigger change detection by updating a dummy property
-		}, 1000);
+		this.sessionInfoInterval = setInterval(() => this.currentTime = Date.now(), 1000);
+		this.accountInfoInterval = setInterval(() => this.refreshAccountInfo(), 5000);
 	}
 	ngOnDestroy() {
 		this.model.mergedAccount = false;
 		if (this.accountInfoInterval) {
 			clearInterval(this.accountInfoInterval);
 		}
+		if (this.sessionInfoInterval) {
+			clearInterval(this.sessionInfoInterval);
+		}
+	}
+	private refreshAccountInfo() {
+		this.model.getAccount().then(account => {
+			if (!account || 'limit' in account) return;
+			this.model.account = account;
+			this.model.ponies = account.ponies || [];
+			this.sites = account.sites && account.sites.map(toSocialSiteInfo);
+		}).catch(() => { /* keep the last visible account data */ });
 	}
 	pageChanged() {
 		this.model.getHides(this.page)
@@ -134,8 +146,39 @@ export class Account implements OnInit, OnDestroy {
 		return new Date(value).toLocaleString();
 	}
 	get displayLastSessionPlaytime() {
-		const seconds = this.account && this.account.lastSessionSeconds;
-		return seconds == null ? '-' : this.formatPlaytime(seconds);
+		const account = this.account;
+		let seconds = account && account.lastSessionSeconds;
+		if (account) {
+			const storedSession = getLastGameSession(account.id);
+			if (storedSession != null) seconds = storedSession;
+		}
+		if (seconds == null && account && account.lastLogin && account.lastLogout) {
+			seconds = Math.max(0, Math.round((new Date(account.lastLogout).getTime() - new Date(account.lastLogin).getTime()) / 1000));
+		}
+		if (seconds == null) return '-';
+		return this.formatPlaytime(seconds);
+	}
+	get displayCurrentSessionPlaytime() {
+		const account = this.account;
+		if (!account) return '-';
+		const sessions = getActiveGameSessions(account.id, this.currentTime);
+		if (!sessions.length) {
+			const lastSession = getLastGameSession(account.id);
+			return lastSession == null ? '-' : this.formatPlaytime(lastSession);
+		}
+		const seconds = sessions.reduce((total, session) => total + Math.max(0, Math.floor((this.currentTime - session.startedAt) / 1000)), 0);
+		return this.formatPlaytime(seconds);
+	}
+	get displayPlaytimeWithActiveSessions() {
+		return this.formatPlaytime(this.totalPlaytimeSeconds);
+	}
+	get totalPlaytimeSeconds() {
+		const account = this.account;
+		const stored = account && account.playtimeSeconds;
+		if (stored == null) return undefined;
+		const currentSeconds = getActiveGameSessions(account!.id, this.currentTime)
+			.reduce((total, session) => total + Math.max(0, Math.floor((this.currentTime - session.startedAt) / 1000)), 0);
+		return stored + currentSeconds;
 	}
 	get supporter() {
 		return this.model.supporter;
@@ -160,6 +203,9 @@ export class Account implements OnInit, OnDestroy {
 	}
 	get supporterRewards() {
 		return supporterRewards(this.account) || [];
+	}
+	get rolePrivileges() {
+		return getRolePrivileges(this.account);
 	}
 	get supporterPonyInfo(): PonyInfo | undefined {
 		return this.showSupporter ? this.model.pony.ponyInfo : undefined;

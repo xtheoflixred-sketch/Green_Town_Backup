@@ -5,7 +5,7 @@ import { PopoverConfig } from 'ngx-bootstrap/popover';
 import { hasRole } from '../../common/accountUtils';
 import { AdminModel } from '../services/adminModel';
 import {
-	faSpinner, faSlidersH, faExclamationCircle, faUsers, faHorseHead, faMapMarkerAlt, faChartPie, faCog
+	faSpinner, faSlidersH, faExclamationCircle, faUsers, faHorseHead, faMapMarkerAlt, faChartPie, faCog, faComments
 } from '../../client/icons';
 
 export function tooltipConfig() {
@@ -29,6 +29,7 @@ export class AdminApp {
 	readonly spinnerIcon = faSpinner;
 	readonly stateIcon = faSlidersH;
 	readonly eventsIcon = faExclamationCircle;
+	readonly chatIcon = faComments;
 	readonly accountsIcon = faUsers;
 	readonly poniesIcon = faHorseHead;
 	readonly originsIcon = faMapMarkerAlt;

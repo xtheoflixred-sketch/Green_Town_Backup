@@ -3,6 +3,7 @@ import {
 	ADDITIONAL_CHARACTERS_SUPPORTER3, ADDITIONAL_CHARACTERS_SUPPORTER4, ADDITIONAL_CHARACTERS_PAST_SUPPORTER,
 	SUPPORTER_FRIENDS_LIMITS, FRIENDS_LIMIT
 } from './constants';
+import { ROLE_PRIVILEGES } from './constants';
 import { AccountDataFlags } from './interfaces';
 import { AccountFlags, SupporterFlags } from './adminInterfaces';
 import { hasFlag } from './utils';
@@ -97,4 +98,15 @@ export function getFriendsLimit(account: AccountSupporter | undefined) {
 	const level = Math.max(0, Math.min(4, account.supporter || 0));
 	const limit = SUPPORTER_FRIENDS_LIMITS[level];
 	return typeof limit === 'number' ? limit : FRIENDS_LIMIT;
+}
+
+export function getRolePrivileges(account: AccountRoles | undefined): string[] {
+	if (!account || !account.roles) return [];
+	const privileges: string[] = [];
+	for (const role of account.roles) {
+		for (const privilege of ROLE_PRIVILEGES[role] || []) {
+			if (privileges.indexOf(privilege) === -1) privileges.push(privilege);
+		}
+	}
+	return privileges;
 }

@@ -145,6 +145,15 @@ export interface InternalApi extends InternalCommonApi {
 	teleportTo(adminAccountId: string, targetAccountId: string): Promise<void>;
 }
 
+export interface ChatLogQuery {
+	from: string;
+	to: string;
+	server?: string;
+	map?: string;
+	user?: string;
+	search?: string;
+}
+
 export interface InternalLoginApi extends InternalCommonApi {
 	state(): Promise<LoginServerStatus>;
 	loginServerStats(): Promise<RequestStats[]>;
@@ -903,6 +912,7 @@ export interface IAdminServerActions {
 	kickAll(serverId: string): Promise<void>;
 	getChat(search: string, date: string, caseInsensitive: boolean): Promise<string>;
 	getChatForAccounts(accountIds: string[], date: string): Promise<string>;
+	getChatRange(query: ChatLogQuery): Promise<string>;
 	getRequestStats(): Promise<LoginStats>;
 	announce(message: string, type: 'admin' | 'announcement'): Promise<void>;
 	// live

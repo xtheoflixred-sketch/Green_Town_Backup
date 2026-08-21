@@ -8,7 +8,7 @@ import { AccountData, AccountCounters } from '../../common/interfaces';
 import {
 	Account, Auth, Character, Origin, OriginInfo, Event, AdminState, UpdateOrigin, AccountFlags, IAdminServerActions,
 	FindPonyQuery, AuthUpdate, ItemCounts, SupporterFlags, GameServerSettings, Settings,
-	AccountState, MergeAccountData, FindAccountQuery, ClearOrignsOptions, OriginInfoBase, PonyIdDateName, Stats, BaseValues,
+	AccountState, MergeAccountData, FindAccountQuery, ClearOrignsOptions, OriginInfoBase, PonyIdDateName, Stats, BaseValues, ChatLogQuery,
 } from '../../common/adminInterfaces';
 import { ClientAdminActions } from '../../client/clientAdminActions';
 import { LiveCollection } from './liveCollection';
@@ -484,6 +484,9 @@ export class AdminModel {
 	getChatForAccounts(accountIds: string[], date?: string) {
 		date = date || (new Date()).toISOString();
 		return accountIds.length ? this.server.getChatForAccounts(accountIds, date) : Promise.resolve('');
+	}
+	getChatRange(query: ChatLogQuery) {
+		return this.checkError(this.server.getChatRange(query));
 	}
 	searchFormattedChat(search: string, date?: string) {
 		return this.formatChat(this.getChat(search, date, true));

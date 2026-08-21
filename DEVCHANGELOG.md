@@ -1,9 +1,63 @@
 # Dev Changelog
 
+## Season 1 — Patch 8 | Exp. Only
+
+### Roles
+- Added the `Builder` role
+- Added the `NPC` role
+
+### Tools
+- Significantly redesigned and simplified the map editor
+- Removed multiple unused debugging functions and options from the map editor
+
+### Admin
+- Added a new `Chat-Log` tab to the admin panel
+- The Chat-Log allows administrators to view the complete in-game chat history from all players
+
+---
+
+## Season 1 — Patch 7 | Exp. Only
+
+### Tools
+- Ported multiple home building tools to the moderator map editor
+- Updated the map editor with additional building functionality
+
+### Maps
+- Added `ItemTrigger` to `CustomMap`
+- Allows held items to be placed directly inside the trigger area
+- Added NPC testing to `TestMap`
+- NPCs can now appear and walk around the map
+
+### UI
+- Added role-based quick access buttons in the top-right account menu
+- Depending on the assigned role, players can access:
+	- Admin Panel
+	- Map Preview
+	- Other development and moderation pages
+
+---
+
 ## Season 1 — Patch 6 | Exp. Only
 
-### Notes
-- No dev changes yet for Patch 6.
+### Commands
+- Updated the moderator `/tp` command
+- Added `/tp here <name>`:
+	- Teleports the selected player to you
+- Added `/tp to <name>`:
+	- Teleports you to the selected player
+- Updated `/tp <x> <y>`:
+	- Added support for decimal coordinates such as `5.2` and `6.9`
+- Added `/tp here all`:
+	- Teleports all players to your location
+
+### Fixes
+- Fixed an issue where teleporting to a player in another location was not possible
+- Fixed an issue preventing players in other locations from being teleported to your location
+
+### Tools
+- Completely redesigned the map preview page at `/tools/map`
+
+---
 
 ## Season 1 — Patch 5 | Exp. Stable
 

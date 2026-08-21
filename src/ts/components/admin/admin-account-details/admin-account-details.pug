@@ -84,6 +84,15 @@ div(*ngIf="account")
 							span.text-muted Browser / device:
 							ua-info.ml-1([userAgent]="sessionAccount.lastUserAgent" [useTooltip]="false")
 						div.mb-2.text-muted.ml-4(*ngIf="sessionAccount.lastUserAgent") {{sessionAccount.lastUserAgent}}
+						div.mb-2
+							span.text-muted Total playtime:
+							span.ml-1 {{displayTotalPlaytime}}
+						div.mb-2
+							span.text-muted Last session playtime:
+							span.ml-1 {{displayLastSessionPlaytime}}
+						div.mb-2(*ngIf="accountStatus.status && accountStatus.status.length")
+							span.text-muted Current session playtime:
+							span.ml-1 {{accountStatus.status[0].duration}}
 						div.mt-3
 							.small.text-muted
 								| Session controls:

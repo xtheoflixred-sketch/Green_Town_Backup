@@ -67,6 +67,8 @@ div
 		.app-version
 			| Status #[b {{version}}] | 
 			a.changelog-link((click)="openChangelog()") Changelog
+			|  |
+			a.changelog-link(*ngIf="canViewDevChangelog" (click)="openDevChangelog()")  Dev-Changelog
 		.text-right
 			.d-flex.flex-wrap
 				.text-nowrap.mr-2
@@ -94,3 +96,7 @@ ng-template(#reloadModal)
 
 ng-template(#changelogModal)
 	changelog-modal((close)="changelogModalRef?.hide()" [focusTrap]="true")
+
+ng-template(#devChangelogModal)
+	ng-container(*ngIf="canViewDevChangelog")
+		dev-changelog-modal((close)="devChangelogModalRef?.hide()" [focusTrap]="true")

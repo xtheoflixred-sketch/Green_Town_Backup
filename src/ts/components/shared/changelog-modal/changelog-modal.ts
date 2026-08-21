@@ -2,7 +2,7 @@ import { Component, Output, EventEmitter, OnInit } from '@angular/core';
 import { faSpinner } from '../../../client/icons';
 import { SettingsService } from '../../services/settingsService';
 import { Model } from '../../services/model';
-import { isPrivilegedAccount } from '../../../common/changelogUtils';
+import { isDevChangelogVisible } from '../../../common/changelogUtils';
 
 @Component({
 	selector: 'changelog-modal',
@@ -42,7 +42,7 @@ export class ChangelogModal implements OnInit {
 	}
 
 	get isPrivileged() {
-		return isPrivilegedAccount(this.model.account);
+		return isDevChangelogVisible(this.model.account);
 	}
 	ngOnInit() {
 		// Load saved preference (default to true if not set)

@@ -10,6 +10,55 @@ export interface AccountSessionSummary {
 	authoritative: boolean;
 }
 
+export interface ActiveGameSession {
+	startedAt: number;
+	updatedAt: number;
+}
+
+export const GAME_SESSION_KEY_PREFIX = 'pony-town-game-session:';
+export const LAST_GAME_SESSION_KEY_PREFIX = 'pony-town-last-game-session:';
+const GAME_SESSION_TIMEOUT = 10000;
+
+export function setActiveGameSession(accountId: string, id: string, startedAt: number) {
+	localStorage.setItem(`${GAME_SESSION_KEY_PREFIX}${accountId}:${id}`, JSON.stringify({ startedAt, updatedAt: Date.now() }));
+}
+
+export function removeActiveGameSession(accountId: string, id: string, startedAt: number) {
+	localStorage.removeItem(`${GAME_SESSION_KEY_PREFIX}${accountId}:${id}`);
+	localStorage.setItem(`${LAST_GAME_SESSION_KEY_PREFIX}${accountId}`, JSON.stringify({
+		seconds: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
+		endedAt: Date.now(),
+	}));
+}
+
+export function getActiveGameSessions(accountId: string, now = Date.now()): ActiveGameSession[] {
+	const sessions: ActiveGameSession[] = [];
+	for (let index = 0; index < localStorage.length; index++) {
+		const key = localStorage.key(index);
+		if (!key || !key.startsWith(`${GAME_SESSION_KEY_PREFIX}${accountId}:`)) continue;
+		try {
+			const session = JSON.parse(localStorage.getItem(key) || '') as ActiveGameSession;
+			if (now - session.updatedAt <= GAME_SESSION_TIMEOUT) {
+				sessions.push(session);
+			} else {
+				localStorage.removeItem(key);
+			}
+		} catch {
+			localStorage.removeItem(key);
+		}
+	}
+	return sessions;
+}
+
+export function getLastGameSession(accountId: string): number | undefined {
+	try {
+		const value = JSON.parse(localStorage.getItem(`${LAST_GAME_SESSION_KEY_PREFIX}${accountId}`) || '') as { seconds?: number };
+		return value.seconds;
+	} catch {
+		return undefined;
+	}
+}
+
 export function buildAccountSessionSummary(account: { lastVisit?: string; lastLogin?: string; lastLogout?: string; lastUserAgent?: string }, currentUserAgent?: string): AccountSessionSummary {
 	const userAgent = currentUserAgent || account.lastUserAgent || '';
 	const parser = new UAParser(userAgent);

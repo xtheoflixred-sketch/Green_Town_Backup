@@ -22,7 +22,7 @@ import {
 	removeAccount, setAccountAlert
 } from './api/admin-accounts';
 import {
-	getAdminState, getChat, kickFromAllServers, notifyUpdate, clearSessions, actionForAllServers, updateOrigin,
+	getAdminState, getChat, getChatRange, kickFromAllServers, notifyUpdate, clearSessions, actionForAllServers, updateOrigin,
 	getChatForAccounts, shutdownServers, resetUpdating, announce, getUserCounts, getAccountDetails,
 	EndPoints, getOtherStats, updateGameServerSettings, updateServerSettings, forAllGameServers,
 } from './api/admin';
@@ -219,6 +219,10 @@ export class AdminServerActions implements IAdminServerActions, SocketServer {
 	@Method({ promise: true })
 	async getChatForAccounts(accountIds: string[], date: string) {
 		return await getChatForAccounts(accountIds, date);
+	}
+	@Method({ promise: true })
+	async getChatRange(query: import('../common/adminInterfaces').ChatLogQuery) {
+		return await getChatRange(query);
 	}
 	@Method({ promise: true })
 	async getRequestStats() {

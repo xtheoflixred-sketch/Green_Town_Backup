@@ -1101,9 +1101,14 @@ export function createCommands(world: World): Command[] {
 		const text = `Последний вход в игру: ${formatLastGameEntry(pony && pony.lastUsed)}`;
 		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
 	}, false, 'Other'),
-	command(['lastsession', 'sessiontime'], '/lastsession - показать длительность последней игровой сессии', '', ({ }, client, _message, type, target, settings) => {
+	command(['lastsession', 'sessiontime'], '/lastsession - показать длительность последней завершённой игровой сессии', '', ({ }, client, _message, type, target, settings) => {
 		const seconds = client.account.lastSessionSeconds;
 		const text = seconds == null ? 'Длительность последней сессии неизвестна' : `Длительность последней сессии: ${formatPlaytime(seconds)} (${seconds} сек.)`;
+		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
+	}, false, 'Other'),
+	command(['timesession'], '/timesession - показать длительность текущей игровой сессии', '', ({ }, client, _message, type, target, settings) => {
+		const seconds = Math.max(0, Math.round((Date.now() - client.connectedTime) / 1000));
+		const text = `Длительность текущей сессии: ${formatPlaytime(seconds)} (${seconds} сек.)`;
 		sayToOthers(client, text, toAnnouncementMessageType(type), target, settings);
 	}, false, 'Other'),
 

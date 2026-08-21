@@ -2,9 +2,9 @@ h1(focusTitle) Account settings
 
 .row.text-large
 	.col-md-6
-		form(name="form" (submit)="submit()" style="max-width: 400px; margin-bottom: 100px")
-		.form-group
-			h3 Account details
+		form(name="form" (submit)="submit()" style="max-width: 400px")
+				.form-group.account-details-heading
+					h3 Account details
 		.form-group
 			label(for="account-name") Account Name
 			input#account-name.form-control(
@@ -34,7 +34,7 @@ h1(focusTitle) Account settings
 		ng-template(#copyTooltip)
 			.text-left
 				p {{ idCopied ? 'Your ID Copied!' : 'Copy' }}
-		div(style="margin-bottom: 100px;")
+		div
 			.form-group
 				h3.mb-3(style="color: #fff;") Account info
 				div.account-info-block
@@ -47,13 +47,18 @@ h1(focusTitle) Account settings
 						strong Creation date: 
 						| {{account?.creationDate || '-'}}
 					.mb-2(style="color: #9c9c9c;")
-					strong(style="color: #9c9c9c;") Total playtime: #[span.ml-1 {{ displayPlaytime }}] #[small.ml-1 ({{ account?.playtimeSeconds || 0 }} sec)]
+						strong Total playtime:
+						span.ml-1 {{ displayPlaytimeWithActiveSessions }}
+						small.ml-1 ({{ totalPlaytimeSeconds || 0 }} sec)
 					.mb-2(style="color: #9c9c9c;")
 						strong Last game entry:
 						span.ml-1 {{ displayLastGameEntry }}
 					.mb-2(style="color: #9c9c9c;")
 						strong Last session playtime:
 						span.ml-1 {{ displayLastSessionPlaytime }}
+					.mb-2(style="color: #9c9c9c;")
+						strong Current session playtime:
+						span.ml-1 {{ displayCurrentSessionPlaytime }}
 			.form-group
 				p.text-muted.
 					If you remove social account, you won't be able to use it to sign-in to the game anymore.
@@ -158,6 +163,14 @@ h1(focusTitle) Account settings
 							p
 								| By now your supporter status has expired. If your Patreon subscription is still active but you no longer receive game benefits,
 								|  please contact support and we'll help you figure it out.
+
+			.clearfix.account-supporter-section(*ngIf="rolePrivileges.length")
+				.form-group
+					h3.mb-3(style="color: #fff;") Role privileges
+					div.account-info-block
+						p Your account roles provide these additional privileges:
+						ul
+							li(*ngFor="let privilege of rolePrivileges") {{privilege}}
 
 			.clearfix.account-supporter-section(*ngIf="showSupporterInfo")
 				.form-group

@@ -115,10 +115,25 @@
 
 		changelog-view(*ngIf="changelogResponse" [rawEntries]="changelogResponse.public")
 
-			hr
+		hr
 
+		div(*ngIf="canViewDevChangelog")
 			h2 Dev Changelog
-			changelog-view(*ngIf="changelogResponse && changelogResponse.dev && changelogResponse.dev.length > 0 && isPrivileged" [rawEntries]="changelogResponse.dev")
+			.update-about
+				.image-box(style="background:url('/assets/images/dev_update_previews/season1.png') center/cover;")
+				.about-text
+					p Development updates and experimental changes.
+			button.btn.btn-outline-secondary.mb-3(type='button' (click)='openDevChangelog()') Open Dev Changelog
+			changelog-view(*ngIf="changelogResponse && changelogResponse.dev && changelogResponse.dev.length > 0" [rawEntries]="changelogResponse.dev")
+
+ng-template(#devChangelogModal)
+	dev-changelog-modal(
+		(close)="devChangelogModalRef.hide()"
+		[focusTrap]="true"
+	)
 
 .text-center.text-muted
-	.tinyface#tinyFaceAbout((mouseenter)="onTinyFaceEnter()" (mouseleave)="onTinyFaceLeave()")
+	.tinyface#tinyFaceAbout(
+		(mouseenter)="onTinyFaceEnter()"
+		(mouseleave)="onTinyFaceLeave()"
+	)

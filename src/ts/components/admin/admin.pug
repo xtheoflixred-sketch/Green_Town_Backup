@@ -9,6 +9,7 @@
 		menu-bar([loading]="model.loading" [account]="model.account" (signOut)="signOut()")
 			menu-item(route="/" name="State ({{clients}})" [icon]="stateIcon")
 			menu-item(route="/events" name="Events ({{events}})" [icon]="eventsIcon")
+			menu-item(route="/chat" name="Chat log" [icon]="chatIcon")
 			menu-item(route="/accounts" name="Accounts ({{accounts}})" [icon]="accountsIcon")
 			menu-item(route="/ponies" name="Ponies ({{ponies}})" [icon]="poniesIcon")
 			menu-item(route="/origins" name="Origins ({{origins}})" [icon]="originsIcon")

@@ -75,10 +75,11 @@ export function formatISODate(date: Date) {
 	return `${year}-${month}-${day}`;
 }
 
-// format playtime (seconds) into "Xd, Yhours, Zmin". If less than 60s or undefined returns 'No Played'
+// format playtime (seconds) into "Xd, Yhours, Zmin".
 export function formatPlaytime(seconds?: number) {
-	if (!seconds || seconds < 60) return 'No Played';
+	if (seconds == null) return '-';
 	const s = Math.floor(seconds);
+	if (s < 60) return `${s}sec`;
 	const days = Math.floor(s / 86400);
 	const hours = Math.floor((s % 86400) / 3600);
 	const minutes = Math.floor((s % 3600) / 60);

@@ -1,12 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { emojis } from '../../../client/emoji';
 import { CREDITS, CONTRIBUTORS, Credit, } from '../../../client/credits';
 import { OFFLINE_PONY, DEL_PONY, KOKOSIK_PONY, HIKA_MIG_PONY, AALIK_PONY, SOFA_PONY, ENOT_PONY, LAI_PONY, KRIF_PONY } from '../../../common/constants';
 import { decompressPonyString } from '../../../common/compressPony';
 import { SUPPORTER_REWARDS_LIST } from '../../../common/constants';
 import { discordLink, contactEmail, contactDiscord, version, shortVersion } from '../../../client/data';
-import { isPrivilegedAccount } from '../../../common/changelogUtils';
 import { Model } from '../../services/model';
+import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
+import { isDevChangelogVisible } from '../../../common/changelogUtils';
 
 function colorFromSkin(skin?: string) {
 	if (!skin) return '#494242';
@@ -60,9 +61,11 @@ function toCredit(credit: Credit) {
 	styleUrls: ['about.scss'],
 })
 export class About implements OnInit {
+	@ViewChild('devChangelogModal', { static: true }) devChangelogModal!: TemplateRef<any>;
+	devChangelogModalRef?: BsModalRef;
 	private tinyFaceVariants = ['tinyface--alt', 'tinyface--alt2', 'tinyface--alt3', 'tinyface--alt4', 'tinyface--logo'];
 
-	constructor(public model: Model) {}
+	constructor(public model: Model, private modalService: BsModalService) {}
 
 	readonly title = document.title;
 	readonly emotes = emojis;
@@ -88,8 +91,15 @@ export class About implements OnInit {
 	}
 	changelogResponse: any = null;
 
-	get isPrivileged() {
-		return isPrivilegedAccount(this.model.account);
+	get canViewDevChangelog() {
+		return isDevChangelogVisible(this.model.account);
+	}
+
+	openDevChangelog() {
+		if (this.devChangelogModalRef) {
+			this.devChangelogModalRef.hide();
+		}
+		this.devChangelogModalRef = this.modalService.show(this.devChangelogModal, { class: 'modal-lg' });
 	}
 
 	private setTinyFaceVariant(elementId: string, force?: boolean) {

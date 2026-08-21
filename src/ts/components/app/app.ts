@@ -22,6 +22,7 @@ import { isSelected } from '../../client/gameUtils';
 import { AgDragEvent } from '../shared/directives/agDrag';
 import { FriendsBox } from '../shared/friends-box/friends-box';
 import { SettingsBox } from '../shared/settings-box/settings-box';
+import { isDevChangelogVisible } from '../../common/changelogUtils';
 
 interface Tier4Profile {
 	id: number;
@@ -57,12 +58,14 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	@ViewChild('reloadModal', { static: true }) reloadModal!: TemplateRef<any>;
 	@ViewChild('signInModal', { static: true }) signInModal!: TemplateRef<any>;
 	@ViewChild('changelogModal', { static: true }) changelogModal!: TemplateRef<any>;
+	@ViewChild('devChangelogModal', { static: true }) devChangelogModal!: TemplateRef<any>;
 	@ViewChild('settingsModal', { static: true }) settingsModal!: TemplateRef<any>;
 	@ViewChild('gameCharacterModal', { static: true }) gameCharacterModal!: TemplateRef<any>;
 	@ViewChild('friendsBox', { static: false }) friendsBox?: FriendsBox;
 	@ViewChild('chatLogComp', { static: false }) chatLogComp?: ChatLog;
 	@ViewChild(SettingsBox, { static: false }) settingsBox?: SettingsBox;
 	changelogModalRef?: BsModalRef;
+	devChangelogModalRef?: BsModalRef;
 	settingsModalRef?: BsModalRef;
 	gameCharacterModalRef?: BsModalRef;
 	readonly version = version;
@@ -125,6 +128,9 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	}
 	get isBuilder() {
 		return this.model.isBuilder;
+	}
+	get canViewDevChangelog() {
+		return isDevChangelogVisible(this.model.account);
 	}
 	get notifications() {
 		return this.game.notifications;
@@ -447,6 +453,13 @@ export class App implements OnInit, OnDestroy, DoCheck {
 				this.changelogModalRef = undefined;
 			});
 		}
+	}
+
+	openDevChangelog() {
+		if (this.devChangelogModalRef) {
+			this.devChangelogModalRef.hide();
+		}
+		this.devChangelogModalRef = this.modalService.show(this.devChangelogModal, { class: 'modal-lg' });
 	}
 
 	openSettings() {

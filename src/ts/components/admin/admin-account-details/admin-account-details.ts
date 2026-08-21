@@ -13,7 +13,7 @@ import {
 	faIdBadge, faEnvelope, faFont, faCompressArrowsAlt, faComment, faSignOutAlt, faUsers, faCheckCircle,
 	faDatabase, faCopy, faCalendar, faExclamationCircle,
 } from '../../../client/icons';
-import { flagsToString, includes, flatten, removeItem } from '../../../common/utils';
+import { flagsToString, includes, flatten, removeItem, formatPlaytime } from '../../../common/utils';
 import { Subscription } from '../../../common/interfaces';
 import { showTextInNewTab } from '../../../client/htmlUtils';
 
@@ -134,6 +134,13 @@ export class AdminAccountDetails implements OnInit, OnDestroy {
 	}
 	get sessionAccount() {
 		return this.accountObject || this.account;
+	}
+	get displayTotalPlaytime() {
+		const seconds = this.sessionAccount && this.sessionAccount.counters && this.sessionAccount.counters.playtime;
+		return formatPlaytime(seconds);
+	}
+	get displayLastSessionPlaytime() {
+		return formatPlaytime(this.sessionAccount && this.sessionAccount.lastSessionSeconds);
 	}
 	ngOnInit() {
 		this.route.params.subscribe(({ id }) => {

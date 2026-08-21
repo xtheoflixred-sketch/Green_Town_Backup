@@ -272,6 +272,36 @@ export const SUPPORTER_REWARDS_LIST = [
 	`Additional slots for saving ponies`,
 ];
 
+export const ROLE_PRIVILEGES: { [role: string]: string[] } = {
+	owner: [
+		'Full owner access to administration tools',
+		'All admin, moderator, developer and builder privileges',
+	],
+	admin: [
+		'Access to the admin panel',
+		'Account, event, chat log and server management tools',
+		'All moderator privileges',
+	],
+	mod: [
+		'Moderation tools and player actions',
+		'Access to account, event and chat log information',
+	],
+	dev: [
+		'Developer and testing tools',
+		'Access to experimental game features',
+		'Supporter-level convenience features',
+	],
+	wcode: [
+		'Wcode development tools',
+	],
+	builder: [
+		'Building and map editing tools',
+	],
+	npc: [
+		'NPC tools and special character controls',
+	],
+};
+
 export const PAST_SUPPORTER_REWARDS = [
 	`Friends list limit: up to ${FRIENDS_LIMIT} friends`,
 	`${ADDITIONAL_CHARACTERS_PAST_SUPPORTER} additional slots for saving ponies`,

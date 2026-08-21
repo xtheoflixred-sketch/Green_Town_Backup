@@ -67,6 +67,7 @@ export const CLIENT_COMMANDS: ClientCommand[] = [
 	{ name: 'playtime', help: '/playtime - show total playtime' },
 	{ name: 'lastgame', help: '/lastgame - показать дату последнего входа в игру' },
 	{ name: 'lastsession', help: '/lastsession - показать длительность последней игровой сессии' },
+	{ name: 'timesession', help: '/timesession - показать длительность текущей игровой сессии' },
 	{ name: 'age', help: '/age - show your age' },
 	{ name: 'lie', help: '/lie - lie down or sit up' },
 	{ name: 'fly', help: '/fly - fly up or fly down' },

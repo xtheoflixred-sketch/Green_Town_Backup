@@ -1,0 +1,27 @@
+.modal-header
+	.modal-title-section
+		.changelog-logo-container
+			img.pixelart.changelog-logo(revSrc="images/logo-120.png" alt="Server Logo")
+		.header-info
+			h4.modal-title {{ headerTitle }}
+			p.header-status(*ngIf="currentStatus") {{ currentStatus }}
+	button.close-button(type='button' aria-label='Close' (click)='closeModal()')
+		span(aria-hidden='true') ×
+
+.modal-body.changelog-body
+	.update-about
+		.image-box
+			img.update-image(src="/assets/images/dev_update_previews/season1.png" alt="Dev Changelog Image")
+		.about-text
+			p Development updates and experimental changes.
+
+	.changelog-container
+		.changelog-view-container(*ngIf="changelogResponse")
+			changelog-view([rawEntries]="changelogResponse.dev")
+		.spinner.text-center(*ngIf="!changelogResponse")
+			fa-icon([icon]="spinnerIcon" [spin]="true")
+
+.modal-footer
+	.div(class='flex-grow-1')
+	button.btn.btn-lg.btn-outline-secondary(type='button' (click)='closeModal()')
+		| Close

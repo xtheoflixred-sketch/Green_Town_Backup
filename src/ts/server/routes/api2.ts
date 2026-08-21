@@ -10,7 +10,7 @@ import { isServerOffline } from '../serverUtils';
 import { StatsTracker } from '../stats';
 import { MIN_ADULT_AGE } from '../../common/constants';
 import { CHANGELOG_PUBLIC, CHANGELOG_DEV } from '../../generated/changelog';
-import { isAdmin, isDev, isMod } from '../../common/accountUtils';
+import { isDevChangelogVisible } from '../../common/changelogUtils';
 
 function isServerSafe(server: InternalGameServerState) {
 	return server.state.alert !== '18+';
@@ -90,12 +90,10 @@ export default function (settings: Settings, live: ServerLiveSettings, statsTrac
 	});
 
 	app.get('/changelog', offline(settings), (req, res) => {
-		const user = req.user as any;
-		const isPrivileged = !!user && (isAdmin(user) || isMod(user) || isDev(user));
-
+		const account = req.user as any;
 		res.json({
 			public: CHANGELOG_PUBLIC,
-			dev: isPrivileged ? CHANGELOG_DEV : [],
+			dev: isDevChangelogVisible(account) ? CHANGELOG_DEV : [],
 		});
 	});
 

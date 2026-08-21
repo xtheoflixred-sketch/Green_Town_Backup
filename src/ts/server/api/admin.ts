@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as moment from 'moment';
 import {
 	AdminState, eventFields, BaseValues, UpdateOrigin, UserCountStats, AccountDetails, SupporterInvite,
-	InternalGameServerState, InternalLoginServerState, OtherStats, Settings, GameServerSettings
+	InternalGameServerState, InternalLoginServerState, OtherStats, Settings, GameServerSettings, ChatLogQuery
 } from '../../common/adminInterfaces';
 import {
 	IAccount, Account, Origin, Event, iterate, ISession, Session, SupporterInvite as DBSupporterInvite,
@@ -182,6 +182,41 @@ export async function getChatForAccounts(accountIds: string[], date: string) {
 		`${date} ${map.has(id) ? map.get(id) : `[${id}]`}`);
 
 	return fixed;
+}
+
+export async function getChatRange(query: ChatLogQuery) {
+	try {
+		const from = moment(query.from, 'YYYY-MM-DD', true);
+		const to = moment(query.to, 'YYYY-MM-DD', true);
+		if (!from.isValid() || !to.isValid() || from.isAfter(to)) return '';
+
+		const logsDir = paths.pathTo('logs');
+		const files = (await fs.readdirAsync(logsDir))
+			.filter((file: string) => /^info\.[0-9]{8}\.log$/.test(file))
+			.filter((file: string) => {
+				const date = moment(file.slice(5, 13), 'YYYYMMDD', true);
+				return date.isBetween(from, to, 'day', '[]');
+			})
+			.sort();
+
+		const filters = [query.server, query.map, query.user, query.search]
+			.filter(value => !!value)
+			.map(value => value!.toLowerCase());
+		const lines: string[] = [];
+		for (const file of files) {
+			const content = await fs.readFileAsync(paths.pathTo('logs', file), 'utf8');
+			for (const line of content.split(/\r?\n/)) {
+				const lower = line.toLowerCase();
+				if (filters.every(filter => lower.includes(filter))) lines.push(line);
+			}
+		}
+
+		const maxLines = 50000;
+		return lines.length > maxLines ? `... more lines ...\n${lines.slice(-maxLines).join('\n')}` : lines.join('\n');
+	} catch (e) {
+		console.error('Failed to fetch chatlog range: ', e);
+		return '<error>';
+	}
 }
 
 export async function clearSessions(accountId: string) {

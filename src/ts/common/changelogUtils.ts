@@ -1,5 +1,5 @@
 import { CHANGELOG_PUBLIC, CHANGELOG_DEV } from '../generated/changelog';
-import { AccountRoles, isAdmin, isDev, isMod } from './accountUtils';
+import { AccountRoles, hasRole, isAdmin, isDev, isMod } from './accountUtils';
 
 export interface ChangelogRawEntry {
 	version: string;
@@ -85,8 +85,12 @@ export function isPrivilegedAccount(account?: AccountRoles | undefined): boolean
 	return !!account && (isAdmin(account as any) || isMod(account as any) || isDev(account as any));
 }
 
+export function isDevChangelogVisible(account?: AccountRoles | undefined): boolean {
+	return !!account && (hasRole(account, 'builder') || isAdmin(account) || isMod(account) || isDev(account));
+}
+
 export function getServerChangelog(account?: AccountRoles | undefined): ChangelogResponse {
-	const allowDev = isPrivilegedAccount(account);
+	const allowDev = isDevChangelogVisible(account);
 	return {
 		public: CHANGELOG_PUBLIC,
 		dev: allowDev ? CHANGELOG_DEV : [],

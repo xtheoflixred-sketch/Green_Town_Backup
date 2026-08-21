@@ -47,6 +47,7 @@ import { InvitesModal } from './invites-modal/invites-modal';
 import { DeleteModal } from './delete-modal/delete-modal';
 import { SignOutModal } from './sign-out-modal/sign-out-modal';
 import { ChangelogModal } from './changelog-modal/changelog-modal';
+import { DevChangelogModal } from './dev-changelog-modal/dev-changelog-modal';
 import { ChangelogView } from './changelog-view/changelog-view';
 import { SelectToyModal } from './select-toy-modal/select-toy-modal';
 import { TestModal } from './test-modal/test-modal';
@@ -157,6 +158,7 @@ const declarations = [
 	DeleteModal,
 	SignOutModal,
 	ChangelogModal,
+	DevChangelogModal,
 	ChangelogView,
 	InventoryBar,
 	SelectToyModal,
