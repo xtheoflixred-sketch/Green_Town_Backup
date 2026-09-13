@@ -10,12 +10,14 @@ import { Dropdown } from '../directives/dropdown';
 import {
 	emptyIcon, faCog, faSearch, faSignOutAlt, faVolumeOff, faVolumeUp, faVolumeDown, faPlus, faMinus,
 	faStepForward, faPause, faPlay, faChevronUp, faChevronDown, faStar, faClock, faCheck,
+	faSun, faMoon, faCloudRain, faBolt,
 } from '../../../client/icons';
 import { SettingsService } from '../../services/settingsService';
 import { Audio } from '../../services/audio';
 import { getZoomScaleBounds, MIN_SCALE, MAX_SCALE } from '../../../common/constants';
-import { EntityPlayerState, Holiday } from '../../../common/interfaces';
+import { EntityPlayerState, Holiday, Weather } from '../../../common/interfaces';
 import { hasFlag } from '../../../common/utils';
+import { formatHourMinutes, isDay } from '../../../common/timeUtils';
 
 @Component({
 	selector: 'settings-box',
@@ -48,7 +50,23 @@ export class SettingsBox implements OnInit, OnDestroy {
 	readonly starIcon = faStar;
 
 	modalRef?: BsModalRef;
-	time?: string;
+	get time() {
+		const timeMode = this.game.worldState && this.game.worldState.timeMode;
+		if (timeMode === 'day') return 'Eternal day';
+		if (timeMode === 'night') return 'Eternal night';
+		if (timeMode === 'frozen' || this.game.worldState && this.game.worldState.timeFrozen) return 'Frozen';
+		return formatHourMinutes(this.game.time);
+	}
+
+	get weatherIcon() {
+		if (this.game.map.state.weather === Weather.Storm) {
+			return faBolt;
+		}
+		if (this.game.map.state.weather === Weather.Rain) {
+			return faCloudRain;
+		}
+		return isDay(this.game.time) ? faSun : faMoon;
+	}
 
 
 	// dynamic zoom based on supporter tier
@@ -70,6 +88,7 @@ export class SettingsBox implements OnInit, OnDestroy {
 	@ViewChild('invitesModal', { static: true }) invitesModal!: TemplateRef<any>;
 	@ViewChild('toyModal', { static: true }) toyModal!: TemplateRef<any>;
 	@ViewChild('testModal', { static: true }) testModal!: TemplateRef<any>;
+	@ViewChild('builderToolsModal', { static: true }) builderToolsModal!: TemplateRef<any>;
 
 	constructor(
 		private model: Model,
@@ -259,6 +278,10 @@ export class SettingsBox implements OnInit, OnDestroy {
 		return this.model.isMod;
 	}
 
+	get isBuilderOrMod() {
+		return this.model.isBuilder || this.model.isMod;
+	}
+
 	get hasInvites() {
 		return this.isMod;
 	}
@@ -395,6 +418,12 @@ export class SettingsBox implements OnInit, OnDestroy {
 
 	openTestModal() {
 		this.openModal(this.testModal);
+		this.dropdown.close();
+	}
+
+	openBuilderTools() {
+		if (!this.isBuilderOrMod) return;
+		this.openModal(this.builderToolsModal);
 		this.dropdown.close();
 	}
 

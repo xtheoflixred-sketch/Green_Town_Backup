@@ -11,7 +11,6 @@ import {
 import { BLINK_FRAMES } from '../../../client/ponyUtils';
 import { defaultPonyState, defaultDrawPonyOptions } from '../../../client/ponyHelpers';
 import { ContextSpriteBatch } from '../../../graphics/contextSpriteBatch';
-import { colorToCSS } from '../../../common/color';
 import { loadAndInitSpriteSheets } from '../../../client/spriteUtils';
 import { drawNamePlate, commonPalettes, DrawNameFlags } from '../../../graphics/graphicsUtils';
 import { createHeadTransform, drawPony, getPonyHeadPosition } from '../../../client/ponyDraw';
@@ -25,6 +24,15 @@ import { replaceEmojis } from '../../../client/emoji';
 const DEFAULT_STATE = defaultPonyState();
 const DEFAULT_OPTIONS = defaultDrawPonyOptions();
 
+function normalizeCustomBackground(value?: string | number | boolean): string | undefined {
+	if (value == null) return undefined;
+	const normalized = String(value).replace(/^#/, '').trim().toLowerCase();
+	if (!normalized || normalized === 'default' || normalized === '90ee90') {
+		return undefined;
+	}
+	return normalized;
+}
+
 @Component({
 	selector: 'character-preview',
 	template: '<canvas class="rounded" #canvas></canvas>',
@@ -35,11 +43,48 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 	@Input() name?: string;
 	@Input() tag?: string;
 	@Input() tagColor?: string;
+	@Input() tagTranslation?: string;
+	@Input() tagGradientStart?: string;
+	@Input() tagGradientEnd?: string;
+	@Input() tagGradientDirection: 'horizontal' | 'vertical' = 'horizontal';
 	@Input() pony?: PonyInfo;
+
+	get resolvedTag() {
+		if (this.tag) return this.tag;
+		if (this.pony && (this.pony as any).tag) return (this.pony as any).tag as string;
+		return undefined;
+	}
+
+	get resolvedTagColor() {
+		if (this.tagColor) return this.tagColor;
+		const ponyTagColor = this.pony && (this.pony as any).tagColor ? (this.pony as any).tagColor as string : undefined;
+		if (ponyTagColor) return ponyTagColor;
+		return this.tagGradientStart || undefined;
+	}
+
+	get resolvedTagGradientStart() {
+		if (this.tagGradientStart) return this.tagGradientStart;
+		if (this.pony && (this.pony as any).tagGradientStart) return (this.pony as any).tagGradientStart as string;
+		return undefined;
+	}
+
+	get resolvedTagGradientEnd() {
+		if (this.tagGradientEnd) return this.tagGradientEnd;
+		if (this.pony && (this.pony as any).tagGradientEnd) return (this.pony as any).tagGradientEnd as string;
+		return undefined;
+	}
+
+	get resolvedTagGradientDirection(): 'horizontal' | 'vertical' {
+		if (this.tagGradientDirection) return this.tagGradientDirection;
+		if (this.pony && (this.pony as any).tagGradientDirection) return (this.pony as any).tagGradientDirection as 'horizontal' | 'vertical';
+		return 'horizontal';
+	}
 	@Input() state?: PonyState = defaultPonyState();
 	@Input() noBackground = false;
 	@Input() noOutline = false;
 	@Input() noShadow = false;
+	@Input() selectionOutline = false;
+	@Input() selectionOutlineColor?: string;
 	@Input() extra = false;
 	@Input() magic = false;
 	@Input() passive = false;
@@ -177,8 +222,12 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 			// Force transparent background for batch rendering when noBackground is true
 			bg = TRANSPARENT;
 		} else {
-			const ponyBg = this.pony && (this.pony as any).previewBackground ? parseColorFast((this.pony as any).previewBackground) : null;
-			const globalBg = this.globalBackgroundColor ? parseColorFast(this.globalBackgroundColor) : null;
+			const ponyBgValue = this.pony && (this.pony as any).previewBackground != null
+				? normalizeCustomBackground((this.pony as any).previewBackground)
+				: undefined;
+			const globalBgValue = this.globalBackgroundColor ? normalizeCustomBackground(this.globalBackgroundColor) : undefined;
+			const ponyBg = ponyBgValue ? parseColorFast(ponyBgValue) : null;
+			const globalBg = globalBgValue ? parseColorFast(globalBgValue) : null;
 			bg = ponyBg != null ? ponyBg : (globalBg != null ? globalBg : defaultBg);
 		}
 
@@ -228,7 +277,13 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 				}
 			}
 
-			const options = { ...DEFAULT_OPTIONS, shadow: !this.noShadow, extra: !!this.extra };
+			const options = {
+				...DEFAULT_OPTIONS,
+				shadow: !this.noShadow,
+				extra: !!this.extra,
+				selected: this.selectionOutline && !this.noOutline,
+				outlineColor: this.selectionOutlineColor ? parseColorFast(this.selectionOutlineColor) : undefined,
+			};
 
 			this.batch.start(sprites.paletteSpriteSheet, bg);
 
@@ -304,20 +359,6 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 				viewContext.translate(-this.batch.canvas.width, 0);
 			}
 
-			// draw outline
-			if (this.pony && this.noShadow && this.noBackground && !this.noOutline) {
-				for (let ox = -1; ox <= 1; ox++) {
-					for (let oy = -1; oy <= 1; oy++) {
-						viewContext.drawImage(this.batch.canvas, ox, oy);
-					}
-				}
-
-				viewContext.globalCompositeOperation = 'source-in';
-				viewContext.fillStyle = colorToCSS(bg);
-				viewContext.fillRect(0, 0, viewContext.canvas.width, viewContext.canvas.height);
-				viewContext.globalCompositeOperation = 'source-over';
-			}
-
 			viewContext.drawImage(this.batch.canvas, 0, 0);
 
 			if (options.flipped) {
@@ -327,8 +368,8 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 			viewContext.restore();
 
 		// draw name plate (supports tag-only rendering when name is hidden)
-		if (!this.noShadow && (this.name || this.tag)) {
-			const isTagOnly = !this.name && !!this.tag;
+		if (!this.noShadow && (this.name || this.resolvedTag)) {
+			const isTagOnly = !this.name && !!this.resolvedTag;
 			const name = this.name ? replaceEmojis(this.name) : '';
 			const plateTextY = isTagOnly ? this.tagOnlyNamePlateTextY : this.namePlateTextY;
 			const plateOffsetY = isTagOnly ? this.tagOnlyNamePlateOffsetY : this.namePlateOffsetY;
@@ -337,7 +378,9 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 			this.nameBatch = this.nameBatch || new ContextSpriteBatch(createCanvas(nameBufferWidth, 25));
 			resizeCanvas(this.nameBatch.canvas, nameBufferWidth, 25);
 			this.nameBatch.start(sprites.paletteSpriteSheet, TRANSPARENT);
-		drawNamePlate(this.nameBatch, name, nameBufferWidth / 2, plateTextY, DrawNameFlags.None, commonPalettes, this.tag, this.tagColor, this.allowAnyTag);
+			drawNamePlate(this.nameBatch, name, nameBufferWidth / 2, plateTextY, DrawNameFlags.None, commonPalettes,
+				this.resolvedTag, this.resolvedTagColor, this.allowAnyTag, undefined, this.tagTranslation,
+				this.resolvedTagGradientStart, this.resolvedTagGradientEnd, this.resolvedTagGradientDirection);
 			this.nameBatch.end();
 			viewContext.save();
 			viewContext.scale(scale, scale);

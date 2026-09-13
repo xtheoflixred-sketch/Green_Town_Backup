@@ -1,13 +1,34 @@
 ng-template(#tooltip)
 	.character-tooltip(style="position: relative")
-		character-preview([pony]="pony?.ponyInfo" [name]="pony?.name" [passive]="true" [namePlateOffsetY]="-2" [tagOnlyNamePlateOffsetY]="-8")
+		character-preview(
+			[pony]="pony?.ponyInfo"
+			[name]="characterTag ? '' : pony?.name"
+			[tag]="characterTag ? pony?.tag : undefined"
+			[tagColor]="characterTag ? pony?.tagColor : undefined"
+			[passive]="true"
+			[namePlateOffsetY]="-2"
+			[tagOnlyNamePlateOffsetY]="-2"
+		)
 		.character-tooltip-info
 			.character-tooltip-name 
 				from-now([time]="pony?.lastUsed")
 				span.ml-1(*ngIf="pony?.deleted") [deleted]
+			.character-tooltip-tags(*ngIf="characterTag || supporterTag")
+				span.badge.character-tag-badge.mr-1(*ngIf="characterTag" [ngClass]="'badge-' + characterTag.className" [style.background-color]="characterTagBackground" [style.color]="characterTagTextColor" [tooltip]="getTagTooltip(characterTag)")
+					fa-icon.mr-1(*ngIf="characterTag.icon" [icon]="characterTag.icon" [fixedWidth]="true")
+					| {{characterTag.id}}
+				span.badge.supporter-tag-badge(*ngIf="supporterTag" [ngClass]="'supporter-tag-badge-' + supporterTag.substring(3)")
+					fa-icon([icon]="starIcon" [fixedWidth]="true")
+					| {{supporterTag.toUpperCase()}}
 			.character-tooltip-indicator(*ngIf="isBadCM") &bull;
 
 span.cursor-pointer.badge(
 	[ngClass]="labelClass" [class.deleted]="pony?.deleted" [class.badge-highlight]="highlight" (click)="click()"
 	[tooltip]="tooltip" (onShown)="onShown()" containerClass="tooltip-pony")
 	| {{pony?.name || '...'}}
+	span.character-inline-tags(*ngIf="characterTag || supporterTag")
+		span.badge.character-tag-badge.ml-1(*ngIf="characterTag" [ngClass]="'badge-' + characterTag.className" [style.background-color]="characterTagBackground" [style.color]="characterTagTextColor")
+			fa-icon(*ngIf="characterTag.icon" [icon]="characterTag.icon" [fixedWidth]="true")
+			| {{characterTag.id}}
+		span.badge.supporter-tag-badge.ml-1(*ngIf="supporterTag" [ngClass]="'supporter-tag-badge-' + supporterTag.substring(3)")
+			fa-icon([icon]="starIcon" [fixedWidth]="true")

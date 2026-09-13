@@ -1,7 +1,7 @@
 import { writeFileAsync, readFileAsync, writeFileSync } from 'fs';
 import { fromByteArray } from 'base64-js';
 import {
-	TileType, MapInfo, MapState, defaultMapState, Rect, MapType, ServerFlags, EntityFlags, MapFlags, EntityState
+	TileType, MapInfo, MapState, defaultMapState, Rect, MapType, ServerFlags, EntityFlags, MapFlags, EntityState, MessageType
 } from '../common/interfaces';
 import { getRegionGlobal, getTile, getRegion } from '../common/worldMap';
 import { distanceSquaredXY, containsPoint, hasFlag } from '../common/utils';
@@ -25,6 +25,7 @@ export interface EntityData {
 	type: string;
 	x: number;
 	y: number;
+	state?: EntityState;
 	options?: any;
 	name?: string;
 }
@@ -36,6 +37,16 @@ export interface MapData {
 	entities?: EntityData[];
 	walls?: string;
 	wallMaterial?: 'wood' | 'stone';
+}
+
+function setupCustomSign(entity: ServerEntity) {
+	const signTypes = [entities.sign.type, entities.signQuest.type, entities.signQuestion.type, entities.signDonate.type, entities.signDebug.type];
+	if (signTypes.indexOf(entity.type) >= 0) {
+		entity.interact = (clicked, client) => {
+			const message = clicked.options && (clicked.options as any).customSignMessage;
+			if (message) client.saysQueue.push([clicked.id, message, MessageType.System]);
+		};
+	}
 }
 
 export interface MapLoadOptions {
@@ -231,9 +242,14 @@ export function saveMap(map: ServerMap, saveOptions: MapSaveOptions): MapData {
 					if (saveOptions.saveOnlyEditableEntities && !hasFlag(entity.state, EntityState.Editable))
 						continue;
 
-					const options = entity.options && Object.keys(entity.options).length > 0 ? entity.options : undefined;
+					const state = entity.state || undefined;
+					const entityOptions: { [key: string]: any } = entity.options ? { ...entity.options } : {};
+					if (entity.offsetY !== undefined) {
+						entityOptions.offsetY = entity.offsetY;
+					}
+					const options = Object.keys(entityOptions).length > 0 ? entityOptions : undefined;
 					const name = entity.name;
-					data.entities.push({ type: getEntityTypeName(entity.type), x: entity.x, y: entity.y, options, name });
+					data.entities.push({ type: getEntityTypeName(entity.type), x: entity.x, y: entity.y, state, options, name });
 				}
 			}
 		}
@@ -281,16 +297,72 @@ export async function saveMapToFileBinaryAlt(map: ServerMap, fileName: string) {
 	await writeFileAsync(fileName, buffer);
 }
 
-export async function saveEntitiesToFile(map: ServerMap, fileName: string) {
-	const lines: string[] = [];
+export async function saveEntitiesToFile(map: ServerMap, fileName: string, saveOnlyEditableEntities = true) {
+	const entitiesData: EntityData[] = [];
+	const savedFields = [
+		'customSignMessage', 'entityMessage', 'messageColor', 'tagColor', 'spriteTint', 'entityScale', 'entityOpacity',
+		'customImageUrl', 'customImageWidth', 'customImageHeight', 'customImageScale', 'customImageZOrder', 'customImageOpacity',
+		'lightColor', 'lightSpriteColor', 'lightSpriteX', 'lightSpriteY', 'lightScaleAdjust', 'seasonOverride',
+	];
 
 	for (const region of map.regions) {
 		for (const entity of region.entities) {
-			lines.push(`${getEntityTypeName(entity.type)} ${entity.x} ${entity.y}`);
+			if (hasFlag(entity.serverFlags, ServerFlags.DoNotSave) || hasFlag(entity.flags, EntityFlags.Debug)) {
+				continue;
+			}
+			if (saveOnlyEditableEntities && !hasFlag(entity.state, EntityState.Editable)) {
+				continue;
+			}
+
+			const source = entity as any;
+			const options: { [key: string]: any } = entity.options ? { ...entity.options } : {};
+			for (const field of savedFields) {
+				if (source[field] !== undefined && options[field] === undefined) {
+					options[field] = source[field];
+				}
+			}
+			if (entity.offsetY !== undefined) {
+				options.offsetY = entity.offsetY;
+			}
+
+			entitiesData.push({
+				type: getEntityTypeName(entity.type),
+				x: entity.x,
+				y: entity.y,
+				state: entity.state || undefined,
+				options: Object.keys(options).length > 0 ? options : undefined,
+				name: entity.name,
+			});
 		}
 	}
 
-	await writeFileAsync(fileName, lines.join('\n'), 'utf8');
+	await writeFileAsync(fileName, JSON.stringify({ entities: entitiesData }, null, 2), 'utf8');
+}
+
+export function clearEntities(world: World, map: ServerMap, predicate?: (entity: ServerEntity) => boolean) {
+	const entities = findEntities(map, predicate || (() => true));
+	for (const entity of entities) {
+		world.removeEntity(entity, map);
+	}
+	return entities.length;
+}
+
+export function resetEntities(world: World, map: ServerMap, predicate?: (entity: ServerEntity) => boolean) {
+	const entities = findEntities(map, predicate || (() => true));
+	for (const entity of entities) {
+		world.removeEntity(entity, map);
+	}
+	return entities.length;
+}
+
+export async function loadEntitiesFromFile(world: World, map: ServerMap, fileName: string) {
+	const json = await readFileAsync(fileName, 'utf8');
+	const data = JSON.parse(json);
+	if (!data || !Array.isArray(data.entities)) {
+		throw new Error('invalid entity save file');
+	}
+
+	loadMap(world, map, data, { loadEntities: true, loadEntitiesAsEditable: false });
 }
 
 export function loadMap(world: World, map: ServerMap, data: MapData, loadOptions: MapLoadOptions) {
@@ -318,25 +390,41 @@ export function loadMap(world: World, map: ServerMap, data: MapData, loadOptions
 	}
 
 	if (loadOptions.loadEntities && data.entities) {
-		for (const { x, y, type, name, options } of data.entities) {
-			const typeNumber = getEntityType(type);
-			const entity = createAnEntity(typeNumber, 0, x, y, options, mockPaletteManager, world);
+		for (const { x, y, type, state, name, options } of data.entities) {
+			const factory = (entities as any)[type];
+			const created = typeof factory === 'function' && !factory.type
+				? factory(x, y, options || {})
+				: createAnEntity(getEntityType(type), 0, x, y, options, mockPaletteManager, world);
+			const loadedEntities = Array.isArray(created) ? created : [created];
+			const compoundId = loadedEntities.length > 1
+				? `${type}:${x}:${y}`
+				: undefined;
 
-			if (options && typeof options === 'object') {
-				if ((options as any).entityScale !== undefined) (entity as any).entityScale = (options as any).entityScale;
-				if ((options as any).entityOpacity !== undefined) (entity as any).entityOpacity = (options as any).entityOpacity;
-				if ((options as any).spriteTint !== undefined) (entity as any).spriteTint = (options as any).spriteTint;
+			for (const entity of loadedEntities) {
+				entity.state = state || 0;
+				if (compoundId) {
+					entity.options = { ...(entity.options || {}), compoundId } as any;
+				}
+
+				if (options && typeof options === 'object') {
+					entity.options = { ...options } as any;
+					if ((options as any).offsetY !== undefined) (entity as any).offsetY = (options as any).offsetY;
+					if ((options as any).entityScale !== undefined) (entity as any).entityScale = (options as any).entityScale;
+					if ((options as any).entityOpacity !== undefined) (entity as any).entityOpacity = (options as any).entityOpacity;
+					if ((options as any).spriteTint !== undefined) (entity as any).spriteTint = (options as any).spriteTint;
+				}
+
+				if (name) {
+					setEntityName(entity, name);
+				}
+				setupCustomSign(entity);
+
+				if (loadOptions.loadEntitiesAsEditable) {
+					entity.state |= EntityState.Editable;
+				}
+
+				world.addEntity(entity, map);
 			}
-
-			if (name) {
-				setEntityName(entity, name);
-			}
-
-			if (loadOptions.loadEntitiesAsEditable) {
-				entity.state |= EntityState.Editable;
-			}
-
-			world.addEntity(entity, map);
 		}
 	}
 

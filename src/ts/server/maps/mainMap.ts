@@ -1902,8 +1902,10 @@ export function createMainMap(world: World): ServerMap {
 	const plankWidth = 78 / tileWidth;
 	const plankHeight = 12 / tileHeight;
 
-	const plank = () => sample(entities.planks)!;
-	const shortPlank = () => sample(entities.planksShort)!;
+	const plankFactories = [entities.fullPlank1, entities.fullPlank2, entities.fullPlank3, entities.fullPlank4];
+	const shortPlankFactories = [entities.fullPlankShort1, entities.fullPlankShort2, entities.fullPlankShort3];
+	const plank = (x: number, y: number) => plankFactories[Math.floor(Math.random() * plankFactories.length)](x, y);
+	const shortPlank = (x: number, y: number) => shortPlankFactories[Math.floor(Math.random() * shortPlankFactories.length)](x, y);
 
 	// barrel storage
 	addWoodenFence(100, 24, 6);
@@ -1992,16 +1994,16 @@ export function createMainMap(world: World): ServerMap {
 	add(entities.box(83.03, 39.50));
 
 	// bridge
-	add(plank()(110.7, 36.60));
-	add(shortPlank()(112.56, 36.60));
-	add(shortPlank()(110.18, 37.08));
-	add(plank()(112.06, 37.08));
-	add(plank()(110.71, 37.58));
-	add(shortPlank()(112.59, 37.58));
-	add(shortPlank()(110.21, 38.08));
-	add(plank()(112.09, 38.08));
-	add(plank()(110.63, 38.58));
-	add(shortPlank()(112.50, 38.58));
+	addEntities(plank(110.7, 36.60));
+	addEntities(shortPlank(112.56, 36.60));
+	addEntities(shortPlank(110.18, 37.08));
+	addEntities(plank(112.06, 37.08));
+	addEntities(plank(110.71, 37.58));
+	addEntities(shortPlank(112.59, 37.58));
+	addEntities(shortPlank(110.21, 38.08));
+	addEntities(plank(112.09, 38.08));
+	addEntities(plank(110.63, 38.58));
+	addEntities(shortPlank(112.50, 38.58));
 	add(entities.plankShadow(111.46, 38.50));
 	add(entities.pierLeg(111.46, 38.50));
 
@@ -2033,9 +2035,9 @@ export function createMainMap(world: World): ServerMap {
 		for (let x = 0; x < maxX; x++) {
 			if ((x === 0 && (y % 2)) || (x === (maxX - 1) && (y % 2))) {
 				const ox = x === 0 ? (18 / tileWidth) : (-18 / tileWidth);
-				add(shortPlank()(baseX + ox + x * plankWidth, baseY + y * plankHeight));
+				addEntities(shortPlank(baseX + ox + x * plankWidth, baseY + y * plankHeight));
 			} else {
-				add(plank()(baseX + x * plankWidth, baseY + y * plankHeight));
+				addEntities(plank(baseX + x * plankWidth, baseY + y * plankHeight));
 			}
 		}
 	}
@@ -2058,21 +2060,6 @@ export function createMainMap(world: World): ServerMap {
 	add(entities.collider1x2(9, 73));
 	add(entities.collider3x1(10, 73));
 
-	add(entities.plankShadowShort(pierX + 5.09, pierY + 74.08 - plankHeight * 6));
-	add(entities.plankShadowShort(pierX + 5.06, pierY + 74.08 - plankHeight * 4));
-	add(entities.plankShadowShort(pierX + 5.09, pierY + 74.08 - plankHeight * 2));
-	add(entities.plankShadowShort(pierX + 5.06, pierY + 74.08));
-
-	add(entities.plankShadowShort(pierX + 8.84, pierY + 74.12 - plankHeight * 2));
-	add(entities.plankShadowShort(pierX + 8.78, pierY + 74.12 - plankHeight));
-	add(entities.plankShadowShort(pierX + 8.81, pierY + 74.12));
-
-	add(entities.plankShadow(pierX + 11.68, pierY + 72.62));
-	add(entities.plankShadow2(pierX + 11.68 - plankWidth, pierY + 72.62));
-	add(entities.plankShadowShort(pierX + 13.5, pierY + 72.45));
-
-	add(entities.plankShadow2(pierX + 5.75, pierY + 74.62));
-	add(entities.plankShadow(pierX + 5.75 + plankWidth, pierY + 74.62));
 
 	add(entities.lanternOn(pierX + 13.25, pierY + 70.83));
 	add(entities.lanternOn(pierX + 13.31, pierY + 73.04));
@@ -3568,7 +3555,6 @@ export function createMainMap(world: World): ServerMap {
 
 		add(createSign(62.7, 58.2, 'Jack-o-Lanterns', give(entities.jackoLanternOn.type, 'Have a lantern'), entities.signDebug));
 		add(createSign(62.7, 60.2, 'Pickable objects', (_, client) => holdItem(client.pony, sample(objects)!), entities.signDebug));
-		add(createSign(77.0, 69.0, 'Palette', (_, client) => goToMap(world, client, 'palette'), entities.signDebug));
 	}
 
 	// new added on Halloween
@@ -3808,14 +3794,10 @@ export function createMainMap(world: World): ServerMap {
 	add(entities.bench1(127.09, 53.04));
 	add(entities.lanternOn(117.09, 64.08));
 	add(entities.lanternOn(20.34, 89.04));
-	add(entities.benchSeatH(147.14, 13.02));
-	add(entities.benchBackH2(147.66, 15.70));
-	add(entities.benchSeatH(27.44, 117.21));
-	add(entities.benchBackH(26.97, 119.92));
-	add(entities.benchSeatH(136.63, 151.29));
-	add(entities.benchSeatH(129.34, 151.25));
-	add(entities.benchBackH(128.85, 153.96));
-	add(entities.benchBackH2(137.16, 153.96));
+	addEntities(entities.fullBenchHighRight(147.14, 13.02));
+	addEntities(entities.fullBenchHigh(27.44, 117.21));
+	addEntities(entities.fullBenchHigh(129.34, 151.25));
+	addEntities(entities.fullBenchHighRight(136.63, 151.29));
 
 	updateMainMapSeason(world, map, world.season, world.holiday);
 
@@ -4684,7 +4666,6 @@ export function createMainMap(world: World): ServerMap {
 
 	ctrls.push(new ctrl.UpdateController(map));
 	ctrls.push(new ctrl.TorchController(world, map));
-	ctrls.push(new ctrl.CloudController(world, map, 5));
 	ctrls.push(new ctrl.CollectableController(world, map, apples, 8, pickEntity, checkNotCollecting));
 	ctrls.push(new ctrl.CollectableController(world, map, otherFruits, 3, pickEntity, checkNotCollecting));
 

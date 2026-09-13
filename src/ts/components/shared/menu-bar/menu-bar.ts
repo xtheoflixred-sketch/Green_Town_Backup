@@ -9,9 +9,11 @@ import { SettingsService } from '../../services/settingsService';
 import { REQUEST_DATE_OF_BIRTH } from '../../../common/constants';
 import { isAdmin, isDev } from '../../../common/accountUtils';
 import { mockPaletteManager } from '../../../common/ponyInfo';
-import { decodePonyInfo } from '../../../common/compressPony';
-import { DEFAULT_PONY } from '../../../common/constants';
+import { getConfiguredDefaultPony } from '../../../client/defaultPonyClient';
+import { compressPonyString, decodePonyInfo } from '../../../common/compressPony';
 import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
+
+const SERVER_DEFAULT_PONY_STRING = compressPonyString(getConfiguredDefaultPony());
 
 @Component({
 	selector: 'menu-bar',
@@ -136,11 +138,11 @@ export class MenuBar implements OnChanges, OnDestroy {
 				this.currentPony = latest.ponyInfo as any;
 			} else if (latest.info) {
 				this.currentPony = decodePonyInfo(latest.info, mockPaletteManager) as any;
-				} else {
-				this.currentPony = decodePonyInfo(DEFAULT_PONY, mockPaletteManager) as any;
+			} else {
+				this.currentPony = decodePonyInfo(SERVER_DEFAULT_PONY_STRING, mockPaletteManager) as any;
 			}
 		} catch {
-			this.currentPony = decodePonyInfo(DEFAULT_PONY, mockPaletteManager) as any;
+			this.currentPony = decodePonyInfo(SERVER_DEFAULT_PONY_STRING, mockPaletteManager) as any;
 		}
 	}
 	private syncSessionLabels() {

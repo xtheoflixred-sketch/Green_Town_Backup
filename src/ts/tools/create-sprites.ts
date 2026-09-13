@@ -46,7 +46,7 @@ const outputPath = path.join(rootPath, 'tools', 'output');
 const destPath = path.join(rootPath, 'tools', 'output', 'images');
 const ponyPath = path.join(sourcePath, 'pony');
 
-const shadowPalette = [TRANSPARENT, BLACK, 0x000000fb, 0x000000fd];
+const shadowPalette = [TRANSPARENT, BLACK, 0x0000004c, 0x0000004d, 0x000000fb, 0x000000fd];
 const isPng = matcher(/\.png$/);
 const getPngs = (directory: string) => fs.readdirSync(directory).filter(isPng);
 const getFrames = (layers: Layer[]) => layers.filter(nameMatches(/^frame/)).sort(compareLayers);
@@ -818,25 +818,25 @@ function createObj(
 		return `createAnimation(${encodeArray(s.frames)})`;
 	} else if (s.fangs != null) {
 		return `createNose(${s.color}, ${s.colors}, ${s.mouth}, ${s.fangs})`;
-	} else if (s.color && s.colors && s.extra && s.palette) {
+	} else if (s.color != null && s.colors != null && s.extra != null && s.palette != null) {
 		return `createColorExtraPal(${s.color}, ${s.colors}, ${s.extra}, [${addPalette(s.palette)}])`;
-	} else if (s.color && s.colors) {
+	} else if (s.color != null && s.colors != null) {
 		return `colorPal${s.colors}(${s.color})`;
-	} else if (s.base && s.irises != null) {
+	} else if (s.base != null && s.irises != null) {
 		return `createEye(${s.base}, ${encodeArray(s.irises)}, ${s.shadow}, ${s.shine})`;
-	} else if (s.color && s.shadow && s.palettes) {
+	} else if (s.color != null && s.shadow != null && s.palettes) {
 		return `createColorShadowPalette(${s.color}, ${s.shadow}, ${addPalettes(s.palettes)})`;
-	} else if (s.color && s.palettes) {
+	} else if (s.color != null && s.palettes) {
 		return `createColorPalette(${s.color}, ${addPalettes(s.palettes)})`;
 	} else if (s.sprites && s.palettes) {
 		return `createSpritesPalette(${encodeArray(s.sprites)}, ${addPalettes(s.palettes)})`;
-	} else if (s.color && s.palette) {
+	} else if (s.color != null && s.palette != null) {
 		return `/* no palettes */ createColorPalette(${s.color}, [${addPalette(s.palette)}])`;
-	} else if (s.color && s.shadow) {
+	} else if (s.color != null && s.shadow != null) {
 		return `createColorShadow(${s.color}, ${s.shadow})`;
-	} else if (s.color) {
+	} else if (s.color != null) {
 		return `createColor(${s.color})`;
-	} else if (s.shadow) {
+	} else if (s.shadow != null) {
 		return `createShadow(${s.shadow})`;
 	} else if (s.topLeft) {
 		return `createButton(${s.border}, ${s.topLeft}, ${s.top}, ${s.topRight}, ${s.left}, ${s.bg},`

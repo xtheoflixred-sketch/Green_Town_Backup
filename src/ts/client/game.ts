@@ -110,11 +110,11 @@ import { Injectable, NgZone } from '@angular/core';
 import { Subject, BehaviorSubject } from 'rxjs';
 import { debounce } from 'lodash';
 import {
-	EntityState, Pony, Notification, TileType, Action, IServerActions, Season, WorldState, Holiday,
+	EntityState, Pony, Notification, TileType, Action, IServerActions, Season, WorldState, Holiday, Weather,
 	TileSets, ChatMessage, PartyInfo, Entity, DrawOptions, Engine, defaultDrawOptions, PonyStateFlags,
 	DoAction, ChatType, WorldStateFlags, DebugFlags, MessageType, AccountSettings, Matrix4,
-	FakeEntity, SelectFlags, WorldMap, MapType, MapFlags, EntityFlags, isValidTile, GraphicsQuality, houseTiles,
-	Iris, Eye, Muzzle, ExpressionExtra, Expression
+	FakeEntity, SelectFlags, WorldMap, MapType, MapFlags, isValidTile, GraphicsQuality, houseTiles, editorTiles,
+	Iris, Eye, Muzzle, ExpressionExtra, Expression, EditorAction, ScreenEntityOptions
 } from '../common/interfaces';
 import { encodeExpression } from '../common/encoders/expressionEncoder';
 import {
@@ -127,14 +127,14 @@ import {
 } from '../common/constants';
 import {
 	ensureAllVisiblePoniesAreDecoded, invalidatePalettes, updateMap, updateEntities,
-	getMapHeightAt, updateEntitiesWithNames, updateEntitiesCoverLifted, getTile,
+	getMapHeightAt, getWeatherIntensity, updateEntitiesWithNames, updateEntitiesCoverLifted, getTile,
 	pickEntities, updateEntitiesTriggers, getElevation, setElevation, createWorldMap
 } from '../common/worldMap';
 import { updateCamera, centerCameraOn, screenToWorld, createCamera } from '../common/camera';
-import { WHITE, BLACK, SHADOW_COLOR, getTileColor, RED, CAVE_LIGHT, CAVE_SHADOW, HOVER_OUTLINE_COLOR, CYAN } from '../common/colors';
+import { WHITE, BLACK, SHADOW_COLOR, getTileColor, CAVE_LIGHT, CAVE_SHADOW, HOVER_OUTLINE_COLOR, CYAN } from '../common/colors';
 import { formatHourMinutes, getLightColor, getShadowColor, createLightData } from '../common/timeUtils';
 import { toggleWalls } from '../common/mixins';
-import { getEntityTypeName, woodenWalls, stoneWalls } from '../common/entities';
+import { getEntityTypeName, woodenWalls, stoneWalls, screwdriver, broom, rope, pickaxe, doubleEndedWrench } from '../common/entities';
 import { hasExtendedInfo, setHeadAnimation, createPony } from '../common/pony';
 import { PaletteManager } from '../graphics/paletteManager';
 import { isWebGL2 } from '../graphics/webgl/webglUtils';
@@ -151,6 +151,8 @@ import { InputManager } from './input/inputManager';
 import { roundPositionX, roundPositionY, toScreenX, toScreenY, toWorldX, toWorldY } from '../common/positionUtils';
 import { StorageService } from '../components/services/storageService';
 import { SettingsService } from '../components/services/settingsService';
+
+const RAIN_CLOUD_LIGHT = colorToFloatArray(0x596979ff);
 import {
 	isPonyLying, isPonySitting, setPonyState, getInteractBounds, entityInRange, isFacingRight,
 	isHidden, updateEntityVelocity, releaseEntity, compareEntities
@@ -170,7 +172,8 @@ import {
 	updateWallPlaceholder, updateBuildingPreviews, handleDragTool, handleBuildingActionClick, handleEditorBroomClick,
 	handleBuildingRightClick, handleBuildingWheel, changePlaceEntity as changePlaceEntityTool, changePlaceTile as changePlaceTileTool,
 	removeEntitiesTool, placeEntitiesTool, changeTileTool, toggleWallsTool, dragEntityTool, cloneEntityTool, scrapAlignTool, recolorTool, seasonTool,
-	handleTilePaintDrag, handleWallPaintDrag, getTilePaintPreviewState, getWallPaintPreviewState, getBuildingDragVisualState, getSelectedWallMaterial, isSelectedWallTall, isEditorSawActive
+	offsetTool, handleTilePaintDrag, handleWallPaintDrag, getTilePaintPreviewState, getWallPaintPreviewState, getBuildingDragVisualState, getSelectedWallMaterial, isSelectedWallTall, isEditorSawActive,
+	canInteractWithPickedEntity
 } from './BuildingUtils';
 import { fontSmallPal, fontSmall, font, fontMono } from './fonts';
 import { drawText, drawOutlinedText, measureText } from '../graphics/spriteFont';
@@ -419,10 +422,12 @@ export class PonyTownGame implements Game {
 		useEditorBroom: false,
 		useEditorRope: false,
 		useEditorPickaxe: false,
+		useEditorOffset: false,
 		useEditorSaw: false,
 		useEditorScrap: false,
 		useEditorRecolor: false,
 		useEditorSeason: false,
+		useEditorCustomSign: false,
 		useEditorShovel: false,
 		brushSize: 1,
 		tile: -1,
@@ -433,6 +438,8 @@ export class PonyTownGame implements Game {
 		selectingEntities: false,
 		selectedEntities: [] as Entity[],
 		selectionHighlightColor: 0xffcc00ff as number,
+		undoAvailable: false,
+		redoAvailable: false,
 		customLight: false,
 		lightColor: 'ffffff',
 	};
@@ -457,6 +464,13 @@ export class PonyTownGame implements Game {
 	onPartyUpdate = new Subject<void>();
 	announcements = new Subject<string>();
 	onEntityIdUpdate = new Subject<{ old: number; new: number; }>();
+	onMapChanged = new Subject<void>();
+	onMinimapUpdated = new Subject<void>();
+	onScreenEntityClick = new Subject<Entity>();
+
+	updateScreenEntity(_entity: Entity, _options: ScreenEntityOptions) { }
+
+	controlScreenEntity(_entity: Entity, _command: 'play' | 'pause') { }
 	loaded = false;
 	fullyLoaded = false;
 	fps = 0;
@@ -550,6 +564,7 @@ export class PonyTownGame implements Game {
 	private lastKeepAlive = 0;
 	private showWallPlaceholder = false;
 	private highlightEntity?: Entity;
+	private highlightEntities: Entity[] = [];
 	private _hoveredChatPony?: Pony;
 	placeEntity = 0;
 	placeTile = 0;
@@ -627,7 +642,7 @@ export class PonyTownGame implements Game {
 	setKeyboardDisabled(disabled: boolean) {
 		this.input.disabledKeyboard = disabled;
 	}
-	private getZoomBounds() {
+	getZoomBounds() {
 		return getZoomScaleBounds(this.model.supporter || 0);
 	}
 
@@ -669,8 +684,27 @@ export class PonyTownGame implements Game {
 		}
 	}
 	debugEditorUndo() {
-		if (BETA && this.mod) {
-			this.send(server => server.editorAction({ type: 'undo' }));
+		if (this.mod || hasFlag(this.map.flags, MapFlags.EditableTiles) || hasFlag(this.map.flags, MapFlags.EditableWalls)) {
+			if (!this.editor.undoAvailable) return;
+			this.sendEditorAction({ type: 'undo' });
+			this.editor.undoAvailable = false;
+			this.editor.redoAvailable = true;
+		}
+	}
+	debugEditorRedo() {
+		if (this.mod || hasFlag(this.map.flags, MapFlags.EditableTiles) || hasFlag(this.map.flags, MapFlags.EditableWalls)) {
+			if (!this.editor.redoAvailable) return;
+			this.sendEditorAction({ type: 'redo' });
+			this.editor.undoAvailable = true;
+			this.editor.redoAvailable = false;
+		}
+	}
+	sendEditorAction(action: EditorAction) {
+		this.send(server => server.editorAction(action));
+		if (action.type !== 'undo' && action.type !== 'redo' && action.type !== 'hover' &&
+			!(action.type === 'move' && action.preview)) {
+			this.editor.undoAvailable = true;
+			this.editor.redoAvailable = false;
 		}
 	}
 	debugEditorRemoveSelected() {
@@ -678,7 +712,7 @@ export class PonyTownGame implements Game {
 
 		this.apply(() => {
 			const entities = this.editor.selectedEntities.map(e => e.id);
-			this.send(server => server.editorAction({ type: 'remove', entities }));
+			this.sendEditorAction({ type: 'remove', entities });
 			this.editor.selectedEntities.length = 0;
 		});
 	}
@@ -686,10 +720,10 @@ export class PonyTownGame implements Game {
 		if (!BETA) return;
 
 		this.editor.selectedEntities.forEach(({ id, x, y }) => {
-			this.send(server => server.editorAction({
+			this.sendEditorAction({
 				type: 'move',
 				entities: [{ id, x: x + dx, y: y + dy }],
-			}));
+			});
 		});
 	}
 	debugToggleMinimap() {
@@ -975,6 +1009,8 @@ export class PonyTownGame implements Game {
 			this.input.onPressed(Key.ENTER, () => this.onChat.next());
 			this.input.onPressed(Key.DASH, () => this.zoomOut());
 			this.input.onPressed(Key.EQUALS, () => this.zoomIn());
+			this.input.onPressed(Key.KEY_O, () => this.zoomOut());
+			this.input.onPressed(Key.KEY_P, () => this.zoomIn());
 			this.input.onPressed(Key.ESCAPE, () => this.escape());
 			this.input.onPressed(Key.GAMEPAD_BUTTON_X, () => this.onToggleChat.next());
 			// this.input.onPressed(Key.BACKSPACE, () => this.backspace());
@@ -1431,6 +1467,12 @@ window.addEventListener('resize', () => {
 
 				this.highlightEntity = undefined;
 			}
+			for (const entity of this.highlightEntities) {
+				if (entity && entity.id === 0) {
+					releaseEntity(entity);
+				}
+			}
+			this.highlightEntities = [];
 
 			const shift = input.isPressed(Key.SHIFT);
 			const x = this.fullyLoaded ? input.axisX : 0;
@@ -1447,7 +1489,10 @@ window.addEventListener('resize', () => {
 				input.disableArrows = false;
 			}
 
-			if (player.vx !== vx || player.vy !== vy) {
+			if (this.editor.draggingEntities) {
+				player.vx = 0;
+				player.vy = 0;
+			} else if (player.vx !== vx || player.vy !== vy) {
 				if (vx === 0) {
 					player.x = roundPositionX(player.x) + 0.5 / tileWidth;
 				}
@@ -1489,6 +1534,7 @@ window.addEventListener('resize', () => {
 			}
 
 			this.hover = hover;
+			this.actionsChanged = true;
 
 			const nowPointerTime = performance.now();
 			if (!this.wallHoverHasPointerSample) {
@@ -1508,6 +1554,11 @@ window.addEventListener('resize', () => {
 			}
 
 			if (this.fullyLoaded) {
+				if (input.isPressed(Key.CTRL) && input.wasPressed(Key.KEY_Z)) {
+					this.debugEditorUndo();
+				} else if (input.isPressed(Key.CTRL) && input.wasPressed(Key.KEY_Y)) {
+					this.debugEditorRedo();
+				}
 				if (BETA && this.editor.draggingEntities) {
 					editorDragEntities(this, hover, input.isPressed(Key.MOUSE_BUTTON2));
 				}
@@ -1519,9 +1570,11 @@ window.addEventListener('resize', () => {
 					this.editor.useEditorSaw = hold === toggleWallsTool.type;
 					this.editor.useEditorRope = hold === dragEntityTool.type;
 					this.editor.useEditorPickaxe = hold === cloneEntityTool.type;
+					this.editor.useEditorOffset = hold === offsetTool.type;
 					this.editor.useEditorScrap = hold === scrapAlignTool.type;
 					this.editor.useEditorRecolor = hold === recolorTool.type;
 					this.editor.useEditorSeason = hold === seasonTool.type;
+					this.editor.useEditorCustomSign = hold === screwdriver.type;
 					this.editor.useEditorShovel = hold === changeTileTool.type;
 				}
 
@@ -1535,7 +1588,7 @@ window.addEventListener('resize', () => {
 					// handled in building utils
 				} else if (input.wasPressed(Key.MOUSE_BUTTON1) || input.wasPressed(Key.TOUCH_CLICK)) {
 					if (BETA && this.editor.useEditorHammer && this.mod) {
-						server.editorAction({ type: 'place', entity: this.editor.type, x: hover.x, y: hover.y });
+						this.sendEditorAction({ type: 'place', entity: this.editor.type, x: hover.x, y: hover.y });
 						console.log(`${this.editor.type}(${hover.x.toFixed(2)}, ${hover.y.toFixed(2)})`);
 					} else if (BETA && this.editor.useEditorBroom && this.mod) {
 						handleEditorBroomClick(this, hover);
@@ -1548,7 +1601,9 @@ window.addEventListener('resize', () => {
 						   const holdingRecolorTool = player.hold === recolorTool.type;
 						   const holdingSeasonTool = player.hold === seasonTool.type;
 						   const editableMap = hasFlag(this.map.flags, MapFlags.EditableEntities);
-						   const holdingTool = holdingRemoveTool || holdingPlaceTool || holdingScrapTool || holdingRecolorTool || holdingSeasonTool;
+						   const usingScrewdriverTool = this.editor.useEditorCustomSign || player.hold === screwdriver.type;
+						   const usingOffsetTool = this.editor.useEditorOffset || player.hold === offsetTool.type;
+						   const holdingTool = holdingRemoveTool || holdingPlaceTool || holdingScrapTool || holdingRecolorTool || holdingSeasonTool || usingScrewdriverTool || usingOffsetTool;
 					   const nowClick = performance.now();
 					   const isDouble = this.lastEyeClickTime > 0 && (nowClick - this.lastEyeClickTime) < 350;
 					   const clickNearSelf = distanceXY(player.x, player.y, hover.x, hover.y) < TILE_CHANGE_RANGE;
@@ -1573,10 +1628,21 @@ window.addEventListener('resize', () => {
 							   : !!this.settings.account.showChatBubbleProfiles;
 						   if (canOpenBubbleProfile) {
 							   this.select(chatEntity as Pony);
-					   } else if (pickedEntity && !holdingScrapTool && !holdingRecolorTool && !holdingSeasonTool && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
+						} else if (pickedEntity && !holdingScrapTool && !holdingRecolorTool && !holdingSeasonTool && canInteractWithPickedEntity(pickedEntity, holdingTool, editableMap, usingScrewdriverTool, usingOffsetTool)) {
 							   if (pickedEntity.type === PONY_TYPE) {
 								   this.select(pickedEntity as Pony);
-							   } else if (entityInRange(pickedEntity, player)) {
+								} else if (
+									entityInRange(pickedEntity, player)
+									|| player.hold === dragEntityTool.type
+									|| player.hold === cloneEntityTool.type
+									|| player.hold === removeEntitiesTool.type
+									|| player.hold === offsetTool.type
+									|| player.hold === broom.type
+									|| this.editor.useEditorRope
+									|| this.editor.useEditorPickaxe
+									|| this.editor.useEditorBroom
+									|| this.editor.useEditorOffset
+								) {
 								   server.interact(pickedEntity.id, hover.x, hover.y);
 							   }
 						   } else if (this.selected && distanceXY(player.x, player.y, hover.x, hover.y) >= TILE_CHANGE_RANGE) {
@@ -1617,10 +1683,21 @@ window.addEventListener('resize', () => {
 								   setElevation(this.map, hover.x, hover.y, clamp(this.editor.elevation === 'up' ? value + 1 : value - 1, 0, 10));
 							   }
 						   }
-					   } else if (pickedEntity && !holdingScrapTool && !holdingRecolorTool && !holdingSeasonTool && (!holdingTool || !editableMap || hasFlag(pickedEntity.flags, EntityFlags.IgnoreTool))) {
+						} else if (pickedEntity && !holdingScrapTool && !holdingRecolorTool && !holdingSeasonTool && canInteractWithPickedEntity(pickedEntity, holdingTool, editableMap, usingScrewdriverTool, usingOffsetTool)) {
 						   if (pickedEntity.type === PONY_TYPE) {
 							   this.select(pickedEntity as Pony);
-						   } else if (entityInRange(pickedEntity, player)) {
+							} else if (
+								entityInRange(pickedEntity, player)
+								|| player.hold === dragEntityTool.type
+								|| player.hold === cloneEntityTool.type
+								|| player.hold === removeEntitiesTool.type
+								|| player.hold === offsetTool.type
+								|| player.hold === broom.type
+								|| this.editor.useEditorRope
+								|| this.editor.useEditorPickaxe
+								|| this.editor.useEditorBroom
+								|| this.editor.useEditorOffset
+							) {
 							   server.interact(pickedEntity.id, hover.x, hover.y);
 						   }
 					   } else if (this.selected && distanceXY(player.x, player.y, hover.x, hover.y) >= TILE_CHANGE_RANGE) {
@@ -1668,7 +1745,7 @@ window.addEventListener('resize', () => {
 				handleBuildingRightClick(this, hover, input);
 
 				if (BETA && input.wasPressed(Key.MOUSE_BUTTON3) && this.mod && !this.editor.useEditorHammer) {
-						server.editorAction({ type: 'place', entity: this.editor.type, x: hover.x, y: hover.y });
+						this.sendEditorAction({ type: 'place', entity: this.editor.type, x: hover.x, y: hover.y });
 						console.log(`${this.editor.type}(${hover.x.toFixed(2)}, ${hover.y.toFixed(2)})`);
 				}
 
@@ -1891,6 +1968,9 @@ window.addEventListener('resize', () => {
 		const bg = this.bg;
 
 		colorToExistingFloatArray(light, lightColor);
+		const weatherDarkening = getWeatherIntensity(this.map) *
+			(this.map.state.weather === Weather.Storm ? 0.62 : 0.38);
+		lerpColor(light, RAIN_CLOUD_LIGHT, weatherDarkening);
 
 		const drawOptions = this.drawOptions;
 		drawOptions.gameTime = this.time;
@@ -2126,7 +2206,11 @@ window.addEventListener('resize', () => {
 
 			   if (x >= 0 && y >= 0 && x < this.map.width && y < this.map.height) {
 				   if (hold === changeTileTool.type && this.tileSets) {
-					   const tileType = houseTiles[this.placeTile].type;
+					   const tileList = this.editor.useEditorShovel ? editorTiles : houseTiles;
+					   const selectedTile = this.editor.useEditorShovel
+						   ? editorTiles.find(tile => tile.type === this.editor.tile) || editorTiles[0]
+						   : tileList[clamp(this.placeTile | 0, 0, tileList.length - 1)];
+					   const tileType = selectedTile.type;
 					   const tileSetIndex = getTilePreviewTileSetIndex(tileType, this.map.tileTime);
 					   const tileSpriteIndex = getTilePreviewSpriteIndex(tileType);
 					   const tilePreview = getTilePaintPreviewState(this, this.hover);
@@ -2227,35 +2311,6 @@ window.addEventListener('resize', () => {
 		gl.useProgram(spriteShaderWithColor.program);
 		gl.uniformMatrix4fv(spriteShaderWithColor.uniforms.transform, false, this.fboMatrix);
 		gl.uniform4fv(spriteShaderWithColor.uniforms.lighting, white);
-
-		if (BETA && this.showMinimap && this.minimap) {
-			gl.uniform2f(spriteShaderWithColor.uniforms.textureSize,
-				normalSpriteSheet.texture!.width, normalSpriteSheet.texture!.height);
-			bindTexture(gl, 0, normalSpriteSheet.texture);
-			spriteBatch.begin();
-			spriteBatch.save();
-
-			const { width, height, data } = this.minimap;
-			const scale = 4 / this.scale;
-
-			spriteBatch.translate(100, 100);
-			spriteBatch.scale(scale, scale);
-
-			spriteBatch.drawRect(BLACK, -1, -1, width + 2, height + 2);
-
-			for (let y = 0; y < height; y++) {
-				for (let x = 0; x < width; x++) {
-					spriteBatch.drawRect(data[x + y * width], x, y, 1, 1);
-				}
-			}
-
-			if (this.player) {
-				spriteBatch.drawRect(RED, Math.floor(this.player.x), Math.floor(this.player.y), 1, 1);
-			}
-
-			spriteBatch.restore();
-			spriteBatch.end();
-		}
 
 		if (BETA && this.debug.showRegions && this.player) {
 			gl.uniform2f(spriteShaderWithColor.uniforms.textureSize,
@@ -2432,31 +2487,37 @@ window.addEventListener('resize', () => {
 			for (const entity of dragVisual.selectedForMove) {
 				entity.outlineColor = dragVisual.isMultiCloneMode ? CYAN : this.editor.selectionHighlightColor;
 			}
-			const showHoverOutline = !hideSelectionOutline && !dragVisual.ghostEntities.length && this.highlightEntity;
+			const showHoverOutline = !hideSelectionOutline && !this.editor.draggingEntities && !dragVisual.ghostEntities.length &&
+				this.highlightEntity;
+			const hoverEntities = showHoverOutline && Array.isArray((this as any).highlightEntities) && (this as any).highlightEntities.length
+				? (this as any).highlightEntities : (showHoverOutline ? [this.highlightEntity] : []);
 			const hoverTool = this.player.hold;
 			const hammerShift = hoverTool === placeEntitiesTool.type && this.input.isPressed(Key.SHIFT);
 			const hammerCtrl = hoverTool === placeEntitiesTool.type && this.input.isPressed(Key.CTRL);
 			const ropeMultiMode = dragVisual.isMultiMoveMode;
 			const pickaxeMultiMode = dragVisual.isMultiCloneToolMode;
-			const singleDragOutlineColor = dragVisual.isClonePreview ? CYAN : ((hoverTool === dragEntityTool.type || hammerShift) ? this.editor.selectionHighlightColor : WHITE);
+			const singleDragOutlineColor = hoverTool === offsetTool.type ? 0xb36bffff :
+				dragVisual.isClonePreview ? CYAN : ((hoverTool === dragEntityTool.type || hammerShift) ? this.editor.selectionHighlightColor : WHITE);
 			for (const entity of dragVisual.draggedEntities) {
 				entity.outlineColor = singleDragOutlineColor;
 			}
-			const brooomHighlight = (showHoverOutline && hoverTool === removeEntitiesTool.type) ? this.highlightEntity : undefined;
+			const brooomHighlight = (showHoverOutline && (hoverTool === removeEntitiesTool.type || hoverTool === broom.type)) ? this.highlightEntity : undefined;
 			const editorBroomHighlight = (showHoverOutline && this.editor.useEditorBroom) ? this.highlightEntity : undefined;
 			const scrapHighlight = (showHoverOutline && hoverTool === scrapAlignTool.type) ? this.highlightEntity : undefined;
 			const recolorHighlight = (showHoverOutline && hoverTool === recolorTool.type) ? this.highlightEntity : undefined;
 			const seasonHighlight = (showHoverOutline && hoverTool === seasonTool.type) ? this.highlightEntity : undefined;
-			const ropeHighlight = (showHoverOutline && hoverTool === dragEntityTool.type && !ropeMultiMode) ? this.highlightEntity : undefined;
-			const ropeShiftHighlight = (showHoverOutline && hoverTool === dragEntityTool.type && ropeMultiMode) ? this.highlightEntity : undefined;
+			const ropeHighlight = (showHoverOutline && (hoverTool === dragEntityTool.type || hoverTool === rope.type) && !ropeMultiMode) ? this.highlightEntity : undefined;
+			const ropeShiftHighlight = (showHoverOutline && (hoverTool === dragEntityTool.type || hoverTool === rope.type) && ropeMultiMode) ? this.highlightEntity : undefined;
 			const editorRopeHighlight = (showHoverOutline && this.editor.useEditorRope && !ropeMultiMode) ? this.highlightEntity : undefined;
 			const editorRopeShiftHighlight = (showHoverOutline && this.editor.useEditorRope && ropeMultiMode) ? this.highlightEntity : undefined;
 			const hammerShiftHighlight = (showHoverOutline && hammerShift) ? this.highlightEntity : undefined;
-			const cloneHighlight = (showHoverOutline && hoverTool === cloneEntityTool.type && !pickaxeMultiMode) ? this.highlightEntity : undefined;
-			const pickaxeShiftHighlight = (showHoverOutline && hoverTool === cloneEntityTool.type && pickaxeMultiMode) ? this.highlightEntity : undefined;
+			const cloneHighlight = (showHoverOutline && (hoverTool === cloneEntityTool.type || hoverTool === pickaxe.type) && !pickaxeMultiMode) ? this.highlightEntity : undefined;
+			const pickaxeShiftHighlight = (showHoverOutline && (hoverTool === cloneEntityTool.type || hoverTool === pickaxe.type) && pickaxeMultiMode) ? this.highlightEntity : undefined;
 			const editorPickaxeHighlight = (showHoverOutline && this.editor.useEditorPickaxe && !pickaxeMultiMode) ? this.highlightEntity : undefined;
 			const editorPickaxeShiftHighlight = (showHoverOutline && this.editor.useEditorPickaxe && pickaxeMultiMode) ? this.highlightEntity : undefined;
 			const hammerCtrlHighlight = (showHoverOutline && hammerCtrl) ? this.highlightEntity : undefined;
+			const screwdriverHighlight = (showHoverOutline && hoverTool === screwdriver.type && this.highlightEntity) ? this.highlightEntity : undefined;
+			const wrenchHighlight = (showHoverOutline && (hoverTool === offsetTool.type || hoverTool === doubleEndedWrench.type)) ? this.highlightEntity : undefined;
 			if (brooomHighlight) {
 				brooomHighlight.outlineColor = 0xff3b30ff;
 			}
@@ -2501,6 +2562,21 @@ window.addEventListener('resize', () => {
 			}
 			if (hammerCtrlHighlight) {
 				hammerCtrlHighlight.outlineColor = CYAN;
+			}
+			if (screwdriverHighlight) {
+				screwdriverHighlight.outlineColor = 0x808080ff;
+			}
+			if (wrenchHighlight) {
+				wrenchHighlight.outlineColor = 0xb36bffff;
+			}
+			const hoverToolOutlineColor = hoverTool === removeEntitiesTool.type ? 0xff3b30ff :
+				hoverTool === dragEntityTool.type ? this.editor.selectionHighlightColor :
+				hoverTool === cloneEntityTool.type ? CYAN :
+				hoverTool === offsetTool.type ? 0xb36bffff : undefined;
+			if (hoverToolOutlineColor !== undefined) {
+				for (const entity of hoverEntities) {
+					entity.outlineColor = hoverToolOutlineColor;
+				}
 			}
 
 			paletteBatch.begin();
@@ -2562,12 +2638,25 @@ window.addEventListener('resize', () => {
 			if (hammerCtrlHighlight) {
 				hammerCtrlHighlight.outlineColor = undefined;
 			}
+			if (screwdriverHighlight) {
+				screwdriverHighlight.outlineColor = undefined;
+			}
+			if (wrenchHighlight) {
+				wrenchHighlight.outlineColor = undefined;
+			}
+			if (hoverToolOutlineColor !== undefined) {
+				for (const entity of hoverEntities) {
+					entity.outlineColor = undefined;
+				}
+			}
 
 			if (dragVisual.ghostEntities.length) {
+				const previousPreviewAlpha = paletteBatch.globalAlpha;
 				paletteBatch.depth = 0;
-				const ghostOutlineColor = dragVisual.isClonePreview ? CYAN : this.editor.selectionHighlightColor;
-				const outlineAlpha = 0.24;
-				const previewAlpha = dragVisual.isMultiDragPreview ? 0.9 : 0.35;
+				const ghostOutlineColor = hoverTool === offsetTool.type ? 0xb36bffff :
+					dragVisual.isClonePreview ? CYAN : this.editor.selectionHighlightColor;
+				const outlineAlpha = 0.5;
+				const previewAlpha = dragVisual.isMultiDragPreview ? 0.9 : 0.65;
 
 				for (const ghost of dragVisual.ghostEntities) {
 					if (ghost.draw) {
@@ -2590,6 +2679,7 @@ window.addEventListener('resize', () => {
 						paletteBatch.globalAlpha = previousAlpha;
 					}
 				}
+				paletteBatch.globalAlpha = previousPreviewAlpha;
 			}
 
 			if (this.showWallPlaceholder && hoverTool === toggleWallsTool.type && (hasFlag(this.map.flags, MapFlags.EditableWalls) || isEditorSawActive(this, this.player))) {
@@ -2909,7 +2999,9 @@ window.addEventListener('resize', () => {
 			}
 
 			const showDragCountLabel = hoverTool === dragEntityTool.type || hoverTool === cloneEntityTool.type || hammerShift || hammerCtrl;
-			const countSource = dragVisual.isDragging ? dragVisual.ghostEntities : dragVisual.selectedForMove;
+			const countSource = dragVisual.isDragging && dragVisual.isMultiDragPreview
+				? dragVisual.ghostEntities
+				: dragVisual.selectedForMove;
 
 			if (showDragCountLabel && countSource.length > 1) {
 				let minX = Number.POSITIVE_INFINITY;
@@ -2945,14 +3037,18 @@ window.addEventListener('resize', () => {
 			const hideRopeHighlight = this.editor.draggingEntities && this.player.hold === dragEntityTool.type;
 			const hasMultiGhosts = dragVisual.ghostEntities.length > 0;
 
-			if (!hideRopeHighlight && !hasMultiGhosts && this.highlightEntity && this.highlightEntity.draw) {
+			const previewEntities = this.highlightEntities.length ? this.highlightEntities : (this.highlightEntity ? [this.highlightEntity] : []);
+			if (!hideRopeHighlight && !hasMultiGhosts && previewEntities.length) {
 				paletteBatch.begin();
 				paletteBatch.depth = 0;
 				const previousAlpha = paletteBatch.globalAlpha;
-
 				if (this.player.hold === placeEntitiesTool.type || this.editor.useEditorHammer) {
 					paletteBatch.globalAlpha = 0.38;
-					this.highlightEntity.draw(paletteBatch, { ...this.drawOptions });
+					for (const entity of previewEntities) {
+						if (entity && entity.draw) {
+							entity.draw(paletteBatch, { ...this.drawOptions });
+						}
+					}
 				}
 
 				paletteBatch.globalAlpha = previousAlpha;

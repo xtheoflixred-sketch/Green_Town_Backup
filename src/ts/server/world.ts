@@ -1,10 +1,10 @@
 import { getWriterBuffer } from 'ag-sockets';
 import { remove, compact } from 'lodash';
 import {
-	TileType, WorldState, Season, Holiday, WorldStateFlags, LeaveReason, NotificationFlags, UpdateFlags, Action, counterNow,
+	TileType, WorldState, Season, Holiday, Weather, WorldStateFlags, LeaveReason, NotificationFlags, UpdateFlags, Action, counterNow,
 } from '../common/interfaces';
 import { removeItem, distance, clamp, randomPoint, includes, fromNow } from '../common/utils';
-import { HOUR_LENGTH, DAY_LENGTH } from '../common/timeUtils';
+import { HOUR_LENGTH, DAY_LENGTH, getHour } from '../common/timeUtils';
 import {
 	MAP_DISCARD_TIMEOUT, JOINS_PER_UPDATE, REMOVE_INTERVAL, REMOVE_TIMEOUT,
 	MAP_SWITCHES_PER_UPDATE, MINUTE, SERVER_FPS, HOUR
@@ -12,7 +12,7 @@ import {
 import {
 	IClient, ServerEntity, Controller, GetSettings, ServerNotification, SocketStats, ServerMap, MapUsage
 } from './serverInterfaces';
-import { isTileLocked, getMapInfo, setTile, hasAnyClients, createMinimap } from './serverMap';
+import { isTileLocked, getMapInfo, setTile, hasAnyClients, createMinimap, updateMapState as updateServerMapState } from './serverMap';
 import { getModInfo } from './accountUtils';
 import { IAccount } from './db';
 import { PartyService } from './services/party';
@@ -80,6 +80,11 @@ const MAP_SOFT_LIMIT = 10000;
 const DEFAULT_AFK_STATUS_MS = 2 * MINUTE;
 const DEFAULT_AFK_SLEEP_MS = 5 * MINUTE;
 const DEFAULT_AFK_KICK_MS = 15 * MINUTE;
+const WEATHER_MAP_IDS = new Set(['custom', 'island', 'main', 'New main map']);
+
+export function isWeatherAllowedMap(map: ServerMap) {
+	return WEATHER_MAP_IDS.has(map.id);
+}
 
 function getClientAfkThresholds(client: IClient) {
 	const statusMinutes = client.accountSettings.afkStatusMinutes;
@@ -96,8 +101,6 @@ function getClientAfkThresholds(client: IClient) {
 		kickMs: isFinite(kickMs) ? kickMs : DEFAULT_AFK_KICK_MS,
 	};
 }
-
-import { AlertEntry } from '../common/utils';
 
 export class World {
 	season = Season.Summer;
@@ -120,11 +123,12 @@ export class World {
 	private timeFrozen = false;
 	private timeSpeed = 1.0;
 	private frozenHour?: number; // If set, freezes at specific hour
+	private timeIntervalId?: NodeJS.Timeout;
+	private timeMode: 'running' | 'frozen' | 'day' | 'night' = 'running';
+	private weatherDay = -1;
 	private entityById = new Map<number, ServerEntity>();
 	private reservedIds = new Map<number, string>();
 	private reservedIdsByKey = new Map<string, ReservedID>();
-	// Глобальные алерты (глобальные объявления и другие глобальные сообщения)
-	globalAlerts: AlertEntry[] = [];
 	constructor(
 		public readonly server: ServerConfig,
 		private readonly partyService: PartyService,
@@ -163,6 +167,10 @@ export class World {
 		return this.baseTime + Date.now() * this.timeSpeed;
 	}
 	setTime(hour: number) {
+		this.stopTimeInterval();
+		this.setTimeValue(hour);
+	}
+	private setTimeValue(hour: number) {
 		let newBaseTime = hour * HOUR_LENGTH - (Date.now() % DAY_LENGTH);
 
 		while (newBaseTime < 0) {
@@ -173,16 +181,17 @@ export class World {
 		this.timeFrozen = false;
 		this.frozenHour = undefined;
 		this.timeSpeed = 1.0;
+		this.timeMode = 'running';
 		this.updateWorldState();
 	}
 	freezeTime() {
-		this.timeFrozen = true;
-		this.frozenHour = undefined;
-		this.updateWorldState();
+		this.freezeTimeAtHour(getHour(this.time));
 	}
 	unfreezeTime() {
+		this.stopTimeInterval();
 		this.timeFrozen = false;
 		this.frozenHour = undefined;
+		this.setTime(getHour(this.time));
 		this.updateWorldState();
 	}
 	setTimeSpeed(speed: number) {
@@ -191,23 +200,30 @@ export class World {
 		this.frozenHour = undefined;
 		this.updateWorldState();
 	}
-	freezeTimeAtHour(hour: number) {
-		// Calculate the time value for the given hour within the current day cycle
-		const hourValue = hour % 24;
-		// Calculate time at this hour: convert hour (0-24) to time value within DAY_LENGTH
-		const timeAtHour = (hourValue / 24) * DAY_LENGTH;
-		// Set baseTime so that this.time will always equal timeAtHour when frozen
-		this.baseTime = timeAtHour - (Date.now() % DAY_LENGTH);
-		this.timeFrozen = true;
+	freezeTimeAtHour(hour: number, mode: 'frozen' | 'day' | 'night' = 'frozen') {
+		const hourValue = ((hour % 24) + 24) % 24;
+		this.stopTimeInterval();
+		this.setTimeValue(hourValue);
 		this.frozenHour = hourValue;
+		this.timeMode = mode;
+		this.timeIntervalId = setInterval(() => {
+			this.setTimeValue(hourValue);
+			this.frozenHour = hourValue;
+		}, 1000);
 		this.updateWorldState();
+	}
+	private stopTimeInterval() {
+		if (this.timeIntervalId) {
+			clearInterval(this.timeIntervalId);
+			this.timeIntervalId = undefined;
+		}
 	}
 	getTimeStatus(): { isFrozen: boolean; isAtSpecificHour: boolean; speed: number; hour: number } {
 		return {
-			isFrozen: this.timeFrozen,
-			isAtSpecificHour: this.frozenHour !== undefined,
+			isFrozen: !!this.timeIntervalId,
+			isAtSpecificHour: !!this.timeIntervalId && this.frozenHour !== undefined,
 			speed: this.timeSpeed,
-			hour: this.frozenHour !== undefined ? this.frozenHour : -1,
+			hour: this.timeIntervalId && this.frozenHour !== undefined ? this.frozenHour : -1,
 		};
 	}
 	setTile(map: ServerMap, x: number, y: number, type: TileType) {
@@ -255,9 +271,10 @@ export class World {
 			holiday: this.holiday,
 			flags: this.getSettings().filterSwears ? WorldStateFlags.Safe : WorldStateFlags.None,
 			featureFlags: this.featureFlags,
-			timeFrozen: this.timeFrozen,
+			timeFrozen: !!this.timeIntervalId,
 			timeSpeed: this.timeSpeed !== 1.0 ? this.timeSpeed : undefined,
 			frozenHour: this.frozenHour,
+			timeMode: this.timeMode,
 		};
 	}
 	setSeason(season: Season, holiday: Holiday) {
@@ -413,6 +430,7 @@ export class World {
 				controller.initialize(nowSeconds);
 			}
 		}
+		this.weatherDay = Math.floor(this.time / DAY_LENGTH);
 	}
 	update(delta: number, now: number) {
 		const statsStart = counterNow();
@@ -430,6 +448,7 @@ export class World {
 		resetEncodeUpdate();
 
 		this.now = now;
+		this.updateAutomaticWeather();
 
 		const nowSeconds = now / 1000;
 		const deltaSeconds = delta / 1000;
@@ -575,6 +594,24 @@ timingStart('updateCamera + updateSubscriptions');
 		updateWorldPerfStats(statsStart, this.clients.length, movingEntities, regionsCount, mapsCount, this.joinQueue.length,
 			controllersCount, clientsWithAdds, clientsWithUpdates, clientsWithSays, totalSays,
 			sent, received, sentPackets, receivedPackets);
+	}
+	private updateAutomaticWeather() {
+		const day = Math.floor(this.time / DAY_LENGTH);
+		if (day === this.weatherDay) {
+			return;
+		}
+
+		this.weatherDay = day;
+		const roll = Math.random();
+		const weather = roll < 0.1 ? Weather.Storm : roll < 0.3 ? Weather.Rain : Weather.None;
+		for (const map of this.maps) {
+			if (!isWeatherAllowedMap(map)) {
+				continue;
+			}
+			if (map.state.weather !== weather) {
+				updateServerMapState(map, { weather });
+			}
+		}
 	}
 	sparseUpdate(now: number) {
 		timingStart('world.sparseUpdate()');

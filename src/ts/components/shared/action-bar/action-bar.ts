@@ -26,6 +26,10 @@ export class ActionBar implements OnInit, OnDestroy {
 	private _editable = false;
 	private isWaitingForActionsModal = false;
 	private lastModalState?: boolean;
+	draggingIndex?: number;
+	draggingOutside = false;
+	draggingTarget?: number;
+	private draggingAction?: ButtonAction;
 	private _leftSubscription?: Subscription;
 	constructor(private game: PonyTownGame, private settings: SettingsService, private modalService: BsModalService) {
 	}
@@ -66,12 +70,60 @@ export class ActionBar implements OnInit, OnDestroy {
 		useAction(this.game, action);
 	}
 	drag(index: number) {
-		this.actions[index].action = undefined;
-		this.updateFreeSlots();
+		this.draggingIndex = index;
+		this.draggingAction = this.actions[index] && this.actions[index].action;
+		if (this.draggingAction) {
+			this.actions[index] = { action: undefined };
+		}
+		this.draggingOutside = false;
 	}
 	drop(action: ButtonAction | undefined, index: number) {
-		this.actions[index].action = action;
+		if (action === undefined) {
+			return;
+		}
+
+		const sourceIndex = this.draggingIndex;
+		if (sourceIndex !== undefined && this.draggingAction) {
+			if (sourceIndex < index) {
+				index--;
+			}
+			this.actions.splice(sourceIndex, 1);
+			action = this.draggingAction;
+		}
+
+		this.actions.splice(index, 0, { action });
+		if (this.actions.length > ACTIONS_LIMIT) {
+			this.actions.pop();
+		}
+		this.draggingIndex = undefined;
+		this.draggingAction = undefined;
+		this.draggingOutside = false;
+		this.draggingTarget = undefined;
 		this.updateFreeSlots();
+	}
+	setDragTarget(index: number, active: boolean) {
+		if (active && this.draggingIndex === index) {
+			this.draggingTarget = undefined;
+		} else if (active) {
+			this.draggingTarget = index;
+		} else if (!active && this.draggingTarget === index) {
+			this.draggingTarget = undefined;
+		}
+	}
+	setDragOutside(index: number, outside: boolean) {
+		if (this.draggingIndex === index) {
+			this.draggingOutside = outside;
+		}
+	}
+	endDrag(index: number, outside: boolean) {
+		if (this.draggingIndex === index && outside) {
+			this.actions.splice(index, 1);
+			this.updateFreeSlots();
+		}
+		this.draggingIndex = undefined;
+		this.draggingAction = undefined;
+		this.draggingOutside = false;
+		this.draggingTarget = undefined;
 	}
 	save() {
 		const settings = { ...this.settings.account, actions: serializeActions(this.actions) };

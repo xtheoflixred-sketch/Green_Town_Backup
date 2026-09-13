@@ -2,7 +2,7 @@ import '../lib';
 import { expect } from 'chai';
 import {
 	syncLockedPonyInfo, syncLockedSpriteSet, syncLockedPonyInfoNumber, toPaletteSet, releasePalettes,
-	createDefaultPony, createServerDefaultPony, spriteSet
+	createBasePony, createDefaultPony, createServerDefaultPony, spriteSet
 } from '../../common/ponyInfo';
 import { SpriteSet, PonyInfo, PaletteManager, ColorExtraSets, Palette } from '../../common/interfaces';
 import { RED, BLUE, YELLOW, ORANGE, TRANSPARENT } from '../../common/colors';
@@ -116,21 +116,22 @@ describe('ponyInfo', () => {
 	});
 
 	describe('createDefaultPony()', () => {
-		it('keeps the existing default pony styling for the regular default', () => {
-			const pony = createDefaultPony();
+			it('uses the server default pony styling for the regular default', () => {
+				const pony = createDefaultPony();
 
-			expect(pony.mane!.type).equal(2);
-			expect(pony.backMane!.type).equal(1);
-			expect(pony.tail!.type).equal(1);
-		});
+				expect(pony.mane!.type).equal(1);
+				expect(pony.backMane!.type).equal(25);
+				expect(pony.tail!.type).equal(6);
+				expect(pony.coatFill).equal('ff0000');
+				expect(pony.coatOutline).equal('8b0000');
+			});
 
-		it('creates a simpler server default pony from constants-based overrides', () => {
-			const pony = createServerDefaultPony();
+			it('creates a server default pony from constants-based overrides', () => {
+				const pony = createServerDefaultPony();
 
-			expect(pony.mane!.type).equal(0);
-			expect(pony.backMane!.type).equal(0);
-			expect(pony.tail!.type).equal(0);
-			expect(pony.coatFill).equal('ff0000');
+				expect(pony.mane!.type).equal(1);
+				expect(pony.backMane!.type).equal(25);
+				expect(pony.tail!.type).equal(6);
 			expect(pony.coatOutline).equal('8b0000');
 		});
 
@@ -149,9 +150,69 @@ describe('ponyInfo', () => {
 				(clientData as any).serverSettings = prev;
 			}
 		});
+
+		it('creates a new pony object with server default pony info instead of an empty string', () => {
+			const prev = (clientData as any).serverSettings;
+			(clientData as any).serverSettings = undefined;
+
+			try {
+				const defaultPony = createDefaultPonyObject();
+				expect(defaultPony.info).to.not.equal('');
+				expect(defaultPony.ponyInfo).to.exist;
+				expect(defaultPony.ponyInfo!.coatFill).equal('ff0000');
+				expect(defaultPony.ponyInfo!.coatOutline).equal('8b0000');
+			} finally {
+				(clientData as any).serverSettings = prev;
+			}
+		});
 	});
 
 	describe('syncLockedPonyInfo()', () => {
+		it('keeps the solid hoof color editable on all sides', () => {
+			const pony = createBasePony();
+			pony.lockBackHooves = false;
+			pony.unlockFrontHooves = true;
+			pony.unlockBackHooves = true;
+			pony.frontHooves!.lockFills![0] = true;
+			pony.frontHoovesRight!.lockFills![0] = true;
+			pony.backHooves!.lockFills![0] = true;
+			pony.backHoovesRight!.lockFills![0] = true;
+			pony.frontHooves!.fills![0] = '112233';
+			pony.frontHoovesRight!.fills![0] = '223344';
+			pony.backHooves!.fills![0] = '334455';
+			pony.backHoovesRight!.fills![0] = '445566';
+
+			syncLockedPonyInfo(pony);
+
+			expect([
+				pony.frontHooves!.lockFills![0],
+				pony.frontHoovesRight!.lockFills![0],
+				pony.backHooves!.lockFills![0],
+				pony.backHoovesRight!.lockFills![0],
+				pony.frontHooves!.fills![0],
+				pony.frontHoovesRight!.fills![0],
+				pony.backHooves!.fills![0],
+				pony.backHoovesRight!.fills![0],
+			]).eql([false, false, false, false, '112233', '223344', '334455', '445566']);
+		});
+
+		it('locks the first leg marking color on all sides', () => {
+			const pony = createBasePony();
+			pony.frontLegs!.lockFills![0] = true;
+			pony.frontLegsRight!.lockFills![0] = true;
+			pony.backLegs!.lockFills![0] = true;
+			pony.backLegsRight!.lockFills![0] = true;
+
+			syncLockedPonyInfo(pony);
+
+			expect([
+				pony.frontLegs!.lockFills![0],
+				pony.frontLegsRight!.lockFills![0],
+				pony.backLegs!.lockFills![0],
+				pony.backLegsRight!.lockFills![0],
+			]).eql([true, true, true, true]);
+		});
+
 		it('syncs coatOutline if customOutlines is false', () => {
 			const pony = ponyInfo({
 				customOutlines: false,

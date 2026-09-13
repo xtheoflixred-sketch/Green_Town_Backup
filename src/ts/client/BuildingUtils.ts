@@ -1,9 +1,10 @@
+import * as entities from '../common/entities';
 import {
-	Action, MapFlags, MessageType, TileType, houseTiles, editorTiles, MapType,
+	Action, MapFlags, MessageType, TileType, houseTiles, editorTiles, MapType, EntityFlags,
 } from '../common/interfaces';
 import { clamp, hasFlag, point, contains } from '../common/utils';
-import { pickAnyEntities, pickEntities, getTile } from '../common/worldMap';
-import { createAnEntity, getEntityType, getEntityTypeName, hammer, broom, saw, rope, pickaxe, poof, poof2, placeableEntities, shovel, scrap, recolor, season, isRecolorable } from '../common/entities';
+import { pickAnyEntities, pickSpriteEntities, pickEntities, getTile } from '../common/worldMap';
+import { createAnEntity, getEntityType, getEntityTypeName, hammer, broom, saw, rope, pickaxe, poof, poof2, placeableEntities, shovel, scrap, recolor, season, doubleEndedWrench, screwdriver, sign, signQuest, signQuestion, signDonate, signDebug, isRecolorable } from '../common/entities';
 import { isOutsideMap } from '../common/collision';
 import { Key } from './input/input';
 import { toggleWall, editorMoveEntities } from './playerActions';
@@ -20,6 +21,7 @@ export const cloneEntityTool = pickaxe;
 export const scrapAlignTool = scrap;
 export const recolorTool = recolor;
 export const seasonTool = season;
+export const offsetTool = doubleEndedWrench;
 export type WallMaterial = 'wood' | 'stone';
 export type WallHeight = 'low' | 'high';
 
@@ -28,6 +30,8 @@ let draggingEntityId: number | undefined = undefined;
 let draggingEntities: any[] = [];
 let draggingOffsets = new Map<number, { x: number; y: number; }>();
 let draggingCloneMode = false;
+let draggingOffsetMode = false;
+let draggingOffsetStartY = 0;
 let multiDragSelection = new Map<number, any>();
 let multiDragPressState: { x: number; y: number; } | undefined;
 let multiDragPendingToggleEntityId: number | undefined;
@@ -46,14 +50,27 @@ let selectedWallHeight: WallHeight = 'low';
 let selectedWallHeightMap: any | undefined;
 const MULTI_DRAG_START_DISTANCE = 0.05;
 const MULTI_DRAG_CLEAR_DOUBLE_CLICK_MS = 350;
+const MAX_TILE_PAINT_SIZE = 250;
+const TILE_PAINT_BATCH_SIZE = 256;
 type EditorMode = 'tile' | 'wall';
 let editorMode: EditorMode = 'tile';
+let tilePaintQueue: { x: number; y: number; type: TileType; }[] = [];
 
 
 function isEditorHammerActive(game: any, player: any) {
 	const editorPlayer = player;
 	void editorPlayer;
 	return !!(BETA && game && game.mod && game.editor && game.editor.useEditorHammer);
+}
+
+function isEditorCustomSignActive(game: any, player: any) {
+	const editorPlayer = player;
+	void editorPlayer;
+	return !!(game && game.editorBox && player.hold === screwdriver.type);
+}
+
+function isSignEntity(entity: any) {
+	return [sign.type, signQuest.type, signQuestion.type, signDonate.type, signDebug.type].indexOf(entity.type) >= 0;
 }
 
 function isEditorBroomActive(game: any, player: any) {
@@ -74,6 +91,12 @@ function isEditorPickaxeActive(game: any, player: any) {
 	return !!(BETA && game && game.mod && game.editor && game.editor.useEditorPickaxe);
 }
 
+function isEditorOffsetActive(game: any, player: any) {
+	const editorPlayer = player;
+	void editorPlayer;
+	return !!(BETA && game && game.mod && game.editor && game.editor.useEditorOffset);
+}
+
 function isEditorShovelActive(game: any, player: any) {
 	const editorPlayer = player;
 	void editorPlayer;
@@ -81,13 +104,39 @@ function isEditorShovelActive(game: any, player: any) {
 }
 
 function getSelectedTileType(game: any, player: any) {
+	if (isEditorShovelActive(game, player)) {
+		return editorTiles[clamp(game.editor.tile, 0, editorTiles.length - 1)].type;
+	}
 	const tileIndex = clamp(game.placeTile || 0, 0, houseTiles.length - 1);
-	void player;
 	return houseTiles[tileIndex].type;
 }
 
 function isRemovableEntity(entity: any) {
 	return entity.type !== poof.type && entity.type !== poof2.type;
+}
+
+export function getCompoundEntities(map: any, entity: any): any[] {
+	if (!entity) {
+		return [];
+	}
+
+	const compoundId = entity.options && entity.options.compoundId;
+	if (!compoundId) {
+		return [entity];
+	}
+
+	return map.entities.filter((candidate: any) =>
+		candidate.options && candidate.options.compoundId === compoundId);
+}
+
+function getToolPickedEntities(game: any, hover: any): any[] {
+	const picked = pickSpriteEntities(game.map, hover).filter(isRemovableEntity);
+	return picked.length ? getCompoundEntities(game.map, picked[0]) : [];
+}
+
+function setToolHoverEntities(game: any, entitiesToHighlight: any[]) {
+	game.highlightEntities = entitiesToHighlight;
+	game.highlightEntity = entitiesToHighlight[0];
 }
 
 function isEntityAtPoint(entity: any, point: any) {
@@ -101,26 +150,91 @@ export function isEditorSawActive(game: any, player: any) {
 	return !!(BETA && game && game.mod && game.editor && game.editor.useEditorSaw);
 }
 
-function resolveEditorPreviewType(game: any): number {
+export function canInteractWithPickedEntity(entity: any, holdingTool: boolean, editableMap: boolean, usingScrewdriverTool = false, usingOffsetTool = false): boolean {
+	if (!entity) {
+		return false;
+	}
+	if (hasFlag(entity.flags, EntityFlags.IgnoreTool)) {
+		return true;
+	}
+	if (usingScrewdriverTool || usingOffsetTool) {
+		return false;
+	}
+	return !holdingTool || !editableMap;
+}
+
+export function resolveEditorPreviewType(game: any): number {
+	const types = resolveEditorPreviewTypes(game);
+	return types[0] || 0;
+}
+
+export function resolveEditorPreviewTypes(game: any): number[] {
 	if (!game || !game.editor) {
-		return 0;
+		return [];
 	}
 
 	const name = game.editor.type;
 	const directType = getEntityType(name);
-
 	if (directType > 0) {
-		return directType;
+		return [directType];
+	}
+
+	const factory = (entities as any)[name];
+	if (typeof factory === 'function') {
+		const created = factory(0, 0);
+		const entitiesList = Array.isArray(created) ? created : [created];
+		const types = entitiesList
+			.filter((entity: any) => entity && typeof entity.type === 'number' && entity.type > 0)
+			.map((entity: any) => entity.type);
+		if (types.length > 0) {
+			return types;
+		}
 	}
 
 	const map = game.editor.entityTypesByName as { [name: string]: number[]; } | undefined;
 	const mapped = map && map[name];
-
-	if (Array.isArray(mapped) && mapped.length > 0 && mapped[0] > 0) {
-		return mapped[0];
+	if (Array.isArray(mapped) && mapped.length > 0) {
+		const valid = mapped.filter((type: number) => type > 0);
+		if (valid.length > 0) {
+			return valid;
+		}
 	}
 
-	return 0;
+	return [];
+}
+
+export function createPreviewEntities(game: any, x: number, y: number) {
+	if (!game || !game.editor) {
+		return [] as any[];
+	}
+
+	const name = game.editor.type;
+	const directType = getEntityType(name);
+	if (directType > 0) {
+		return [createAnEntity(directType, 0, x, y, {}, game.paletteManager, game)];
+	}
+
+	const factory = (entities as any)[name];
+	if (typeof factory === 'function') {
+		const created = factory(x, y);
+		const entitiesList = Array.isArray(created) ? created : [created];
+		const preview = entitiesList.filter((entity: any) => entity && typeof entity.type === 'number' && entity.type > 0);
+		if (preview.length > 0) {
+			return preview;
+		}
+	}
+
+	const map = game.editor.entityTypesByName as { [name: string]: number[]; } | undefined;
+	const mapped = map && map[name];
+	if (Array.isArray(mapped) && mapped.length > 0) {
+		const valid = mapped.filter((type: number) => type > 0);
+		const preview = valid.map(type => createAnEntity(type, 0, x, y, {}, game.paletteManager, game));
+		if (preview.length > 0) {
+			return preview;
+		}
+	}
+
+	return [] as any[];
 }
 
 function getWallMaterialTileType(material: WallMaterial) {
@@ -223,13 +337,15 @@ function getDragModes(player: any, input: any, game?: any) {
 	const isScrap = hold === scrapAlignTool.type;
 	const isHammer = hold === placeEntitiesTool.type || (!!(BETA && game && game.editor && game.editor.useEditorHammer));
 	const isCloneTool = hold === cloneEntityTool.type || !!(BETA && game && game.editor && game.editor.useEditorPickaxe);
+	const isOffsetTool = hold === offsetTool.type || isEditorOffsetActive(game, player);
 	return {
-		canDragMove: isRope || (isHammer && shift),
+		canDragMove: isRope || isOffsetTool || (isHammer && shift),
 		canDragClone: isCloneTool || (isHammer && ctrl),
 		allowMultiDrag: (isRope && multiMoveModeEnabled) || (isCloneTool && multiCloneModeEnabled),
 		isRope,
 		isScrap,
 		isCloneTool,
+		isOffsetTool,
 	};
 }
 
@@ -240,13 +356,37 @@ function createDragGhost(entity: any, hover: any) {
 		return undefined;
 	}
 
+	if (draggingOffsetMode) {
+		const baseOffsetY = (entity as any).options && (entity as any).options.offsetY !== undefined
+			? (entity as any).options.offsetY
+			: entity.offsetY || 0;
+		return {
+			...entity,
+			x: entity.x,
+			y: entity.y,
+			offsetY: baseOffsetY + hover.y - draggingOffsetStartY,
+			previewOriginX: entity.x,
+			previewOriginY: entity.y,
+			selected: false,
+			coverLifting: 0.7,
+		};
+	}
+
 	return {
 		...entity,
 		x: hover.x - offset.x,
 		y: hover.y - offset.y,
+		previewOriginX: entity.x,
+		previewOriginY: entity.y,
 		selected: false,
 		coverLifting: 0.7,
 	};
+}
+
+function isDualPreviewMode(player: any, game: any) {
+		return player.hold === dragEntityTool.type || player.hold === cloneEntityTool.type || player.hold === offsetTool.type || isEditorOffsetActive(game, player) ||
+			player.hold === placeEntitiesTool.type && (game.input.isPressed(Key.SHIFT) || game.input.isPressed(Key.CTRL)) ||
+			isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player) || isEditorHammerActive(game, player) || isEditorCustomSignActive(game, player);
 }
 
 export function getBuildingDragVisualState(game: any) {
@@ -254,23 +394,35 @@ export function getBuildingDragVisualState(game: any) {
 	const draggedEntities = draggingEntityPreview && draggingEntities.length === 1 ? draggingEntities : [];
 	const ghostEntities = draggingEntityPreview
 		? draggingEntities
-			.map(e => createDragGhost(e, game.hover))
-			.filter((e: any) => !!e)
+			.reduce((result: any[], e: any) => {
+				const ghost = createDragGhost(e, game.hover);
+				if (!ghost || !isDualPreviewMode(game.player, game)) {
+					if (ghost) result.push(ghost);
+					return result;
+				}
+				result.push(
+					{ ...e, x: ghost.x, y: ghost.y, offsetY: 0, previewOriginX: e.x, previewOriginY: e.y, selected: false, entityOpacity: 0.65, coverLifting: 0.7 },
+					{ ...ghost, entityOpacity: 0.65 },
+				);
+				return result;
+			}, [])
 		: [];
 	const isMultiDragPreview = draggingEntityPreview && draggingEntities.length > 1;
 	const isClonePreview = draggingEntityPreview && draggingCloneMode;
 	const { canDragClone, allowMultiDrag, isRope, isCloneTool } = getDragModes(game.player, game.input, game);
+	const isMultiMoveMode = isRope && multiMoveModeEnabled;
 	const isMultiCloneMode = allowMultiDrag && canDragClone;
+	const visibleSelectedForMove = (isMultiMoveMode || isMultiCloneMode) ? selectedForMove : [];
 
 	return {
-		selectedForMove,
+		selectedForMove: visibleSelectedForMove,
 		draggedEntities,
 		ghostEntities,
 		isMultiDragPreview,
 		isClonePreview,
 		isDragging: draggingEntityPreview,
 		isMultiCloneMode,
-		isMultiMoveMode: isRope && multiMoveModeEnabled,
+		isMultiMoveMode,
 		isMultiCloneToolMode: isCloneTool && multiCloneModeEnabled,
 	};
 }
@@ -293,7 +445,6 @@ export function updateWallPlaceholder(game: any, player: any) {
 }
 
 export function updateBuildingPreviews(game: any, player: any, hover: any, server: any, input: any) {
-
 	if (((player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) || isEditorSawActive(game, player)) && input.wasPressed(Key.SPACE)) {
 		ensureWallHeightState(game);
 		selectedWallHeight = selectedWallHeight === 'high' ? 'low' : 'high';
@@ -301,15 +452,20 @@ export function updateBuildingPreviews(game: any, player: any, hover: any, serve
 		const total = getSaysTime(wallHeightName);
 		addChatBubble(game.map, game.player, { message: wallHeightName, type: MessageType.System, total, timer: total, created: Date.now() });
 	}
+	game.highlightEntities = [];
 
-	if (hasFlag(game.map.flags, MapFlags.EditableEntities) || player.hold === scrapAlignTool.type || player.hold === recolorTool.type || player.hold === seasonTool.type || isEditorHammerActive(game, player) || isEditorBroomActive(game, player) || isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player)) {
+	if (hasFlag(game.map.flags, MapFlags.EditableEntities) || player.hold === scrapAlignTool.type || player.hold === recolorTool.type || player.hold === seasonTool.type || player.hold === offsetTool.type || isEditorOffsetActive(game, player) || isEditorHammerActive(game, player) || isEditorCustomSignActive(game, player) || isEditorBroomActive(game, player) || isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player)) {
 		if (isEditorBroomActive(game, player)) {
-			game.highlightEntity = pickAnyEntities(game.map, hover).find(entity => entity.type !== PONY_TYPE && isRemovableEntity(entity));
+			setToolHoverEntities(game, getToolPickedEntities(game, hover).filter(entity => entity.type !== PONY_TYPE));
 			return;
 		}
-		const editorDragTool = isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player);
-			   if (player.hold === removeEntitiesTool.type || player.hold === dragEntityTool.type) {
-				   game.highlightEntity = pickEntities(game.map, hover, true, false, true).find(isRemovableEntity);
+		if (isEditorCustomSignActive(game, player)) {
+			game.highlightEntity = pickAnyEntities(game.map, hover).find(isSignEntity);
+			return;
+		}
+		const editorDragTool = isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player) || isEditorOffsetActive(game, player);
+				   if (player.hold === removeEntitiesTool.type || player.hold === dragEntityTool.type) {
+					   setToolHoverEntities(game, getToolPickedEntities(game, hover));
 			   } else if (player.hold === scrapAlignTool.type) {
 				   game.highlightEntity = game.map.entities
 					   .filter((e: any) => e.type !== PONY_TYPE && isRemovableEntity(e) && isEntityAtPoint(e, hover))
@@ -322,20 +478,25 @@ export function updateBuildingPreviews(game: any, player: any, hover: any, serve
 				   game.highlightEntity = game.map.entities
 					   .filter((e: any) => e.type !== PONY_TYPE && isRemovableEntity(e) && (e as any).isSeasonal && isEntityAtPoint(e, hover))
 					   .reverse()[0];
-			   } else if (player.hold === cloneEntityTool.type || editorDragTool) {
-				   game.highlightEntity = pickAnyEntities(game.map, hover).find(entity => entity.type !== PONY_TYPE && isRemovableEntity(entity));
+			} else if (player.hold === cloneEntityTool.type || editorDragTool || player.hold === offsetTool.type || isEditorOffsetActive(game, player)) {
+				   setToolHoverEntities(game, getToolPickedEntities(game, hover).filter(entity =>
+					(entity.type === PONY_TYPE ? editorDragTool && !isEditorPickaxeActive(game, player) : true)));
 		} else if (player.hold === placeEntitiesTool.type || isEditorHammerActive(game, player)) {
 			if (isEditorHammerActive(game, player)) {
 				if (!isOutsideMap(hover.x, hover.y, game.map)) {
-					const type = resolveEditorPreviewType(game);
+					const previewEntities = createPreviewEntities(game, hover.x, hover.y);
+					game.highlightEntities = previewEntities;
+					game.highlightEntity = previewEntities[0] || undefined;
 
-					if (type > 0) {
-						game.highlightEntity = createAnEntity(type, 0, hover.x, hover.y, {}, game.paletteManager, game);
-
-						if (game.highlightEntity) {
-							game.highlightEntity.coverLifting = 0.7;
+					if (game.highlightEntity) {
+						game.highlightEntity.coverLifting = 0.7;
+					}
+					for (const entity of previewEntities) {
+						if (entity) {
+							entity.coverLifting = 0.7;
 						}
-					} else {
+					}
+					if (!previewEntities.length) {
 						game.highlightEntity = undefined;
 					}
 				} else {
@@ -347,13 +508,13 @@ export function updateBuildingPreviews(game: any, player: any, hover: any, serve
 
 			const { canDragMove, canDragClone } = getDragModes(player, input, game);
 			if (canDragMove || canDragClone) {
-				game.highlightEntity = pickEntities(game.map, hover, true, false, true)[0];
+				const picked = getToolPickedEntities(game, hover);
+				game.highlightEntity = picked[0];
 				void server;
 				return;
 			}
 
 			if (!isOutsideMap(hover.x, hover.y, game.map)) {
-				const { type } = placeableEntities[game.placeEntity];
 				let { x, y } = hover;
 
 				if (game.map.editableArea) {
@@ -361,9 +522,16 @@ export function updateBuildingPreviews(game: any, player: any, hover: any, serve
 					y = clamp(y, game.map.editableArea.y, game.map.editableArea.y + game.map.editableArea.h);
 				}
 
-				game.highlightEntity = createAnEntity(type, 0, x, y, {}, game.paletteManager, game);
-				if (game.highlightEntity) {
-					game.highlightEntity.coverLifting = 0.7;
+				const previewEntities = createPreviewEntities(game, x, y);
+				game.highlightEntities = previewEntities;
+				game.highlightEntity = previewEntities[0] || undefined;
+				for (const entity of previewEntities) {
+					if (entity) {
+						entity.coverLifting = 0.7;
+					}
+				}
+				if (!previewEntities.length) {
+					game.highlightEntity = undefined;
 				}
 			}
 		}
@@ -373,16 +541,21 @@ export function updateBuildingPreviews(game: any, player: any, hover: any, serve
 }
 
 export function handleDragTool(game: any, player: any, hover: any, input: any): boolean {
-	if (!hasFlag(game.map.flags, MapFlags.EditableEntities) && !isEditorHammerActive(game, player) && !isEditorRopeActive(game, player) && !isEditorPickaxeActive(game, player)) {
+	if (!hasFlag(game.map.flags, MapFlags.EditableEntities) && !isEditorHammerActive(game, player) && !isEditorCustomSignActive(game, player) && !isEditorRopeActive(game, player) && !isEditorPickaxeActive(game, player) && !isEditorOffsetActive(game, player)) {
 		return false;
 	}
 	const editorDragMode = isEditorRopeActive(game, player) || isEditorPickaxeActive(game, player);
 
-	const { canDragMove, canDragClone, allowMultiDrag, isRope, isCloneTool } = getDragModes(player, input, game);
+	const { canDragMove, canDragClone, allowMultiDrag, isRope, isCloneTool, isOffsetTool } = getDragModes(player, input, game);
 
 	if (!draggingEntityPreview && input.wasPressed(Key.SHIFT)) {
 		if (isRope) {
 			multiMoveModeEnabled = !multiMoveModeEnabled;
+			if (!multiMoveModeEnabled) {
+				multiDragSelection.clear();
+				multiDragPendingToggleEntityId = undefined;
+				multiDragPressState = undefined;
+			}
 			const message = multiMoveModeEnabled
 				? 'Multi object move mode enabled'
 				: 'Multi object move mode disabled';
@@ -405,20 +578,23 @@ export function handleDragTool(game: any, player: any, hover: any, input: any): 
 
 	if (input.wasPressed(Key.MOUSE_BUTTON1)) {
 		let picked: any[];
-		if (editorDragMode) {
-			picked = pickAnyEntities(game.map, hover).filter(entity => entity.type !== PONY_TYPE && isRemovableEntity(entity));
+		if (editorDragMode || isRope || isCloneTool || isOffsetTool) {
+			picked = getToolPickedEntities(game, hover);
 		} else {
 			picked = pickEntities(game.map, hover, true, false, true).filter(isRemovableEntity);
 		}
 		if (allowMultiDrag) {
 			if (picked.length) {
 				const pickedEntity = picked[0];
-				if (multiDragSelection.has(pickedEntity.id)) {
+				const pickedGroup = getCompoundEntities(game.map, pickedEntity);
+				if (pickedGroup.some(entity => multiDragSelection.has(entity.id))) {
 					// Delay deselect until release to distinguish click from drag start.
 					multiDragPendingToggleEntityId = pickedEntity.id;
 					multiDragPressState = point(hover.x, hover.y);
 				} else {
-					multiDragSelection.set(pickedEntity.id, pickedEntity);
+					for (const entity of pickedGroup) {
+						multiDragSelection.set(entity.id, entity);
+					}
 					multiDragPendingToggleEntityId = undefined;
 					multiDragPressState = point(hover.x, hover.y);
 				}
@@ -442,11 +618,13 @@ export function handleDragTool(game: any, player: any, hover: any, input: any): 
 				}
 			}
 		} else if (picked.length) {
-			const selected = [picked[0]];
+			const selected = getCompoundEntities(game.map, picked[0]);
 			draggingEntityPreview = true;
 			draggingEntityId = selected[0].id;
 			draggingEntities = selected;
 			draggingCloneMode = canDragClone;
+			draggingOffsetMode = isOffsetTool;
+			draggingOffsetStartY = hover.y;
 			draggingOffsets = new Map<number, { x: number; y: number; }>();
 
 			for (const entity of selected) {
@@ -491,21 +669,35 @@ export function handleDragTool(game: any, player: any, hover: any, input: any): 
 
 					let x = hover.x - offset.x;
 					let y = hover.y - offset.y;
+					const entityOffsetY = ent.options && ent.options.offsetY !== undefined ? ent.options.offsetY : ent.offsetY;
 
 					   if (editorHammer) {
 						   const entityName = getEntityTypeName(ent.type);
 						   if (ent.type !== PONY_TYPE && entityName) {
-							   game.send((s: any) => s.editorAction({ type: 'place', entity: entityName, x, y }));
+								game.sendEditorAction({
+									type: 'place', entity: entityName, x, y,
+									options: entityOffsetY !== undefined ? { offsetY: entityOffsetY } : undefined,
+								});
 						   } else {
 							   const message = 'Этот объект нельзя скопировать';
 							   const total = getSaysTime(message);
 							   addChatBubble(game.map, game.player, { message, type: MessageType.System, total, timer: total, created: Date.now() });
 						   }
 					   } else {
-						   game.send((s: any) => s.actionParam(Action.PlaceEntity, { x, y, type: ent.type }));
+							game.send((s: any) => s.actionParam(Action.PlaceEntity, {
+								x, y, type: ent.type,
+								options: entityOffsetY !== undefined ? { offsetY: entityOffsetY } : undefined,
+							}));
 					   }
 				}
 			} else {
+				if (draggingOffsetMode) {
+					const offsetEntities = draggingEntities.map((ent: any) => {
+						const currentOffsetY = ent.options && ent.options.offsetY !== undefined ? ent.options.offsetY : ent.offsetY || 0;
+						return { id: ent.id, offsetY: currentOffsetY + hover.y - draggingOffsetStartY };
+					});
+					game.sendEditorAction({ type: 'offset', entities: offsetEntities });
+				} else {
 				const entities = draggingEntities.map((ent: any) => {
 					const offset = draggingOffsets.get(ent.id)!;
 					const x = hover.x - offset.x;
@@ -515,27 +707,32 @@ export function handleDragTool(game: any, player: any, hover: any, input: any): 
 				});
 
 				if (editorHammer) {
-					game.send((s: any) => s.editorAction({
+					game.sendEditorAction({
 						type: 'move',
 						entities,
-					}));
+					});
 				} else {
-					game.send((s: any) => s.editorAction({
+					game.sendEditorAction({
 						type: 'move',
 						entities,
-					}));
+					});
+					}
 				}
 			}
 			draggingEntityId = undefined;
 			draggingEntities = [];
 			draggingOffsets.clear();
 			draggingCloneMode = false;
+			draggingOffsetMode = false;
 			multiDragPressState = undefined;
 			multiDragPendingToggleEntityId = undefined;
 		}
 	} else if (!input.isPressed(Key.MOUSE_BUTTON1) && multiDragPressState) {
 		if (allowMultiDrag && multiDragPendingToggleEntityId !== undefined) {
-			multiDragSelection.delete(multiDragPendingToggleEntityId);
+			const pendingEntity = game.map.entities.find((entity: any) => entity.id === multiDragPendingToggleEntityId);
+			for (const entity of getCompoundEntities(game.map, pendingEntity)) {
+				multiDragSelection.delete(entity.id);
+			}
 		}
 		multiDragPendingToggleEntityId = undefined;
 		multiDragPressState = undefined;
@@ -556,6 +753,9 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		(player.hold === scrapAlignTool.type) ||
 		(player.hold === recolorTool.type) ||
 		(player.hold === seasonTool.type) ||
+		(player.hold === offsetTool.type) ||
+		isEditorOffsetActive(game, player) ||
+		isEditorCustomSignActive(game, player) ||
 		isEditorSawActive(game, player) ||
 		holdingRemoveTool || holdingPlaceTool
 	)) {
@@ -569,7 +769,7 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 		if (game.editor.brushSize > 1) {
 			const x = Math.floor((hover.x - (game.editor.brushSize / 2)));
 			const y = Math.floor((hover.y - (game.editor.brushSize / 2)));
-			server.editorAction({ type: 'tile', x, y, tile: game.editor.tile, size: game.editor.brushSize });
+			game.sendEditorAction({ type: 'tile', x, y, tile: game.editor.tile, size: game.editor.brushSize });
 		} else {
 			const x = hover.x | 0;
 			const y = hover.y | 0;
@@ -583,31 +783,56 @@ export function handleBuildingActionClick(game: any, player: any, hover: any, se
 	} else if (player.hold === scrapAlignTool.type && game.highlightEntity) {
 		const id = game.highlightEntity.id;
 		if (game.highlightEntity.type !== PONY_TYPE && game.highlightEntity.type !== toggleWallsTool.type) {
-			game.send((s: any) => s.editorAction({ type: 'mirror', entities: [id] }));
+			game.sendEditorAction({ type: 'mirror', entities: [id] });
 		}
 	} else if (player.hold === recolorTool.type && game.highlightEntity) {
 		const id = game.highlightEntity.id;
 		if (game.highlightEntity.type !== PONY_TYPE) {
-			game.send((s: any) => s.editorAction({ type: 'recolor', entities: [id] }));
+			game.sendEditorAction({ type: 'recolor', entities: [id] });
 		}
 	} else if (player.hold === seasonTool.type && game.highlightEntity) {
 		const id = game.highlightEntity.id;
 		if (game.highlightEntity.type !== PONY_TYPE) {
-			game.send((s: any) => s.editorAction({ type: 'season', entities: [id] }));
+			game.sendEditorAction({ type: 'season', entities: [id] });
 		}
 	} else if ((player.hold === toggleWallsTool.type && hasFlag(game.map.flags, MapFlags.EditableWalls)) || isEditorSawActive(game, player)) {
 		toggleWall(game, hover, isSelectedWallTall(game));
 	} else if (isEditorSawActive(game, player)) {
 		toggleWall(game, hover, isSelectedWallTall(game));
 	} else if (holdingRemoveTool && game.highlightEntity && editableMap) {
-		const id = game.highlightEntity.id;
-		game.send((s: any) => s.actionParam(Action.RemoveEntity, id));
+		const entitiesToRemove = getCompoundEntities(game.map, game.highlightEntity)
+			.filter(isRemovableEntity)
+			.map(entity => entity.id);
+		if (entitiesToRemove.length) {
+			game.sendEditorAction({ type: 'remove', entities: entitiesToRemove });
+		}
+	} else if (isEditorCustomSignActive(game, player) && game.highlightEntity) {
+		if (isSignEntity(game.highlightEntity) && game.editorBox) {
+			(game.editorBox as any).openCustomSignEditor(game.highlightEntity.id);
+		}
 	} else if (holdingPlaceTool && editableMap) {
 		if (isEditorHammerActive(game, player)) {
-			game.send((s: any) => s.editorAction({ type: 'place', entity: game.editor.type, x: hover.x, y: hover.y }));
-		} else if (game.highlightEntity) {
-			const { x, y, type } = game.highlightEntity;
-			game.send((s: any) => s.actionParam(Action.PlaceEntity, { x, y, type }));
+			game.sendEditorAction({ type: 'place', entity: game.editor.type, x: hover.x, y: hover.y });
+		} else {
+			const previewEntities = game.highlightEntities && game.highlightEntities.length
+				? game.highlightEntities
+				: (game.highlightEntity ? [game.highlightEntity] : []);
+
+			if (previewEntities.length > 1 && game.editor && game.editor.type) {
+				game.sendEditorAction({ type: 'place', entity: game.editor.type, x: hover.x, y: hover.y });
+			} else if (game.highlightEntity) {
+				const { x, y, type } = game.highlightEntity;
+				game.send((s: any) => s.actionParam(Action.PlaceEntity, { x, y, type }));
+			} else if (game.placeEntity !== undefined && placeableEntities[game.placeEntity]) {
+				// Place a new entity when clicking on empty space.
+				// Multi-part entities like trees are created through the editor action path.
+				const selected = placeableEntities[game.placeEntity];
+				if (selected.entity) {
+					game.sendEditorAction({ type: 'place', entity: selected.entity, x: hover.x, y: hover.y });
+				} else if (selected.type !== undefined) {
+					game.send((s: any) => s.actionParam(Action.PlaceEntity, { x: hover.x, y: hover.y, type: selected.type }));
+				}
+			}
 		}
 	}
 
@@ -623,14 +848,27 @@ export function handleEditorBroomClick(game: any, hover: any): boolean {
 	if (!isRemovableEntity(target)) {
 		return false;
 	}
-	const id = target.id;
+	const entityIds = getCompoundEntities(game.map, target)
+		.filter(isRemovableEntity)
+		.map(entity => entity.id);
 
-	game.send((s: any) => s.editorAction({ type: 'remove', entities: [id] }));
+	game.sendEditorAction({ type: 'remove', entities: entityIds });
 	void hover;
 	return true;
 }
 
-export function handleTilePaintDrag(game: any, player: any, hover: any, server: any, input: any) {
+export function handleTilePaintDrag(game: any, player: any, hover: any, server: any, input: any): boolean {
+	if (tilePaintQueue.length) {
+		for (let i = 0; i < TILE_PAINT_BATCH_SIZE && tilePaintQueue.length; i++) {
+			const tile = tilePaintQueue.shift()!;
+			server.changeTile(tile.x, tile.y, tile.type);
+		}
+		if (!tilePaintQueue.length) {
+			resetTilePaintDrag();
+		}
+		return true;
+	}
+
 	const canPaintTiles = player.hold === changeTileTool.type && (hasFlag(game.map.flags, MapFlags.EditableTiles) || isEditorShovelActive(game, player));
 
 	if (!canPaintTiles) {
@@ -648,7 +886,11 @@ export function handleTilePaintDrag(game: any, player: any, hover: any, server: 
 			tilePaintStart = point(x, y);
 			tilePaintCurrent = point(x, y);
 		} else {
-			tilePaintCurrent = point(x, y);
+			const minX = Math.max(tilePaintStart!.x - MAX_TILE_PAINT_SIZE + 1, Math.min(tilePaintStart!.x, x));
+			const maxX = Math.min(tilePaintStart!.x + MAX_TILE_PAINT_SIZE - 1, Math.max(tilePaintStart!.x, x));
+			const minY = Math.max(tilePaintStart!.y - MAX_TILE_PAINT_SIZE + 1, Math.min(tilePaintStart!.y, y));
+			const maxY = Math.min(tilePaintStart!.y + MAX_TILE_PAINT_SIZE - 1, Math.max(tilePaintStart!.y, y));
+			tilePaintCurrent = point(x < tilePaintStart!.x ? minX : maxX, y < tilePaintStart!.y ? minY : maxY);
 		}
 
 		return true;
@@ -664,12 +906,16 @@ export function handleTilePaintDrag(game: any, player: any, hover: any, server: 
 	for (let ty = rect.minY; ty <= rect.maxY; ty++) {
 		for (let tx = rect.minX; tx <= rect.maxX; tx++) {
 			if (getTile(game.map, tx, ty) !== targetType) {
-				server.changeTile(tx, ty, targetType);
+				tilePaintQueue.push({ x: tx, y: ty, type: targetType });
 			}
 		}
 	}
 
-	resetTilePaintDrag();
+	if (!tilePaintQueue.length) {
+		resetTilePaintDrag();
+	} else {
+		return handleTilePaintDrag(game, player, hover, server, input);
+	}
 	return true;
 }
 
@@ -792,7 +1038,7 @@ export function handleBuildingRightClick(game: any, hover: any, input: any) {
 					if (game.editor.brushSize > 1) {
 						const x = Math.floor((hover.x - (game.editor.brushSize / 2)));
 						const y = Math.floor((hover.y - (game.editor.brushSize / 2)));
-						game.socket.server.editorAction({ type: 'tile', x, y, tile: game.editor.tile, size: game.editor.brushSize });
+						game.sendEditorAction({ type: 'tile', x, y, tile: game.editor.tile, size: game.editor.brushSize });
 					} else {
 						const x = hover.x | 0;
 						const y = hover.y | 0;
@@ -874,24 +1120,26 @@ export function changePlaceEntity(game: any, reverse: boolean) {
 }
 
 export function changePlaceTile(game: any, reverse: boolean, editorBox?: any) {
+	const editorShovel = isEditorShovelActive(game, game.player);
+	const tiles = editorShovel ? editorTiles : houseTiles;
+	const currentTileIndex = editorShovel
+		? editorTiles.findIndex(tile => tile.type === game.editor.tile)
+		: game.placeTile;
 	if (reverse) {
-		game.placeTile = game.placeTile === 0 ? (houseTiles.length - 1) : (game.placeTile - 1);
+		game.placeTile = currentTileIndex <= 0 ? (tiles.length - 1) : (currentTileIndex - 1);
 	} else {
-		game.placeTile = (game.placeTile + 1) % houseTiles.length;
+		game.placeTile = (currentTileIndex + 1) % tiles.length;
 	}
 
-	const { name, type } = houseTiles[game.placeTile];
+	const { name, type } = tiles[game.placeTile];
 
-	if (isEditorShovelActive(game, game.player)) {
+	if (editorShovel) {
 		const editorTileIndex = editorTiles.findIndex(t => t.type === type);
 		if (editorTileIndex >= 0) {
+			game.editor.tile = type;
 			if (editorBox && typeof editorBox.editorTile === 'number') {
 				editorBox.editorTile = editorTileIndex;
-			} else {
-				game.editor.tile = type;
 			}
-		} else {
-			game.editor.tile = type;
 		}
 	}
 
@@ -912,6 +1160,24 @@ export function changeWallMaterial(game: any, reverse: boolean) {
 	game.send((server: any) => server.changeTile(0, 0, getWallMaterialTileType(selectedWallMaterial)));
 
 	const name = selectedWallMaterial === 'stone' ? 'Stone walls' : 'Wood walls';
+	const total = getSaysTime(name);
+	addChatBubble(game.map, game.player, { message: name, type: MessageType.System, total, timer: total, created: Date.now() });
+}
+
+export function changeWallHeight(game: any, reverse: boolean) {
+	ensureWallHeightState(game);
+	selectedWallHeight = reverse
+		? (selectedWallHeight === 'high' ? 'low' : 'high')
+		: (selectedWallHeight === 'high' ? 'low' : 'high');
+	const name = selectedWallHeight === 'high' ? 'High wall' : 'Low wall';
+	const total = getSaysTime(name);
+	addChatBubble(game.map, game.player, { message: name, type: MessageType.System, total, timer: total, created: Date.now() });
+}
+
+export function setWallHeight(game: any, high: boolean) {
+	ensureWallHeightState(game);
+	selectedWallHeight = high ? 'high' : 'low';
+	const name = high ? 'High wall' : 'Low wall';
 	const total = getSaysTime(name);
 	addChatBubble(game.map, game.player, { message: name, type: MessageType.System, total, timer: total, created: Date.now() });
 }

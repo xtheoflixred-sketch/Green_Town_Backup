@@ -1,75 +1,127 @@
-.container-fluid.p-1
-	.form-inline
-		.form-group
-			a.btn.btn-default(routerLink="/")
-				fa-icon([icon]="homeIcon")
-		.form-group
-			scale-picker.ml-1([(scale)]="scale" (scaleChange)="redraw()")
-		.form-group
-			.input-group.ml-1(style="width: 200px;")
-				input.form-control([(ngModel)]="name" placeholder="name")
-				.input-group-append.dropdown(dropdown)
-					button.btn.btn-default.dropdown-toggle(dropdownToggle)
-					.dropdown-menu.dropdown-menu-right(*dropdownMenu)
-						a.dropdown-item(*ngFor="let e of entities" (click)="setEntity(e)")
-							| {{e.name}}
-			button.btn.btn-default.ml-1((click)="saveEntity()" [disabled]="!name")
-				fa-icon([icon]="saveIcon" [fixedWidth]="true")
-			button.btn.btn-danger.ml-1((click)="setEntity(null)")
-				fa-icon([icon]="eraserIcon" [fixedWidth]="true")
-			button.btn.btn-danger.ml-1((click)="removeEntity()")
-				fa-icon([icon]="trashIcon" [fixedWidth]="true")
+.entity-tool
+	.entity-toolbar
+		.entity-toolbar-row.entity-toolbar-row-top
+			.entity-search
+				.input-group
+					.input-group-prepend
+						span.input-group-text
+							fa-icon([icon]="searchIcon")
+					input.form-control(type="search" [(ngModel)]="entityFilter" placeholder="Filter entity types")
+			.entity-type-select
+				select.form-control([(ngModel)]="selectedEntityType" (ngModelChange)="selectEntityType(+$event)")
+					option(*ngFor="let entity of filteredEntityTypes" [ngValue]="entity.type")
+						| {{entity.name}} ({{entity.type}})
+			.entity-toolbar-actions
+				button.btn.btn-info.ml-1((click)="loadEntityGeometry()" [disabled]="!selectedRuntimeEntity" title="Load bounds and colliders into editor")
+					fa-icon.mr-1([icon]="infoIcon")
+					| Load geometry
+				button.btn.btn-default.ml-1((click)="copyEntityJson()" title="Copy entity parameters as JSON")
+					fa-icon([icon]="copyIcon")
+		.entity-toolbar-row.entity-toolbar-row-meta
+			.entity-runtime-info(*ngIf="selectedRuntimeEntity")
+				strong {{getEntityTypesAndNamesName(selectedRuntimeEntity.type)}}
+				|  type={{selectedRuntimeEntity.type}}, flags={{selectedRuntimeEntity.flags}}, order={{selectedRuntimeEntity.order}}
+			.entity-json-action
+				button.btn.btn-sm.btn-outline-secondary((click)="refreshEntityJson()")
+					fa-icon.mr-1([icon]="downloadIcon")
+					| Refresh JSON
+	.entity-workspace
+		.entity-editor-pane
+				.form-inline
+					.form-group
+						a.btn.btn-default(routerLink="/")
+							fa-icon([icon]="homeIcon")
+					.form-group
+						scale-picker.ml-1([(scale)]="scale" (scaleChange)="redraw()")
+					.form-group
+						.input-group.ml-1(style="width: 200px;")
+							input.form-control([(ngModel)]="name" placeholder="name")
+							.input-group-append.dropdown(dropdown)
+								button.btn.btn-default.dropdown-toggle(dropdownToggle)
+								.dropdown-menu.dropdown-menu-right(*dropdownMenu)
+									a.dropdown-item(*ngFor="let e of entities" (click)="setEntity(e)")
+										| {{e.name}}
+						button.btn.btn-default.ml-1((click)="saveEntity()" [disabled]="!name")
+							fa-icon([icon]="saveIcon" [fixedWidth]="true")
+						button.btn.btn-danger.ml-1((click)="setEntity(null)")
+							fa-icon([icon]="eraserIcon" [fixedWidth]="true")
+						button.btn.btn-danger.ml-1((click)="removeEntity()")
+							fa-icon([icon]="trashIcon" [fixedWidth]="true")
 
-	.float-left.mt-1.mr-2
-		canvas(#canvas width=512 height=512 (mousedown)="mousedown($event)" (agDrag)="drag($event)" agDragRelative="self")
+				.entity-canvas-wrap
+					canvas(#canvas width=512 height=512 (mousedown)="mousedown($event)" (agDrag)="drag($event)" agDragRelative="self")
 
-		.form-group.d-flex
-			label.control-label.text-muted draw:
-			custom-checkbox.ml-2([(checked)]="drawCenter" (checkedChange)="changed()") center
-			custom-checkbox.ml-2([(checked)]="drawSelection" (checkedChange)="changed()") selection
-			custom-checkbox.ml-2([(checked)]="drawHold" (checkedChange)="changed()") as held
+				.form-group.d-flex
+					label.control-label.text-muted draw:
+					custom-checkbox.ml-2([(checked)]="drawCenter" (checkedChange)="changed()") center
+					custom-checkbox.ml-2([(checked)]="drawSelection" (checkedChange)="changed()") selection
+					custom-checkbox.ml-2([(checked)]="drawHold" (checkedChange)="changed()") as held
 
-	div
-		.form-group(*ngFor="let p of parts")
-			.form-inline(*ngIf="p.type === 'sprite'")
-				label.text-muted sprite:
-				input.form-control.ml-1(
-					[(ngModel)]="p.sprite" (input)="changed()" style="width: 200px;" [typeahead]="sprites" (typeaheadOnSelect)="changed()")
-				label.ml-1 x:
-				input.form-control.input-sm.ml-1(type="number" [ngModel]="-p.x" (ngModelChange)="p.x = -$event" (input)="changed()" min="-1000" max="1000")
-				label.ml-1 y:
-				input.form-control.input-sm.ml-1(type="number" [ngModel]="-p.y" (ngModelChange)="p.y = -$event" (input)="changed()" min="-1000" max="1000")
-				button.btn.btn-sm.btn-default.ml-1((click)="centerPart(p)" title="Center sprite")
-					fa-icon([icon]="crosshairsIcon" [fixedWidth]="true")
-				button.btn.btn-sm.btn-danger.ml-1((click)="removePart(p)" title="Remove part")
-					fa-icon([icon]="trashIcon" [fixedWidth]="true")
+				.form-group.mt-1
+					label.control-label.text-muted display:
+					custom-checkbox.ml-2([(checked)]="drawGrid" (checkedChange)="changed()") grid
+					custom-checkbox.ml-2([(checked)]="drawSprites" (checkedChange)="changed()") sprites
+					custom-checkbox.ml-2([(checked)]="drawCover" (checkedChange)="changed()") cover
+					custom-checkbox.ml-2([(checked)]="drawColliders" (checkedChange)="changed()") colliders
+					custom-checkbox.ml-2([(checked)]="drawPickable" (checkedChange)="changed()") pickable
+					custom-checkbox.ml-2([(checked)]="drawAnchor" (checkedChange)="changed()") anchor
 
-			.form-inline(*ngIf="p.type === 'cover' || p.type === 'collider' || p.type === 'pickable'")
-				label.text-muted {{p.type}}:
-				label.ml-1 x:
-				input.form-control.input-sm.ml-1(type="number" [(ngModel)]="p.x" (input)="changed()" min="-1000" max="1000")
-				label.ml-1 y:
-				input.form-control.input-sm.ml-1(type="number" [(ngModel)]="p.y" (input)="changed()" min="-1000" max="1000")
-				.form-inline(*ngIf="p.type === 'cover' || p.type === 'collider'")
-					label.ml-1 w:
-					input.form-control.input-sm.ml-1(type="number" [(ngModel)]="p.w" (input)="changed()" min="1" max="1000")
-					label.ml-1 h:
-					input.form-control.input-sm.ml-1(type="number" [(ngModel)]="p.h" (input)="changed()" min="1" max="1000")
-				button.btn.btn-sm.btn-danger.ml-1((click)="removePart(p)" title="Remove part")
-					fa-icon([icon]="trashIcon" [fixedWidth]="true")
+				.small.text-muted.mb-2
+					| Canvas: drag a visible part to move it. Arrow keys move the selected part by one pixel.
+					| &nbsp; Anchor is the cross at the red center point.
+				.legend.small.mb-2
+					span.mr-3(style="color: #ff9800") [ ] collider
+					span.mr-3(style="color: #00bcd4") [ ] cover
+					span.mr-3(style="color: #800080") [ ] pickable
+					span(style="color: #ff0000") [ ] entity center
 
-		hr
+				div
+				.form-group(*ngFor="let p of parts")
+					.form-inline(*ngIf="p.type === 'sprite'")
+						label.text-muted sprite:
+						input.form-control.ml-1(
+							[(ngModel)]="p.sprite" (input)="changed()" style="width: 200px;" [typeahead]="sprites" (typeaheadOnSelect)="changed()")
+						label.ml-1 x:
+						input.form-control.input-sm.ml-1(type="number" [ngModel]="-p.x" (ngModelChange)="p.x = -$event" (input)="changed()" min="-1000" max="1000")
+						label.ml-1 y:
+						input.form-control.input-sm.ml-1(type="number" [ngModel]="-p.y" (ngModelChange)="p.y = -$event" (input)="changed()" min="-1000" max="1000")
+						button.btn.btn-sm.btn-default.ml-1((click)="centerPart(p)" title="Center sprite")
+							fa-icon([icon]="crosshairsIcon" [fixedWidth]="true")
+						button.btn.btn-sm.btn-danger.ml-1((click)="removePart(p)" title="Remove part")
+							fa-icon([icon]="trashIcon" [fixedWidth]="true")
 
-		.form-group.form-inline
-			button.btn.btn-sm.btn-default.ml-1((click)="addPart('sprite')")
-				fa-icon.mr-1([icon]="plusIcon" [fixedWidth]="true")
-				| Sprite
-			button.btn.btn-sm.btn-default.ml-1((click)="addPart('cover')")
-				fa-icon.mr-1([icon]="plusIcon" [fixedWidth]="true")
-				| Cover
-			button.btn.btn-sm.btn-default.ml-1((click)="addPart('collider')")
-				fa-icon.mr-1([icon]="plusIcon" [fixedWidth]="true")
-				| Collider
-			button.btn.btn-sm.btn-default.ml-1((click)="addPart('pickable')")
-				fa-icon.mr-1([icon]="plusIcon" [fixedWidth]="true")
-				| Pickable
+					.form-inline(*ngIf="p.type === 'cover' || p.type === 'collider' || p.type === 'pickable'")
+						label.text-muted {{p.type}}:
+						label.ml-1 x:
+						input.form-control.input-sm.ml-1(type="number" [(ngModel)]="p.x" (input)="changed()" min="-1000" max="1000")
+						label.ml-1 y:
+						input.form-control.input-sm.ml-1(type="number" [(ngModel)]="p.y" (input)="changed()" min="-1000" max="1000")
+						.form-inline(*ngIf="p.type === 'cover' || p.type === 'collider'")
+							label.ml-1 w:
+							input.form-control.input-sm.ml-1(type="number" [(ngModel)]="p.w" (input)="changed()" min="1" max="1000")
+							label.ml-1 h:
+							input.form-control.input-sm.ml-1(type="number" [(ngModel)]="p.h" (input)="changed()" min="1" max="1000")
+						button.btn.btn-sm.btn-danger.ml-1((click)="removePart(p)" title="Remove part")
+							fa-icon([icon]="trashIcon" [fixedWidth]="true")
+
+					hr
+
+				.form-group.form-inline
+					button.btn.btn-sm.btn-default.ml-1((click)="addPart('sprite')")
+						fa-icon.mr-1([icon]="plusIcon" [fixedWidth]="true")
+						| Sprite
+					button.btn.btn-sm.btn-default.ml-1((click)="addPart('cover')")
+						fa-icon.mr-1([icon]="plusIcon" [fixedWidth]="true")
+						| Cover
+					button.btn.btn-sm.btn-default.ml-1((click)="addPart('collider')")
+						fa-icon.mr-1([icon]="plusIcon" [fixedWidth]="true")
+						| Collider
+					button.btn.btn-sm.btn-default.ml-1((click)="addPart('pickable')")
+						fa-icon.mr-1([icon]="plusIcon" [fixedWidth]="true")
+						| Pickable
+		.entity-inspector-pane
+				.entity-inspector
+					.card-header.py-2
+						strong Entity parameters
+					.card-body.p-2
+						pre.small.mb-0.entity-json {{entityJson}}

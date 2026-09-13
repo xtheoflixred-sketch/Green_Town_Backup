@@ -6,7 +6,9 @@ import { PonyObject } from '../../../common/interfaces';
 import { PLAYER_NAME_MAX_LENGTH } from '../../../common/constants';
 import { VERSION_ERROR } from '../../../common/errors';
 import { GameService } from '../../services/gameService';
-import { Model, createDefaultPonyObject } from '../../services/model';
+import { Model } from '../../services/model';
+import { getConfiguredDefaultPony } from '../../../client/defaultPonyClient';
+import { compressPonyString } from '../../../common/compressPony';
 import { Dropdown } from '../directives/dropdown';
 import { faSpinner, faTrash, faTimes, faCheck } from '../../../client/icons';
 import { focusElementAfterTimeout } from '../../../client/htmlUtils';
@@ -90,7 +92,7 @@ export class CharacterSelect implements AfterViewInit, OnDestroy {
 				const sprite = emoji && font && getCharacterSprite(part, font);
 				if (sprite && emoji) {
 					const img = document.createElement('img');
-					img.className = 'pixelart';
+					img.className = 'ui-emoji';
 					img.style.display = 'inline-block';
 					img.style.verticalAlign = 'middle';
 					img.style.width = `${(sprite.w + sprite.ox) * 1.6}px`;
@@ -210,7 +212,13 @@ export class CharacterSelect implements AfterViewInit, OnDestroy {
 	createNew() {
 		if (this.canNew) {
 			this.removing = false;
-			this.model.selectPony(createDefaultPonyObject());
+			const ponyInfo = getConfiguredDefaultPony();
+			this.model.selectPony({
+				id: '',
+				name: '',
+				info: compressPonyString(ponyInfo),
+				ponyInfo,
+			});
 			this.change.emit(this.pony);
 			this.router.navigate(['/character']);
 			this.focusName();
@@ -286,7 +294,7 @@ export class CharacterSelect implements AfterViewInit, OnDestroy {
 		const sprite = font && getCharacterSprite(emoji, font);
 		if (sprite) {
 			const img = document.createElement('img');
-			img.className = 'pixelart';
+			img.className = 'ui-emoji';
 			img.style.display = 'inline-block';
 			img.style.verticalAlign = 'middle';
 			img.style.width = `${(sprite.w + sprite.ox) * 1.6}px`;

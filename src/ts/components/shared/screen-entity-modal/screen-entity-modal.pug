@@ -1,0 +1,32 @@
+.modal-header
+	h4.modal-title Screen settings
+.modal-body
+	.form-group
+		label Source type
+		select.form-control([(ngModel)]="kind")
+			option(value="video") Direct video (MP4/WebM/HLS)
+			option(value="youtube") YouTube embed
+	.form-group
+		label URL
+		input.form-control([(ngModel)]="url" maxlength="2048" type="url")
+	.form-row
+		.form-group.col
+			label Width
+			input.form-control([(ngModel)]="width" type="number" min="160" max="1920")
+		.form-group.col
+			label Height
+			input.form-control([(ngModel)]="height" type="number" min="90" max="1080")
+	.form-check
+		label.form-check-label
+			input.form-check-input([(ngModel)]="muted" type="checkbox")
+			| Muted
+	.form-check
+		label.form-check-label
+			input.form-check-input([(ngModel)]="controls" type="checkbox")
+			| Show controls
+	.alert.alert-danger.mt-3(*ngIf="error") {{ error }}
+.modal-footer
+	button.btn.btn-secondary(type="button" (click)="playPause.emit('pause')") Pause
+	button.btn.btn-secondary(type="button" (click)="playPause.emit('play')") Play
+	button.btn.btn-secondary(type="button" (click)="cancel.emit()") Cancel
+	button.btn.btn-primary(type="button" (click)="saveScreen()") Save

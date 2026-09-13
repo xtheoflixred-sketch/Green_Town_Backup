@@ -1,7 +1,7 @@
-import { Component, Input, ViewChild, ElementRef, ChangeDetectionStrategy, Output, EventEmitter, HostBinding, NgZone } from '@angular/core';
+import { Component, Input, ViewChild, ElementRef, Output, EventEmitter, HostBinding, NgZone } from '@angular/core';
 import { ButtonAction } from '../../../common/interfaces';
 import { PonyTownGame, actionButtons } from '../../../client/game';
-import { drawAction, adjustHeldItemOffsetSilent } from '../../../client/buttonActions';
+import { drawAction, adjustHeldItemOffsetSilent, isActionAvailable } from '../../../client/buttonActions';
 import { removeItem } from '../../../common/utils';
 
 const HOLD_MOVE_INTERVAL = 200;
@@ -24,7 +24,6 @@ function getHoldDelta(action: string): [number, number] {
 	selector: 'action-button',
 	templateUrl: 'action-button.pug',
 	styleUrls: ['action-button.scss'],
-	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: {
 		'[class.empty]': '!editable && !action',
 	},
@@ -41,6 +40,14 @@ export class ActionButton {
 	@Input() zoomClass = '';
 	@Input() rare = false;
 	@HostBinding('class.rare-item') get isRareItem() { return this.rare; }
+	get isAvailable() { return isActionAvailable(this.game, this.action); }
+	@HostBinding('class.disabled') get isDisabled() { return !this.isAvailable; }
+	get isModStyled() {
+		if (!this.game.mod || !this.action || this.action.type !== 'action') return false;
+		const action = this.action.action;
+		return action === 'switch-tool' || action.startsWith('switch-') || action.startsWith('tile-') ||
+			action.startsWith('wall-') || action.startsWith('editor-') || action.startsWith('house-');
+	}
 	@Output() use = new EventEmitter<ButtonAction>();
 	@ViewChild('canvas', { static: true }) canvas!: ElementRef;
 	dirty = true;
@@ -68,7 +75,7 @@ export class ActionButton {
 		this.dirty = true;
 	}
 	click() {
-		if (!this.heldDown && this.action) {
+		if (!this.heldDown && this.action && isActionAvailable(this.game, this.action)) {
 			this.use.emit(this.action);
 		}
 		this.heldDown = false;

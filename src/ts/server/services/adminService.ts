@@ -72,17 +72,17 @@ export class AdminService {
 		this.accounts = new LiveList<Account>(db.Account, {
 			fields: [
 				'_id', 'updatedAt', 'createdAt', 'lastVisit', 'name', 'birthdate', 'origins', 'ignores', 'emails', 'note',
-				'counters', 'mute', 'shadow', 'ban', 'flags', 'roles', 'characterCount', 'patreon', 'supporter',
+				'counters', 'mute', 'shadow', 'ban', 'flags', 'roles', 'roleTagOverrides', 'characterCount', 'patreon', 'supporter',
 				'supporterDeclinedSince', 'lastBrowserId', 'noteUpdated', 'alert', 'birthyear'
 			],
 			clean: ({
 				_id, createdAt, updatedAt, lastVisit, name, birthdate, origins, ignoresCount, emails, note, counters, mute,
-				shadow, ban, flags, roles, characterCount, patreon, supporter, supporterDeclinedSince, auths, noteUpdated,
+				shadow, ban, flags, roles, roleTagOverrides, characterCount, patreon, supporter, supporterDeclinedSince, auths, noteUpdated,
 				alert, birthyear,
 			}) =>
 				({
 					_id, createdAt, updatedAt, lastVisit, name, birthdate, origins, ignoresCount: toInt(ignoresCount),
-					emails, note, counters, mute, shadow, ban, flags: toInt(flags), roles, birthyear,
+					emails, note, counters, mute, shadow, ban, flags: toInt(flags), roles, roleTagOverrides, birthyear,
 					characterCount: toInt(characterCount), patreon: toInt(patreon), supporter: toInt(supporter),
 					supporterDeclinedSince, totalPledged: getTotalPledged(auths), noteUpdated, alert,
 				}),

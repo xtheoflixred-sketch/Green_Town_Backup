@@ -8,6 +8,7 @@ import { rect } from '../../../common/rect';
 export class DraggableService {
 	root?: ElementRef;
 	draggedItem?: any;
+	isDragging = false;
 	activeDropZone?: DraggableDrop<any>;
 	dropZones: DraggableDrop<any>[] = [];
 	get rootElement(): HTMLElement {
@@ -30,27 +31,29 @@ export class DraggableService {
 		this.setActiveDropZone(undefined);
 		this.rootElement.appendChild(element);
 		this.draggedItem = item;
+		this.isDragging = true;
 		this.initRects();
 	}
 	endMove() {
-		if (this.activeDropZone) {
+		if (this.isDragging && this.activeDropZone) {
 			this.activeDropZone.drop.emit(this.draggedItem);
 			this.setActiveDropZone(undefined);
 		}
 
 		this.draggedItem = undefined;
+		this.isDragging = false;
 	}
 	addDropZone(dropZone: DraggableDrop<any>) {
 		this.dropZones.push(dropZone);
 
-		if (this.draggedItem) {
+		if (this.isDragging) {
 			this.initRects();
 		}
 	}
 	removeDropZone(dropZone: DraggableDrop<any>) {
 		removeItem(this.dropZones, dropZone);
 
-		if (this.draggedItem) {
+		if (this.isDragging) {
 			this.initRects();
 		}
 
@@ -59,9 +62,9 @@ export class DraggableService {
 		}
 	}
 	updateHover(x: number, y: number) {
-		if (this.draggedItem) {
+		if (this.isDragging) {
 			for (const zone of this.dropZones) {
-				if (pointInRect(x, y, zone.rect)) {
+				if ((!zone.accept || zone.accept(this.draggedItem)) && pointInRect(x, y, zone.rect)) {
 					this.setActiveDropZone(zone);
 					return;
 				}
@@ -89,7 +92,9 @@ export class DraggableOutlet {
 @Directive({ selector: '[draggableDrop]' })
 export class DraggableDrop<T> implements OnInit, OnDestroy {
 	@Input('draggablePad') pad = 0;
+	@Input('draggableDropAccept') accept?: (item: T | undefined) => boolean;
 	@Output('draggableDrop') drop = new EventEmitter<T>();
+	@Output('draggableHover') hover = new EventEmitter<boolean>();
 	rect = rect(0, 0, 0, 0);
 	constructor(private element: ElementRef, private service: DraggableService) {
 	}
@@ -107,6 +112,7 @@ export class DraggableDrop<T> implements OnInit, OnDestroy {
 		} else {
 			element.classList.remove('draggable-hover');
 		}
+		this.hover.emit(active);
 	}
 	initRect() {
 		const element = this.element.nativeElement as HTMLElement;
@@ -126,7 +132,11 @@ export class DraggableDrop<T> implements OnInit, OnDestroy {
 })
 export class DraggableItem<T> implements OnInit, OnDestroy {
 	@Input('draggableItem') item: T | undefined;
+	@Input('draggableAllowEmpty') allowEmpty = false;
+	@Input('draggableHold') hold = 0;
 	@Output('draggableDrag') dragStarted = new EventEmitter<void>();
+	@Output('draggableOutside') outside = new EventEmitter<boolean>();
+	@Output('draggableEnd') dragEnded = new EventEmitter<boolean>();
 	private startX = 0;
 	private startY = 0;
 	private draggable?: HTMLElement;
@@ -134,6 +144,7 @@ export class DraggableItem<T> implements OnInit, OnDestroy {
 	private height = 0;
 	private unsubscribeDrag = noop;
 	private _disabled = false;
+	private outsideDropZone = false;
 	constructor(private element: ElementRef, private service: DraggableService) {
 	}
 	ngOnInit() {
@@ -143,7 +154,7 @@ export class DraggableItem<T> implements OnInit, OnDestroy {
 		this.unsubscribeDrag();
 	}
 	get touchAction() {
-		return this.disabled ? 'inherit' : 'none';
+		return this.disabled ? 'inherit' : (this.hold ? 'pan-x' : 'none');
 	}
 	@Input('draggableDisabled') get disabled() {
 		return this._disabled;
@@ -159,11 +170,11 @@ export class DraggableItem<T> implements OnInit, OnDestroy {
 		this.unsubscribeDrag = noop;
 
 		if (!this.disabled) {
-			this.unsubscribeDrag = handleDrag(this.element.nativeElement, e => this.drag(e), { prevent: true });
+			this.unsubscribeDrag = handleDrag(this.element.nativeElement, e => this.drag(e), { prevent: true, delay: this.hold });
 		}
 	}
 	drag(e: AgDragEvent) {
-		if (this.item && !this.disabled && !this.draggable && (Math.abs(e.dx) > 5 || Math.abs(e.dy) > 5)) {
+		if ((this.item !== undefined || this.allowEmpty) && !this.disabled && !this.draggable && (Math.abs(e.dx) > 5 || Math.abs(e.dy) > 5)) {
 			const element = this.element.nativeElement as HTMLElement;
 			const rect = element.getBoundingClientRect();
 			this.startX = rect.left;
@@ -173,6 +184,8 @@ export class DraggableItem<T> implements OnInit, OnDestroy {
 			this.draggable.style.width = `${rect.width}px`;
 			this.draggable.style.height = `${rect.height}px`;
 			this.draggable.style.margin = '0';
+			this.draggable.style.pointerEvents = 'none';
+			this.draggable.style.zIndex = '10001';
 			this.draggable.classList.add('draggable-dragging');
 			this.width = rect.width;
 			this.height = rect.height;
@@ -186,19 +199,28 @@ export class DraggableItem<T> implements OnInit, OnDestroy {
 			}
 
 			this.service.startMove(this.draggable, this.item!);
+			this.outsideDropZone = false;
 			this.dragStarted.emit();
 		}
 
 		if (this.draggable) {
 			if (e.type === 'end') {
+				const outside = !this.service.activeDropZone;
 				this.draggable!.parentNode!.removeChild(this.draggable!);
 				this.draggable = undefined;
 				this.service.endMove();
+				this.dragEnded.emit(outside);
 			} else {
 				const x = clamp(this.startX + e.dx, 0, window.innerWidth - this.width);
 				const y = clamp(this.startY + e.dy, 0, window.innerHeight - this.height);
 				setTransform(this.draggable, `translate3d(${x}px, ${y}px, 0px)`);
 				this.service.updateHover(e.x, e.y);
+				const outside = !this.service.activeDropZone;
+				this.draggable.classList.toggle('draggable-delete', outside);
+				if (outside !== this.outsideDropZone) {
+					this.outsideDropZone = outside;
+					this.outside.emit(outside);
+				}
 			}
 		}
 	}

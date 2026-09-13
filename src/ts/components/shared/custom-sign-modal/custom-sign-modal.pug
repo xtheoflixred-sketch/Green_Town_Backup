@@ -1,0 +1,23 @@
+.modal-header
+	h4.modal-title Custom sign
+.modal-body
+	.form-group
+		label Name
+		input.form-control(
+			[(ngModel)]="name"
+			maxlength="60")
+	.form-group.mb-0
+		label System message on click
+		textarea.form-control(
+			[(ngModel)]="message"
+			rows="5"
+			maxlength="500")
+.modal-footer
+	button.btn.btn-secondary(
+		type="button"
+		(click)="cancel.emit()")
+		| Cancel
+	button.btn.btn-primary(
+		type="button"
+		(click)="saveSign()")
+		| Save

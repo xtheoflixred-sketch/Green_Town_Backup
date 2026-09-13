@@ -13,10 +13,6 @@ div(*ngIf="!playing")
 				fa-icon.alert-icon([icon]="dangerIcon" size="2x" [fixedWidth]="true")
 				.alert-content
 					.alert-message {{authError}}
-			.form-group(*ngFor="let entry of globalAlertsEntries$ | async")
-						.alert.d-flex.align-items-center(role="alert" [ngClass]="alertClass(entry.type)")
-							fa-icon.mr-2([icon]="alertIcon(entry.type)" size="2x")
-							span.flex-grow-1 {{entry.message}}
 			.form-group(*ngIf="!account")
 				p.text-muted.text-center.mb-3 Please use the welcome page to register or log in: #[a.router-link-active(href="/welcome" routerLink="/welcome") Welcome]
 
@@ -34,6 +30,9 @@ div(*ngIf="!playing")
 					character-preview(
 						[pony]="previewInfo" [state]="state" [passive]="false" [name]="previewName" [tag]="previewTag"
 						[tagColor]="previewTagColor"
+						[tagGradientStart]="previewTagGradientStart"
+						[tagGradientEnd]="previewTagGradientEnd"
+						[tagGradientDirection]="previewTagGradientDirection"
 						[namePlateOffsetY]="10" [tagOnlyNamePlateOffsetY]="10" [namePlateTextY]="11" [tagOnlyNamePlateTextY]="11")
 
 				.form-group(*ngIf="showLoginWarning")

@@ -166,17 +166,27 @@ export function turnHeadAction(game: PonyTownGame) {
 	}
 }
 
+export function getInteractTarget(game: PonyTownGame) {
+	const player = game.player;
+	if (!player) {
+		return undefined;
+	}
+
+	const bounds = getInteractBounds(player);
+	const entities = pickEntitiesByRect(game.map, bounds, true, false);
+	const center = centerPoint(bounds);
+	center.x += (bounds.w / 4) * (isFacingRight(player) ? -1 : 1);
+	const entity = closestEntity(pointToWorld(center), entities);
+	return entity && entityInRange(entity, player) ? entity : undefined;
+}
+
 export function interact(game: PonyTownGame, shift: boolean) {
 	const player = game.player;
 
 	if (player) {
-		const bounds = getInteractBounds(player);
-		const entities = pickEntitiesByRect(game.map, bounds, true, false);
-		const center = centerPoint(bounds);
-		center.x += (bounds.w / 4) * (isFacingRight(player) ? -1 : 1);
-		const entity = closestEntity(pointToWorld(center), entities);
+		const entity = getInteractTarget(game);
 
-		if (entity && entityInRange(entity, player)) {
+		if (entity) {
 			game.send(server => server.interact(entity.id, 0, 0));
 		} else if (player.hold === hammer.type) {
 			game.changePlaceEntity(shift);
@@ -216,8 +226,14 @@ export function editorSelectEntities(game: PonyTownGame, hover: Point, shift: bo
 		const entities = pickAnyEntities(game.map, hover);
 
 		if (shift) {
-			const entity = entities.filter(e => !includes(game.editor.selectedEntities, e))[0];
-			entity && game.editor.selectedEntities.push(entity);
+			const selectedIndex = entities.findIndex(e => includes(game.editor.selectedEntities, e));
+			if (selectedIndex >= 0) {
+				game.editor.selectedEntities.splice(
+					game.editor.selectedEntities.indexOf(entities[selectedIndex]), 1);
+			} else {
+				const entity = entities.find(e => !includes(game.editor.selectedEntities, e));
+				entity && game.editor.selectedEntities.push(entity);
+			}
 		} else {
 			const index = entities.findIndex(e => includes(game.editor.selectedEntities, e));
 			const entity = entities[(index + 1) % entities.length];
@@ -226,43 +242,25 @@ export function editorSelectEntities(game: PonyTownGame, hover: Point, shift: bo
 	});
 }
 
-let lastEditorDragTime = 0;
-const EDITOR_DRAG_THROTTLE = 50; // ms
-
 export function editorDragEntities(game: PonyTownGame, hover: Point, buttonPressed: boolean) {
 	if (buttonPressed) {
-		const now = Date.now();
-		if (now - lastEditorDragTime < EDITOR_DRAG_THROTTLE) {
-			// Still update local positions for smooth rendering, but skip server send
-			const dx = hover.x - game.editor.draggingStart.x;
-			const dy = hover.y - game.editor.draggingStart.y;
-			game.editor.selectedEntities.forEach(e => {
-				e.x = roundPositionX(e.draggingStart!.x + dx);
-				e.y = roundPositionY(e.draggingStart!.y + dy);
-			});
-			return;
-		}
-		lastEditorDragTime = now;
-
 		const dx = hover.x - game.editor.draggingStart.x;
 		const dy = hover.y - game.editor.draggingStart.y;
-
-		game.editor.selectedEntities.forEach(e => {
-			e.x = roundPositionX(e.draggingStart!.x + dx);
-			e.y = roundPositionY(e.draggingStart!.y + dy);
+		game.editor.selectedEntities.forEach(entity => {
+			entity.x = roundPositionX(entity.draggingStart!.x + dx);
+			entity.y = roundPositionY(entity.draggingStart!.y + dy);
 		});
-
-		game.send(server => server.editorAction({
-			type: 'move',
-			preview: true,
-			entities: game.editor.selectedEntities.map(({ id, x, y }) => ({ id, x, y })),
-		}));
+		return;
 	} else {
 		game.apply(() => game.editor.draggingEntities = false);
-		game.send(server => server.editorAction({
+		game.sendEditorAction({
 			type: 'move',
-			entities: game.editor.selectedEntities.map(({ id, x, y }) => ({ id, x, y })),
-		}));
+			entities: game.editor.selectedEntities.map(entity => ({
+				id: entity.id,
+				x: roundPositionX(entity.draggingStart!.x + hover.x - game.editor.draggingStart.x),
+				y: roundPositionY(entity.draggingStart!.y + hover.y - game.editor.draggingStart.y),
+			})),
+		});
 	}
 }
 

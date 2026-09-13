@@ -95,6 +95,14 @@ footer {
 	z-index: 1;
 }
 
+.screen-entity-overlay {
+	position: fixed;
+	display: block;
+	border: 0;
+	pointer-events: auto;
+	background: #000;
+}
+
 #pony-box {
 	position: fixed;
 	top: 10px;
@@ -205,6 +213,21 @@ $chat-pad: 5px;
 	box-shadow: none;
 }
 
+.teleport-toggle-btn {
+	position: fixed;
+	top: 5px;
+	right: 127px;
+	z-index: 4;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+}
+
+.teleport-toggle-btn:hover,
+.teleport-toggle-btn:focus {
+	outline: none;
+}
+
 #party-list {
 	position: fixed;
 	top: 105px;
@@ -223,6 +246,23 @@ $chat-pad: 5px;
 	top: 5px;
 	right: 5px;
 	z-index: 2;
+}
+
+#mini-map-toggle {
+	position: fixed;
+	top: 42px;
+	right: 6px;
+	width: 34px;
+	height: 34px;
+	cursor: pointer;
+}
+
+#mini-map-toggle:hover {
+	filter: brightness(1.08);
+}
+
+#mini-map-toggle:focus {
+	outline: none;
 }
 
 #friends-box {
@@ -342,4 +382,29 @@ $chat-pad: 5px;
 .app-version a.changelog-link:hover {
 	color: $link-color;
 	text-decoration: underline;
+}
+
+.time-toggle-btn {
+	position: fixed;
+	top: 5px;
+	right: 169px;
+	z-index: 4;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+}
+
+.time-toggle-btn:hover,
+.time-toggle-btn:focus {
+	outline: none;
+}
+
+.time-modal-wide {
+	max-width: 960px;
+}
+
+@media (max-width: 992px) {
+	.time-modal-wide {
+		max-width: calc(100% - 2rem);
+	}
 }

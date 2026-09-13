@@ -1,0 +1,41 @@
+.modal-header
+	h4.modal-title Builder tools
+	button.close(type="button" aria-label="Close" (click)="onClose()")
+		span(aria-hidden="true") ×
+.modal-body
+	.form-group
+		label(for="builder-tools-file") File name
+		input#builder-tools-file.form-control(type="text" [(ngModel)]="fileName" placeholder="builder-save")
+	.row
+		.col-6.mb-2
+			button.btn.btn-block.btn-outline-primary(type="button" (click)="savePlacedEntities()")
+				fa-icon.mr-2([icon]="saveIcon" [fixedWidth]="true")
+				| Save (placed) entities
+		.col-6.mb-2
+			button.btn.btn-block.btn-outline-primary(type="button" (click)="loadEntities()")
+				fa-icon.mr-2([icon]="loadIcon" [fixedWidth]="true")
+				| Load entities
+		.col-6.mb-2
+			button.btn.btn-block.btn-outline-warning(type="button" (click)="clearEntities()")
+				fa-icon.mr-2([icon]="clearIcon" [fixedWidth]="true")
+				| Clear entities
+		.col-6.mb-2
+			button.btn.btn-block.btn-outline-danger(type="button" (click)="resetEntities()")
+				fa-icon.mr-2([icon]="resetIcon" [fixedWidth]="true")
+				| Reset entities
+		.col-6.mb-2
+			button.btn.btn-block.btn-outline-primary(type="button" (click)="saveTiles()")
+				fa-icon.mr-2([icon]="saveIcon" [fixedWidth]="true")
+				| Save tiles
+		.col-6.mb-2
+			button.btn.btn-block.btn-outline-primary(type="button" (click)="loadTiles()")
+				fa-icon.mr-2([icon]="loadIcon" [fixedWidth]="true")
+				| Load tiles
+		.col-6.mb-2
+			button.btn.btn-block.btn-outline-secondary(type="button" (click)="toggleMinimap()")
+				fa-icon.mr-2([icon]="hammerIcon" [fixedWidth]="true")
+				| Toggle minimap
+	.small.text-muted
+		| These actions are for builders and moderators only.
+.modal-footer
+	button.btn.btn-outline-secondary(type="button" (click)="onClose()") Cancel

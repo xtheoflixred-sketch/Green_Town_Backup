@@ -49,6 +49,10 @@ const MENO = 'IAzs7Ow+Pj4TJyczHCDf398A///jQV789vb/ZYDZ2dmOjo69vb2zAABkCDggQAAAAG
 export class TiktokPony implements OnInit, OnDestroy {
 	@ViewChild('characterPreview', { static: true }) characterPreview!: CharacterPreview;
 	@Input() scale = 3;
+	@Input() tagColor?: string;
+	@Input() tagGradientStart?: string;
+	@Input() tagGradientEnd?: string;
+	@Input() tagGradientDirection: 'horizontal' | 'vertical' = 'horizontal';
 	pony = decompressPonyString(MENO);
 	state = defaultPonyState();
 	private expression?: Expression;

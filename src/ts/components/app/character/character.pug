@@ -34,6 +34,7 @@ page-loader(*ngIf="!playing")
 
 		.mx-auto(style="max-width: 400px;")
 			about-button.mb-3
+
 			character-select(
 				[(error)]="error"
 				[newButton]="true"
@@ -42,8 +43,8 @@ page-loader(*ngIf="!playing")
 				(change)="updateMuzzles()"
 				(preview)="previewPony = $event"
 			)
-
-			.character-preview-box.mx-auto.my-3(
+			
+			.character-preview-box.mx-auto.my-1.preview-container(
 				(fixToTop)="fixed = $event"
 				[fixToTopOffset]="-40"
 				[style.background]="previewInfo.previewBackground ? '#' + previewInfo.previewBackground : 'var(--grass-color)'"
@@ -51,13 +52,19 @@ page-loader(*ngIf="!playing")
 				character-preview(
 					#characterPreview
 					[pony]="previewInfo"
-					[state]="state"
+					[state]="previewState"
 					[scale]="previewScale"
 					[noBackground]="true"
 					[noShadow]="fixed"
+					[selectionOutline]="fixed"
+					[selectionOutlineColor]="previewInfo.previewBackground || previewBackgroundColor"
 					[name]="hidePreviewName ? '' : previewName"
 					[tag]="hidePreviewTag ? '' : previewTag"
-					[tagColor]="pony.tagColor"
+					[tagColor]="hidePreviewTag ? undefined : previewTagColor"
+					[tagTranslation]="hidePreviewTag ? undefined : tagTranslation"
+					[tagGradientStart]="hidePreviewTag ? undefined : previewTagGradientStart"
+					[tagGradientEnd]="hidePreviewTag ? undefined : previewTagGradientEnd"
+					[tagGradientDirection]="hidePreviewTag ? undefined : previewTagGradientDirection"
 					[namePlateOffsetY]="10"
 					[tagOnlyNamePlateOffsetY]="10"
 					[namePlateTextY]="11"
@@ -67,6 +74,145 @@ page-loader(*ngIf="!playing")
 					style="z-index: 100"
 				)
 
+				.preview-controls.text-center(
+					aria-label="Preview controls"
+				)
+					.preview-buttons(
+						*ngIf="showPreviewControls"
+					)
+						.dropdown(
+							dropdown
+							#previewScaleDropdown="ag-dropdown"
+							[focusOnOpen]="false"
+						)
+							button.btn.btn-dark.dropdown-toggle(
+								type="button"
+								dropdownToggle
+								[tooltip]="isMobile ? 'Preview scale' : 'Preview scale (G / F)'"
+								aria-haspopup="true"
+								style="min-width: 70px;"
+							)
+								fa-icon([icon]="searchIcon")
+								span.ml-1 x{{previewScale}}
+
+							.dropdown-menu(
+								style="min-width: 120px;"
+								*dropdownMenu
+							)
+								button.dropdown-item(
+									(click)="previewScale = 1; previewScaleDropdown.close(); changed()"
+								) x1
+								button.dropdown-item(
+									(click)="previewScale = 2; previewScaleDropdown.close(); changed()"
+								) x2
+								button.dropdown-item(
+									(click)="previewScale = 3; previewScaleDropdown.close(); changed()"
+								) x3
+								button.dropdown-item(
+									(click)="previewScale = 4; previewScaleDropdown.close(); changed()"
+								) x4
+								button.dropdown-item(
+									(click)="previewScale = 5; previewScaleDropdown.close(); changed()"
+								) x5
+								button.dropdown-item(
+									(click)="previewScale = 6; previewScaleDropdown.close(); changed()"
+								) x6
+
+						button.btn.btn-dark(
+							[class.active]="showBackground"
+							type="button"
+							[tooltip]="'Toggle preview background'"
+							aria-label="Background"
+							(click)="toggleBackground()"
+						)
+							fa-icon([icon]="paintBrushIcon")
+
+						button.btn.btn-dark(
+							[class.active]="info.headTurned"
+							type="button"
+							[tooltip]="isMobile ? 'Turn head' : 'Turn head (H)'"
+							aria-label="Turn head"
+							(click)="toggleHeadTurned()"
+						)
+							fa-icon([icon]="horseHeadIcon")
+
+						button.btn.btn-dark(
+							[class.active]="info.flip"
+							type="button"
+							[tooltip]="isMobile ? 'Flip character' : 'Flip: A ← / D →'"
+							aria-label="Flip character"
+							(click)="toggleFlip()"
+						)
+							fa-icon([icon]="flipIcon")
+
+						button.btn.btn-dark(
+							[class.active]="hidePreviewName"
+							type="button"
+							[tooltip]="isMobile ? 'Show or hide name' : 'Show or hide name (Y)'"
+							aria-label="Hide name"
+							(click)="toggleHidePreviewName()"
+						)
+							span.fa-layers
+								fa-icon([icon]="nameIcon")
+								fa-icon(
+									*ngIf="hidePreviewName"
+									[icon]="slashIcon"
+								)
+
+						button.btn.btn-dark(
+							[class.active]="hidePreviewTag"
+							type="button"
+							[tooltip]="isMobile ? 'Show or hide tag' : 'Show or hide tag (T)'"
+							aria-label="Hide tag"
+							(click)="toggleHidePreviewTag()"
+						)
+							span.fa-layers
+								fa-icon([icon]="tagIcon")
+								fa-icon(
+									*ngIf="hidePreviewTag"
+									[icon]="slashIcon"
+								)
+
+						button.btn.btn-dark(
+							type="button"
+							[disabled]="!hasCustomPreviewSettings"
+							(click)="resetPreview()"
+							[tooltip]="'Reset preview settings'"
+							aria-label="Reset preview settings"
+							title="Reset preview settings"
+						)
+							fa-icon([icon]="resetIcon")
+
+					.preview-color-controls(
+						*ngIf="showPreviewControls && showBackground"
+					)
+						color-picker(
+							[(color)]="info.previewBackground"
+							(colorChangeStart)="beginColorChange()"
+							(colorChange)="colorChanged()"
+							(colorChangeEnd)="colorChangeDone()"
+							labelledBy="preview-background"
+						)
+
+						button.btn.btn-dark(
+							type="button"
+							[disabled]="!hasCustomPreviewBackground"
+							(click)="resetBackground()"
+							[tooltip]="'Reset background'"
+							aria-label="Reset background"
+							title="Reset background"
+						)
+							fa-icon([icon]="resetIcon")
+
+					button.preview-controls-toggle.btn.btn-dark(
+						type="button"
+						[tooltip]="showPreviewControls ? 'Hide preview controls' : 'Show preview controls'"
+						[attr.aria-label]="showPreviewControls ? 'Hide preview controls' : 'Show preview controls'"
+						(click)="togglePreviewControls()"
+					)
+						fa-icon(
+							[icon]="showPreviewControls ? closeIcon : previewControlsUpIcon"
+						)
 			.form-group.text-center
 				button.btn.btn-lg.btn-default(
 					[disabled]="!canDuplicate"
@@ -88,746 +234,1363 @@ page-loader(*ngIf="!playing")
 					aria-label="Save character"
 				)
 					| Save
-
+	
 			play-box(*ngIf="!inGameMode" label="Save & Play" [(error)]="error" (beforePlay)="onPlayRequest($event)")
+
 			play-notice(*ngIf="!inGameMode")
 
 	.col-lg-6.character-tabs(
+
 		[setOutlineHidden]="!customOutlines"
+
 		[class.character-tab-warning]="updateWarning"
+
 	)
+
 		h2.sr-only Character customization
 
 		.character-tabs-undo-wrap
+
 			.character-tabs-undo-btns
+
 				button.nav-link(
+
 					[class.disabled]="!canUndo"
+
 					[disabled]="!canUndo"
+
 					(click)="undo()"
+
 					[tooltip]="isMobile ? 'Undo' : 'Undo (Ctrl+Z)'"
+
 					aria-label="Undo"
+
 				)
+
 					fa-icon([icon]="undoIcon")
 
 				button.nav-link(
+
 					[class.disabled]="!canRedo"
+
 					[disabled]="!canRedo"
+
 					(click)="redo()"
+
 					[tooltip]="isMobile ? 'Redo' : 'Redo (Ctrl+Y)'"
+
 					aria-label="Redo"
+
 				)
+
 					fa-icon([icon]="redoIcon")
 
 		tabset(type="pills" *ngIf="loaded" saveActiveTab="character-active-tab" label="Character customization")
 
 			tab(title="body")
+
 				.character-tab(*tabContent)
 
 					.row.form-group
+
 						.col-12
+
 							.alert.alert-info.mb-3(role="alert" style="padding: 12px 14px;")
+
 								.d-flex.align-items-start
+
 									fa-icon.mr-3(
+
 										[icon]="infoIcon"
+
 										size="lg"
+
 										[fixedWidth]="true"
+
 									)
+
 									div
+
 										strong.d-block.mb-1
+
 											| Character basics
+
 										span
+
 											| This tab contains the main appearance and body-shaping controls. For tags, preview controls, effects, file tools and advanced settings, use the
+
 											strong.ml-1
+
 												| Options
+
 											| tab. The Options tab also contains a notice explaining that those controls are still being refined.
 
 					hr
+
 					fill-outline(
+
 						label="Body color" [(fill)]="info.coatFill" [(outline)]="info.coatOutline"
+
 						[(outlineLocked)]="info.lockCoatOutline" [outlineHidden]="!customOutlines" (change)="changed()")
+
 					hr
+
 					set-selection(
+
 						[label]="lockBodyMarkings ? 'Body markings' : 'Body markings (left)'"
+
 						[base]="coatFill" [set]="info.body" [sets]="bodyPatterns" [compact]="true"
+
 						[darken]="darken" [onlyPatterns]="true" (change)="changed()")
+
 					div(*ngIf="!lockBodyMarkings")
+
 						hr
+
 						set-selection(
+
 							label="Body markings (right)" [base]="coatFill" [set]="info.bodyRight" [sets]="bodyPatterns" [compact]="true"
+
 							[darken]="darken" [onlyPatterns]="true" (change)="changed()")
+
 					hr
+
 					.row.form-group
+
 						label.col-sm-4.col-form-label Body layers
+
 						.col-sm-8.text-muted.pt-1
+
 							.mb-2
+
 								custom-checkbox([(checked)]="lockBodyMarkings" (checkedChange)="bodyLockChanged($event); changed()")
+
 									| use the same body markings for both sides
+
 							.mb-2
+
 								custom-checkbox([(checked)]="info.useExtraBody" (checkedChange)="changed()")
+
 									| enable extra body markings layer
+
 					div(*ngIf="info.useExtraBody")
+
 						hr
+
 						set-selection(
+
 							label="Body markings (extra)" [base]="coatFill" [set]="info.bodyExtra" [sets]="bodyPatterns" [compact]="true"
+
 							[darken]="darken" [onlyPatterns]="true" (change)="changed()")
+
 					hr
+
 					.row.form-group
+
 						label.col-sm-4.col-form-label Use the same markings
+
 						.col-sm-8.text-muted.pt-1
+
 							.mb-2
+
 								custom-checkbox([(checked)]="lockBackLegs" (checkedChange)="backLegsPairChanged($event); changed()")
+
 									| for front and back legs
+
 							.mb-2
+
 								custom-checkbox([(checked)]="lockFrontLegsMarkings" (checkedChange)="frontLegsLockChanged($event); changed()")
+
 									| for both front legs
+
 							.mb-2
+
 								custom-checkbox([(checked)]="lockBackLegsMarkings" [disabled]="info.lockBackLegs" (checkedChange)="backLegsLockChanged($event); changed()")
+
 									| for both back legs
+
 					set-selection(
+
 						[label]="lockFrontLegsMarkings ? 'Front legs markings' : 'Front legs markings (left)'"
+
 						[base]="coatFill" [set]="info.frontLegs" [sets]="frontLegPatterns" [compact]="true"
+
 						[darken]="darken" [onlyPatterns]="true" (change)="changed()")
+
 					div(*ngIf="!lockFrontLegsMarkings")
+
 						hr
+
 						set-selection(
+
 							label="Front legs markings (right)" [base]="coatFill" [set]="info.frontLegsRight" [sets]="frontLegPatterns" [compact]="true"
+
 							[darken]="darken" [onlyPatterns]="true" (change)="changed()")
+
 					div(*ngIf="!lockBackLegs")
+
 						hr
+
 						set-selection(
+
 							[label]="lockBackLegsMarkings ? 'Back legs markings' : 'Back legs markings (left)'"
+
 							[base]="coatFill" [set]="info.backLegs" [sets]="backLegPatterns" [compact]="true"
+
 							[darken]="darken" [onlyPatterns]="true" (change)="changed()")
+
 					div(*ngIf="!lockBackLegs && !lockBackLegsMarkings")
+
 						hr
+
 						set-selection(
+
 							label="Back legs markings (right)" [base]="coatFill" [set]="info.backLegsRight" [sets]="backLegPatterns" [compact]="true"
+
 							[darken]="darken" [onlyPatterns]="true" (change)="changed()")
+
 					hr
+
 					.row.form-group
+
 						label.col-sm-4.col-form-label Hooves sides
+
 						.col-sm-8.text-muted.pt-1
+
 							.mb-2
+
 								custom-checkbox([(checked)]="info.lockBackHooves" (checkedChange)="backHoovesPairChanged($event); changed()")
+
 									| use the same hooves for front and back legs
+
 							.mb-2
+
 								custom-checkbox([(checked)]="lockFrontHooves" (checkedChange)="frontHoovesLockChanged($event); changed()")
+
 									| use the same hooves for both front legs
+
 							.mb-2
+
 								custom-checkbox([(checked)]="lockBackHooves" [disabled]="info.lockBackHooves" (checkedChange)="backHoovesLockChanged($event); changed()")
+
 									| use the same hooves for both back legs
+
 					set-selection(
+
 						[label]="lockFrontHooves ? 'Front hooves' : 'Front hooves (left)'"
+
 						[base]="coatFill" [set]="info.frontHooves" [sets]="frontHooves" [compact]="true"
+
 						[darken]="darken" (change)="changed()")
+
 					div(*ngIf="!lockFrontHooves")
+
 						hr
+
 						set-selection(
+
 							label="Front hooves (right)" [base]="coatFill" [set]="info.frontHoovesRight" [sets]="frontHooves" [compact]="true"
+
 							[darken]="darken" (change)="changed()")
+
 					div(*ngIf="!info.lockBackHooves")
+
 						hr
+
 						set-selection(
+
 							[label]="lockBackHooves ? 'Back hooves' : 'Back hooves (left)'"
+
 							[base]="hoovesFill" [set]="info.backHooves" [sets]="backHooves" [compact]="true"
+
 							[darken]="darken" (change)="changed()")
+
 					div(*ngIf="!info.lockBackHooves && !lockBackHooves")
+
 						hr
+
 						set-selection(
+
 							label="Back hooves (right)" [base]="hoovesFill" [set]="info.backHoovesRight" [sets]="backHooves" [compact]="true"
+
 							[darken]="darken" (change)="changed()")
+
 					hr
+
 					set-selection(
+
 						label="Horn" [base]="coatFill" [set]="info.horn" [sets]="horns" [compact]="true" (change)="changed()"
+
 						[darken]="darken")
+
 					hr
+
 					.row.form-group
+
 						label.col-sm-4.col-form-label Magic color
+
 						.col-sm-8
+
 							color-picker([(color)]="info.magicColor" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()" label="Magic color")
+
 					hr
+
 					.row.form-group
+
 						label.col-sm-4.col-form-label Wings sides
+
 						.col-sm-8.text-muted.pt-1
+
 							custom-checkbox([(checked)]="lockWings" (checkedChange)="wingsLockChanged($event); changed()")
+
 								| use the same wings for both sides
+
 					set-selection(
+
 						[label]="lockWings ? 'Wings' : 'Wings (left)'"
+
 						[base]="coatFill" [set]="info.wings" [sets]="wings" [compact]="true" (change)="changed()"
+
 						[darken]="darken")
+
 					div(*ngIf="!lockWings")
+
 						hr
+
 						set-selection(
+
 							label="Wings (right)" [base]="coatFill" [set]="info.wingsRight" [sets]="wings" [compact]="true"
+
 							(change)="changed()" [darken]="darken")
+
 					hr
+
 					.row.form-group
+
 						label.col-sm-4.col-form-label Ears sides
+
 						.col-sm-8.text-muted.pt-1
+
 							custom-checkbox([(checked)]="lockEars" (checkedChange)="earsLockChanged($event); changed()")
+
 								| use the same ears for both sides
+
 					set-selection(
+
 						[label]="lockEars ? 'Ears' : 'Ears (left)'"
+
 						[base]="coatFill" [set]="info.ears" [sets]="ears" [compact]="true" (change)="changed()"
+
 						[darken]="darken")
+
 					div(*ngIf="!lockEars")
+
 						hr
+
 						set-selection(
+
 							label="Ears (right)" [base]="coatFill" [set]="info.earsRight" [sets]="ears" [compact]="true"
+
 							(change)="changed()" [darken]="darken")
+
 					hr
+
 					butt-mark-editor([info]="info" [state]="buttMarkState")
 
 			tab(title="mane")
+
 				.character-tab(*tabContent)
+
 					set-selection(
+
 						label="Mane" [base]="maneFill" [set]="info.mane" [sets]="manes" [nonLockable]="true"
+
 						[darken]="darken" (change)="changed()")
+
 					hr
+
 					set-selection(
+
 						label="Back mane" [base]="maneFill" [set]="info.backMane" [sets]="backManes"
+
 						[darken]="darken" (change)="changed()")
+
 					hr
+
 					set-selection(
+
 						label="Ponytail" [base]="maneFill" [set]="info.ponytail" [sets]="ponytails"
+
 						[darken]="darken" (change)="changed()")
+
 					.form-group.text-center
+
 						button.btn.btn-sm.btn-default((click)="copyCoatColorToPonytail()" [disabled]="info.ponytail.lockFills[0]")
+
 							| Use body color
 
 			tab(title="tail")
+
 				.character-tab(*tabContent)
+
 					set-selection(
+
 						label="Tail" [base]="maneFill" [set]="info.tail" [sets]="tails" [darken]="darken" (change)="changed()")
+
 					.form-group.text-center
+
 						button.btn.btn-sm.btn-default((click)="copyCoatColorToTail()" [disabled]="info.tail.lockFills[0]")
+
 							| Use body color
 
 			tab(title="face")
+
 				.character-tab(*tabContent)
 
 					.row.form-group
+
 						.col-sm-4.col-lock-box
+
 							label#eye-color Eye color
+
 							check-box.lock-box(
+
 								[(checked)]="info.lockEyeColor" [icon]="lockIcon" (checkedChange)="eyeColorLockChanged($event)"
+
 								label="Lock color for both eyes" title="Lock color for both eyes")
+
 						.col-sm-8
+
 							color-picker([(color)]="info.eyeColorRight" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()" labelledBy="eye-color")
+
 					.row.form-group(*ngIf="!info.lockEyeColor")
+
 						label#eye-color-left.col-sm-4.col-form-label Eye color (left)
+
 						.col-sm-8
+
 							color-picker([(color)]="info.eyeColorLeft" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()" labelledBy="eye-color-left")
 
 					.row.form-group
+
 						.col-sm-4.col-lock-box
+
 							label#eye-whites-label Eye whites
+
 							check-box.lock-box(
+
 								[(checked)]="lockEyeWhites" [icon]="lockIcon" (checkedChange)="eyeWhiteLockChanged($event)"
+
 								label="Lock left eye white for both eyes" title="Lock left eye white for both eyes")
+
 						.col-sm-8
+
 							color-picker([(color)]="info.eyeWhites" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()" labelledBy="eye-whites-label")
+
 					.row.form-group(*ngIf="info.unlockEyeWhites")
+
 						label#eye-whites-label-left.col-sm-4.col-form-label Eye whites (left)
+
 						.col-sm-8
+
 							color-picker([(color)]="info.eyeWhitesLeft" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()" labelledBy="eye-whites-label-left")
 
 					.row.form-group
+
 						.col-sm-4.col-lock-box
+
 							label#eyes {{info.lockEyes ? 'Eyes' : 'Right eye'}}
+
 							check-box.lock-box(
+
 								[(checked)]="info.lockEyes" [icon]="lockIcon" (checkedChange)="eyeOpennessChanged($event)"
+
 								label="Lock both eyes" title="Lock both eyes")
+
 						.col-sm-8
+
 							sprite-selection(
+
 								[(selected)]="info.eyeOpennessRight" [sprites]="eyesRight" [fill]="info.eyeColorRight"
+
 								[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="9" [darken]="darken"
+
 								(selectedChange)="eyeOpennessChanged(info.lockEyes)" aria-labelledby="eyes")
+
 					.row.form-group(*ngIf="!info.lockEyes")
+
 						.col-sm-4
+
 							label#left-eye Left eye
+
 						.col-sm-8
+
 							sprite-selection(
+
 								[(selected)]="info.eyeOpennessLeft" [sprites]="eyesLeft" [fill]="info.eyeColorLeft" [darken]="darken"
+
 								[circle]="info.coatFill" [reverseExtra]="true" [skip]="1" [limit]="5"
+
 								(selectedChange)="eyeOpennessChanged(info.lockEyes)" aria-labelledby="left-eye")
 
 					.row.form-group
+
 						.col-sm-4.col-lock-box
+
 							label#irises {{lockIrises ? 'Irises' : 'Right iris'}}
+
 							check-box.lock-box(
+
 								[(checked)]="lockIrises" [icon]="lockIcon" (checkedChange)="irisLockChanged($event)"
+
 								label="Lock both irises" title="Lock both irises")
+
 						.col-sm-8
+
 							sprite-selection(
+
 								[selected]="state.expression ? state.expression.rightIris : 0" [sprites]="irisesRight" [fill]="info.eyeColorRight"
+
 								[circle]="info.coatFill" [reverseExtra]="true" [limit]="9" [darken]="darken"
+
 								(selectedChange)="setRightIris($event)" aria-labelledby="irises")
+
 					.row.form-group(*ngIf="!lockIrises")
+
 						.col-sm-4
+
 							label#left-iris Left iris
+
 						.col-sm-8
+
 							sprite-selection(
+
 								[selected]="state.expression ? state.expression.leftIris : 0" [sprites]="irisesLeft" [fill]="info.eyeColorLeft"
+
 								[circle]="info.coatFill" [reverseExtra]="true" [limit]="9" [darken]="darken"
+
 								(selectedChange)="setLeftIris($event)" aria-labelledby="left-iris")
 
 					.row.form-group
+
 						.col-sm-4.col-lock-box
+
 							label#eyeshadow-label Eyeshadow
 
 							.d-none.d-sm-block.has-neighbour
+
 								check-box.lock-box.eyeshadow-lock-box(
+
 									[(checked)]="lockEyeshadowColor"
+
 									[icon]="lockIcon"
+
 									[disabled]="!info.eyeshadow"
+
 									(checkedChange)="eyeshadowLockChanged($event); changed()"
+
 									label="Lock both eyes"
+
 									title="Lock both eyes"
+
 								)
 
 								check-box.lock-box.eyeshadow-enable-box(
+
 									[(checked)]="info.eyeshadow"
+
 									(checkedChange)="characterPreview.blink(); changed()"
+
 									label="Use eye shadow"
+
 									title="Use eye shadow"
+
 								)
 
 						.col-sm-8
+
 							color-picker(
+
 								[(color)]="info.eyeshadowColor"
+
 								(colorChangeStart)="beginColorChange()"
+
 								(colorChange)="colorChanged()"
+
 								(colorChangeEnd)="colorChangeDone()"
+
 								[isDisabled]="!info.eyeshadow"
+
 								labelledBy="eyeshadow-label"
+
 							)
 
 					// MOBILE
+
 					.row.form-group.d-sm-none
+
 						.col-lock-box
+
 							label.mb-0 Shadow
 
 							check-box.lock-box.eyeshadow-lock-box(
+
 								[(checked)]="lockEyeshadowColor"
+
 								[icon]="lockIcon"
+
 								[disabled]="!info.eyeshadow"
+
 								(checkedChange)="eyeshadowLockChanged($event); changed()"
+
 								label="Lock both eyes"
+
 								title="Lock both eyes"
+
 							)
 
 							check-box.lock-box.eyeshadow-enable-box(
+
 								[(checked)]="info.eyeshadow"
+
 								(checkedChange)="characterPreview.blink(); changed()"
+
 								label="Use eye shadow"
+
 								title="Use eye shadow"
+
 							)
+
 
 
 					.row.form-group.eyeshadow-left-row(*ngIf="info.unlockEyeshadowColor")
+
 						.col-sm-4.col-lock-box
+
 							label#eyeshadow-label-left Eyeshadow (left)
 
 							check-box.lock-box.eyeshadow-left-enable(
+
 								[(checked)]="info.eyeshadowLeft"
+
 								(checkedChange)="characterPreview.blink(); changed()"
+
 								label="Use eye shadow"
+
 								title="Use eye shadow"
+
 							)
 
 						.col-sm-8
+
 							color-picker(
+
 								[(color)]="info.eyeshadowColorLeft"
+
 								(colorChangeStart)="beginColorChange()"
+
 								(colorChange)="colorChanged()"
+
 								(colorChangeEnd)="colorChangeDone()"
+
 								[isDisabled]="!info.eyeshadowLeft"
+
 								labelledBy="eyeshadow-label-left"
+
 							)
 
 					.row.form-group
+
 						label#eyelashes.col-sm-4.col-form-label Eyelashes
+
 						.col-sm-8
+
 							sprite-selection(
+
 								[(selected)]="info.eyelashes" [sprites]="eyelashes" [fill]="info.eyeColorRight" [darken]="darken"
+
 								[circle]="info.coatFill" [reverseExtra]="true" aria-labelledby="eyelashes")
 
 					.row.form-group
+
 						.col-sm-4.col-lock-box
+
 							label#eyelashes-label Eyelash color
+
 							check-box.lock-box(
+
 								[(checked)]="lockEyelashColor" [icon]="lockIcon" (checkedChange)="eyelashLockChanged($event)"
+
 								label="Lock eyelash color for both eyes" title="Lock eyelash color for both eyes")
+
 						.col-sm-8
+
 							color-picker([(color)]="info.eyelashColor" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()" labelledBy="eyelashes-label")
+
 					.row.form-group(*ngIf="!lockEyelashColor")
+
 						label#eyelashes-label-left.col-sm-4.col-form-label Eyelash color (left)
+
 						.col-sm-8
+
 							color-picker([(color)]="info.eyelashColorLeft" (colorChangeStart)="beginColorChange()" (colorChange)="colorChanged()" (colorChangeEnd)="colorChangeDone()" labelledBy="eyelashes-label-left")
 
 
+
 					.row.form-group
+
 						.col-sm-4.col-lock-box
+
 							label#blush-label.col-form-label Blush
 
 							.d-none.d-sm-block.has-neighbour.blush-controls
+
 								check-box.lock-box.blush-enable-box(
+
 									[(checked)]="info.blush"
+
 									(checkedChange)="changed()"
+
 									label="Use blush"
+
 									title="Use blush"
+
 								)
 
 								check-box.lock-box.blush-reset-box(
+
 									[icon]="resetIcon"
+
 									[checked]="hasCustomBlushColor"
+
 									[disabled]="!hasCustomBlushColor"
+
 									(checkedChange)="resetBlush()"
+
 									label="Reset blush"
+
 									title="Reset blush"
+
 								)
 
 						.col-sm-8
+
 							color-picker(
+
 								[(color)]="info.blushColor"
+
 								(colorChangeStart)="beginColorChange()"
+
 								(colorChange)="colorChanged()"
+
 								(colorChangeEnd)="colorChangeDone()"
+
 								[isDisabled]="!info.blush"
+
 								labelledBy="blush-label"
+
 							)
 
 					hr
+
 					set-selection(
-						label="Muzzle" base="info.coatFill" [set]="info.nose" [sets]="noses" [darken]="darken"
+
+						label="Muzzle" [base]="coatFill" [set]="info.nose" [sets]="noses" [darken]="darken"
+
 						[compact]="true" (change)="changed(); updateMuzzles()")
+
 					hr
+
 					set-selection(
+
 						label="Markings" [base]="coatFill" [set]="info.head" [sets]="heads" [darken]="darken"
+
 						[onlyPatterns]="true" (change)="changed()")
+
 					.row.form-group
+
 						label.col-sm-4.col-form-label Additional face pattern
+
 						.col-sm-8.text-muted.pt-1
+
 							custom-checkbox([(checked)]="info.useExtraFacePattern" (checkedChange)="changed()")
+
 								| enable extra face pattern layer
+
 					div(*ngIf="info.useExtraFacePattern")
+
 						hr
+
 						set-selection(
+
 							label="Markings (extra)" [base]="coatFill" [set]="info.facePatternExtra" [sets]="heads" [darken]="darken"
+
 							[onlyPatterns]="true" (change)="changed()")
+
 					hr
+
 					.row.form-group
+
 						label#fangs.col-sm-4.col-form-label Fangs
+
 						.col-sm-8
+
 							sprite-selection(
+
 								[(selected)]="info.fangs" [sprites]="fangs" [fill]="info.nose.fills" [darken]="darken"
+
 								[outline]="info.nose.outlines" [circle]="info.coatFill" aria-labelledby="fangs")
+
 					.row.form-group
+
+						label.col-sm-4.col-form-label Mouth cavity
+
+						.col-sm-6
+
+							color-picker([(color)]="info.mouthColor" (colorChange)="changed()")
+
+						.col-sm-2
+
+							button.btn.btn-sm.btn-default((click)="resetMouthColor()" title="Reset mouth cavity color")
+
+								fa-icon([icon]="resetIcon")
+
+					.row.form-group
+
+						label.col-sm-4.col-form-label Tongue
+
+						.col-sm-6
+
+							color-picker([(color)]="info.tongueColor" (colorChange)="changed()")
+
+						.col-sm-2
+
+							button.btn.btn-sm.btn-default((click)="resetTongueColor()" title="Reset tongue color")
+
+								fa-icon([icon]="resetIcon")
+
+					.row.form-group
+
+						label.col-sm-4.col-form-label Teeth
+
+						.col-sm-6
+
+							color-picker([(color)]="info.teethColor" (colorChange)="changed()")
+
+						.col-sm-2
+
+							button.btn.btn-sm.btn-default((click)="resetTeethColor()" title="Reset teeth color")
+
+								fa-icon([icon]="resetIcon")
+
+					.row.form-group
+
 						label#expression.col-sm-4.col-form-label(for="#expression-selection") Expression
-						.col-sm-8
+
+						.col-sm-8(
+
+							[draggableDropAccept]="isExpressionAction"
+
+							(draggableDrop)="applyExpressionAction($event)"
+
+						)
+
 							sprite-selection#expression-selection(
+
 								[(selected)]="info.muzzle" [sprites]="muzzles" [fill]="info.nose.fills" [darken]="darken"
-								[outline]="info.nose.outlines" [circle]="info.coatFill" [limit]="9" aria-labelledby="expression")
+
+								[outline]="info.nose.outlines" [circle]="info.coatFill" [limit]="9"
+
+								(selectedChange)="muzzleChanged($event)" aria-labelledby="expression")
+
 					hr
+
 					set-selection(
+
 						label="Facial hair" [base]="maneFill" [set]="info.facialHair" [sets]="facialHair" [darken]="darken"
+
 						(change)="changed()")
 
 			tab(title="other")
+
 				.character-tab(*tabContent)
+
 					tabset.accessories-tabset(saveActiveTab="character-active-accessory-tab" label="Character accessories")
+
 						tab(title="head")
+
 							.accessory-tab(*tabContent)
+
 								set-selection(
+
 									label="Head accessories" [set]="info.headAccessory" [sets]="headAccessories" [darken]="darken"
+
 									[nonLockable]="true" (change)="changed()")
+
 								hr
+
 								set-selection(
+
 									label="Ear accessories" [set]="info.earAccessory" [sets]="earAccessories" [darken]="darken"
+
 									[nonLockable]="true" (change)="changed()")
+
 								.row.form-group
+
 									label.col-sm-4.col-form-label Extra ear layer
+
 									.col-sm-8.text-muted.pt-1
+
 										custom-checkbox([(checked)]="useExtraEarAccessory" (checkedChange)="changed()")
+
 											| enable second ear accessory layer
+
 								div(*ngIf="useExtraEarAccessory")
+
 									hr
+
 									set-selection(
+
 										label="Ear accessories (extra)" [set]="info.earAccessoryExtra" [sets]="earAccessories" [darken]="darken"
+
 										[nonLockable]="true" (change)="changed()")
+
 								hr
+
 								set-selection(
+
 									label="Face accessories" [set]="info.faceAccessory" [sets]="faceAccessories" [darken]="darken"
+
 									[nonLockable]="true" (change)="changed()")
-								//.row.form-group
+
+								.row.form-group
+
 									label.col-sm-4.col-form-label Extra face layer
+
 									.col-sm-8.text-muted.pt-1
+
 										custom-checkbox([(checked)]="useExtraFaceAccessory" (checkedChange)="changed()")
+
 											| enable second face accessory layer
+
 								div(*ngIf="useExtraFaceAccessory")
+
 									hr
+
 									set-selection(
+
 										label="Face accessories (extra)" [set]="info.faceAccessoryExtra" [sets]="faceAccessories" [darken]="darken"
+
 										[nonLockable]="true" (change)="changed()")
 
 						tab(title="neck")
+
 							.accessory-tab(*tabContent)
+
 								set-selection(
+
 									label="Neck accessories" [set]="info.neckAccessory" [sets]="neckAccessories" [darken]="darken"
+
 									[nonLockable]="true" (change)="changed()")
-								//.row.form-group
+
+								.row.form-group
+
 									label.col-sm-4.col-form-label Additional neck layer
+
 									.col-sm-8.text-muted.pt-1
+
 										custom-checkbox([(checked)]="info.useExtraNeckAccessory" (checkedChange)="changed()")
+
 											| enable extra neck accessory layer
+
 								div(*ngIf="info.useExtraNeckAccessory")
+
 									hr
+
 									set-selection(
+
 										label="Neck accessories (extra)" [set]="info.neckAccessoryExtra" [sets]="neckAccessories" [darken]="darken"
+
 										[nonLockable]="true" (change)="changed()")
 
 						tab(title="legs")
+
 							.accessory-tab(*tabContent)
+
 								.row.form-group
+
 									label.col-sm-4.col-form-label Use the same accessory
+
 									.col-sm-8.text-muted.pt-1
+
 										.mb-2
+
 											custom-checkbox([(checked)]="info.lockBackLegAccessory")
+
 												| for front and back legs
+
 										.mb-2
+
 											custom-checkbox([(checked)]="lockFrontLegAccessory")
+
 												| for both front legs
+
 										.mb-2
+
 											custom-checkbox([(checked)]="lockBackLegAccessory" [disabled]="info.lockBackLegAccessory")
+
 												| for both back legs
 
 								set-selection(
+
 									[label]="info.lockFrontLegAccessories ? 'Front leg accessory' : 'Front leg accessory (left)'"
+
 									[set]="info.frontLegAccessory" [sets]="frontLegAccessories" [darken]="darken"
+
 									[nonLockable]="true" (change)="changed()")
+
 								hr
+
 								div(*ngIf="info.unlockFrontLegAccessory")
+
 									set-selection(
+
 										label="Front leg accessory (right)"
+
 										[set]="info.frontLegAccessoryRight" [sets]="frontLegAccessories" [darken]="darken"
+
 										[nonLockable]="true" (change)="changed()")
+
 									hr
+
 								//- .form-group.d-flex.justify-content-center
+
 									custom-checkbox([(checked)]="info.lockBackLegAccessory") use the same accessory for back legs
+
 								div(*ngIf="!info.lockBackLegAccessory")
+
 									set-selection(
+
 										[label]="info.lockBackLegAccessories ? 'Back leg accessory' : 'Back leg accessory (left)'"
+
 										[set]="info.backLegAccessory" [sets]="backLegAccessories" [darken]="darken"
+
 										[nonLockable]="true" (change)="changed()")
+
 									hr
+
 								div(*ngIf="!info.lockBackLegAccessory && info.unlockBackLegAccessory")
+
 									set-selection(
+
 										label="Back leg accessory (right)"
+
 										[set]="info.backLegAccessoryRight" [sets]="backLegAccessories" [darken]="darken"
+
 										[nonLockable]="true" (change)="changed()")
 
 						tab(title="chest")
+
 							.accessory-tab(*tabContent)
+
 								set-selection(
+
 									label="Chest accessories" [set]="info.chestAccessory" [sets]="chestAccessories" [darken]="darken"
+
 									[nonLockable]="true" (change)="changed()")
+
 								div(*ngIf="hasSleeves(info.chestAccessory.type)")
+
 									hr
-									//.row.form-group
+
+									.row.form-group
+
 										label.col-sm-4.col-form-label Sleeves sides
+
 										.col-sm-8.text-muted.pt-1
+
 											custom-checkbox([(checked)]="lockSleeveAccessory" (checkedChange)="sleeveLockChanged($event); changed()")
+
 												| use the same sleeves for both sides
+
 									set-selection(
+
 										[label]="lockSleeveAccessory ? 'Sleeves' : 'Sleeves (left)'"
+
 										[set]="info.sleeveAccessory" [darken]="darken" [sets]="sleeveAccessories" (change)="changed()")
+
 									div(*ngIf="!lockSleeveAccessory")
+
 										hr
+
 										set-selection(
+
 											label="Sleeves (right)" [set]="info.sleeveAccessoryRight" [darken]="darken"
+
 											[sets]="sleeveAccessories" (change)="changed()")
 
 						tab(title="back")
+
 							.accessory-tab(*tabContent)
+
 								set-selection(
+
 									label="Back accessories" [set]="info.backAccessory" [sets]="backAccessories" [darken]="darken"
+
 									[nonLockable]="true" (change)="changed()")
 
 						tab(title="waist")
+
 							.accessory-tab(*tabContent)
-								//.row.form-group
+
+								.row.form-group
+
 									label.col-sm-4.col-form-label Waist sides
+
 									.col-sm-8.text-muted.pt-1
+
 										custom-checkbox([(checked)]="lockWaistAccessory" (checkedChange)="waistLockChanged($event); changed()")
+
 											| use the same waist accessory for both sides
+
 								set-selection(
+
 									[label]="lockWaistAccessory ? 'Waist accessories' : 'Waist accessories (left)'"
+
 									[set]="info.waistAccessory" [sets]="waistAccessories" [darken]="darken"
+
 									[nonLockable]="true" (change)="changed()")
+
 								div(*ngIf="!lockWaistAccessory")
+
 									hr
+
 									set-selection(
+
 										label="Waist accessories (right)" [set]="info.waistAccessoryRight" [sets]="waistAccessories"
+
 										[darken]="darken" [nonLockable]="true" (change)="changed()")
-								//.row.form-group
+
+								.row.form-group
+
 									label.col-sm-4.col-form-label Additional waist layer
+
 									.col-sm-8.text-muted.pt-1
+
 										custom-checkbox([(checked)]="info.useExtraWaistAccessory" (checkedChange)="changed()")
+
 											| enable extra waist accessory layer
+
 								div(*ngIf="info.useExtraWaistAccessory")
+
 									hr
+
 									set-selection(
+
 										label="Waist accessories (extra)" [set]="info.waistAccessoryExtra" [sets]="waistAccessories"
+
 										[darken]="darken" [nonLockable]="true" (change)="changed()")
 
 						tab(title="other")
+
 							.accessory-tab(*tabContent)
+
 								.form-group.d-flex.justify-content-center.pt-2
+
 									custom-checkbox([(checked)]="previewExtra") show preview
+
 									em.text-muted.ml-2
+
 										| (you have to enable these accessories in-game)
+
 								set-selection(
+
 									label="Extra accessories" [set]="info.extraAccessory" [sets]="extraAccessories"
+
 									[darken]="darken" (change)="changed()")
+
 			tab(title="options")
+
 				.character-tab(*tabContent)
 
 					// Options header
+
 					.row.form-group
+
 						.col-12
+
 							.alert.alert-info.mb-3(role="alert" style="padding: 12px 14px;")
+
 								.d-flex.align-items-start
+
 									fa-icon.mr-3(
+
 										[icon]="infoIcon"
+
 										size="lg"
+
 										[fixedWidth]="true"
+
 									)
+
 									div
+
 										strong.d-block.mb-1
+
 											| Options is not final
+
 										span
+
 											| This tab is still being refined. Layout, labels and some advanced controls may change before this becomes the final version.
+
 										span
+
 											| For the main appearance controls described from the other side of the editor, see the
+
 											strong.ml-1
+
 												| Body 
+
 											| tab.
 
 						// Character options
+
 					.row.form-group
+
 						.col-12
+
 							.d-flex.align-items-center.justify-content-between.flex-wrap(
+
 								style="gap: 10px; margin-bottom: 4px;"
+
 							)
+
 								div
+
 									h3.mb-1(style="font-size: 18px;")
+
 										| Character options
+
 									.small.text-muted
+
 										| Tags and display settings first, advanced tools below.
 
 					hr
 
 					// Tags
+
 					.row.form-group
+
 						.col-12
+
 							.d-flex.align-items-center.mb-3
+
 								fa-icon.mr-2(
+
 									[icon]="tagIcon"
+
 									[fixedWidth]="true"
+
 								)
+
 								div
 									strong.d-block
 										| Tags
 									.small.text-muted
 										| Organize your character and control which tag appears first.
-
 							.row.form-group(*ngIf="tags.length > 1")
 								label#social-site-label.col-sm-4.col-form-label
 									| Character tag
 								.col-sm-8
-									.dropdown.btn-group(dropdown)
-										button.btn.btn-default.dropdown-toggle(
-											dropdownToggle
-											aria-labelledby="social-site-label"
-											aria-label="Select character tag"
-										)
-											ng-container(*ngIf="tagPreview || tag")
-												ng-container(*ngIf="(tagPreview || tag).id")
-													span.badge.character-tag-badge(
-														[ngClass]="'badge-' + (tagPreview || tag).className"
-														[style.background-color]="pony.tagColor ? '#' + pony.tagColor : null"
-														[style.color]="pony.tagColor ? tagTextColor : null"
-													)
+									.d-flex.align-items-center.flex-wrap(style="gap: 6px;")
+										.dropdown.btn-group(dropdown)
+											button.btn.btn-default.dropdown-toggle(
+												dropdownToggle
+												aria-labelledby="social-site-label"
+												aria-label="Select character tag"
+											)
+												ng-container(*ngIf="tagPreview || tag")
+													ng-container(*ngIf="(tagPreview || tag).id")
+														span.badge.character-tag-badge(
+															[ngClass]="'badge-' + (tagPreview || tag).className"
+															[style.background]="tagGradientCss || (pony.tagColor ? '#' + pony.tagColor : null)"
+															[style.color]="pony.tagColor ? tagTextColor : null"
+														)
+															fa-icon.mr-1(
+																*ngIf="(tagPreview || tag).icon"
+																[icon]="(tagPreview || tag).icon"
+																[fixedWidth]="true"
+															)
+															span {{(tagPreview || tag).id}}
+													ng-container(*ngIf="!(tagPreview || tag).id")
 														fa-icon.mr-1(
 															*ngIf="(tagPreview || tag).icon"
 															[icon]="(tagPreview || tag).icon"
 															[fixedWidth]="true"
 														)
-														span {{(tagPreview || tag).id}}
-												ng-container(*ngIf="!(tagPreview || tag).id")
-													fa-icon.mr-1(
-														*ngIf="(tagPreview || tag).icon"
-														[icon]="(tagPreview || tag).icon"
-													)
-													span {{(tagPreview || tag).name}}
-
-										.dropdown-menu(
-											*dropdownMenu
-											style="max-height: 300px; overflow-y: auto; overflow-x: hidden; min-width: 210px;"
-											(mouseleave)="clearCharacterTagPreview()"
-										)
-											a.dropdown-item(
-												(mouseenter)="previewCharacterTag(tags[0])"
-												(click)="tag = tags[0]; clearCharacterTagPreview()"
+														span {{(tagPreview || tag).name}}
+											.dropdown-menu(
+												*dropdownMenu
+												style="max-height: 300px; overflow-y: auto; overflow-x: hidden; min-width: 210px;"
+												(mouseleave)="clearCharacterTagPreview()"
 											)
-												ng-container(*ngIf="tags[0].id")
-													span.badge.character-tag-badge(
-														[ngClass]="'badge-' + tags[0].className"
-													)
+												a.dropdown-item(
+													(mouseenter)="previewCharacterTag(tags[0])"
+													(click)="tag = tags[0]; clearCharacterTagPreview()"
+												)
+													ng-container(*ngIf="tags[0].id")
+														span.badge.character-tag-badge(
+															[ngClass]="'badge-' + tags[0].className"
+														)
+															fa-icon.mr-1(
+																*ngIf="tags[0].icon"
+																[icon]="tags[0].icon"
+																[fixedWidth]="true"
+															)
+															span {{tags[0].id}}
+													ng-container(*ngIf="!tags[0].id")
 														fa-icon.mr-1(
 															*ngIf="tags[0].icon"
 															[icon]="tags[0].icon"
 															[fixedWidth]="true"
 														)
-														span {{tags[0].id}}
-												ng-container(*ngIf="!tags[0].id")
-													fa-icon.mr-1(
-														*ngIf="tags[0].icon"
-														[icon]="tags[0].icon"
-													)
-													span {{tags[0].name}}
-
-											.dropdown-divider
-
-											a.dropdown-item(
-												*ngFor="let t of tags.slice(1)"
-												(mouseenter)="previewCharacterTag(t)"
-												(click)="tag = t; clearCharacterTagPreview()"
-											)
-												ng-container(*ngIf="t.id")
-													span.badge.character-tag-badge(
-														[ngClass]="'badge-' + t.className"
-														[style.background-color]="pony.tagColor && t.id === (tag && tag.id) ? '#' + pony.tagColor : null"
-														[style.color]="pony.tagColor && t.id === (tag && tag.id) ? tagTextColor : null"
-													)
+														span {{tags[0].name}}
+												.dropdown-divider
+												a.dropdown-item(
+													*ngFor="let t of tags.slice(1)"
+													(mouseenter)="previewCharacterTag(t)"
+													(click)="tag = t; clearCharacterTagPreview()"
+												)
+													ng-container(*ngIf="t.id")
+														span.badge.character-tag-badge(
+															[ngClass]="'badge-' + t.className"
+															[style.background-color]="pony.tagColor && t.id === (tag && tag.id) ? '#' + pony.tagColor : null"
+															[style.color]="pony.tagColor && t.id === (tag && tag.id) ? tagTextColor : null"
+														)
+															fa-icon.mr-1(
+																*ngIf="t.icon"
+																[icon]="t.icon"
+																[fixedWidth]="true"
+															)
+															span {{t.id}}
+													ng-container(*ngIf="!t.id")
 														fa-icon.mr-1(
 															*ngIf="t.icon"
 															[icon]="t.icon"
-															[fixedWidth]="true"
 														)
-														span {{t.id}}
-												ng-container(*ngIf="!t.id")
-													fa-icon.mr-1(
-														*ngIf="t.icon"
-														[icon]="t.icon"
-													)
-													span {{t.name}}
-
-							.row.form-group(*ngIf="tag.id")
+														span {{t.name}}
+										button.btn.btn-default(
+											*ngIf="tag.id && translatedTagText"
+											type="button"
+											(click)="toggleTagTranslation()"
+											[title]="pony.tagTranslation ? 'Show original tag' : 'Translate tag to Russian'"
+										)
+											fa-icon.mr-1([icon]="translateIcon" [fixedWidth]="true")
+											| {{tagTranslationActionLabel}}
+							.row.form-group(*ngIf="tag.id && !supporterTagGradientLocked")
 								.col-sm-4.col-lock-box
 									label.col-form-label(for="tag-color")
-										| Tag color
+										| Tag appearance
 									check-box.lock-box(
 										[icon]="resetIcon"
 										[checked]="!!pony.tagColor"
@@ -837,16 +1600,72 @@ page-loader(*ngIf="!playing")
 										title="Reset tag color to default"
 									)
 								.col-sm-8
-									color-picker(
-										type="text"
-										id="tag-color"
-										[(color)]="tagColor"
-										(colorChangeStart)="beginColorChange()"
-										(colorChange)="colorChanged()"
-										(colorChangeEnd)="colorChangeDone()"
-										label="Tag color"
-									)
+									.d-flex.align-items-center.flex-wrap(style="gap: 8px;")
+										button.btn.btn-default(
+											*ngIf="!hasCustomTagColor"
+											type="button"
+											(click)="addTagColor()"
+										)
+											| {{tagColorActionLabel}}
+										color-picker(
+											*ngIf="hasCustomTagColor"
+											type="text"
+											id="tag-color"
+											[(color)]="tagColor"
+											(colorChangeStart)="beginColorChange()"
+											(colorChange)="colorChanged()"
+											(colorChangeEnd)="colorChangeDone()"
+											label="Tag color"
+										)
+										button(
+											type="button"
+											[class]="hasCustomTagGradient ? 'btn btn-primary' : 'btn btn-default'"
+											(click)="hasCustomTagGradient ? resetTagGradient() : addTagGradient()"
+										)
+											fa-icon.mr-1([icon]="gradientIcon" [fixedWidth]="true")
+											| {{tagGradientActionLabel}}
+							.row.form-group(*ngIf="tag.id && hasCustomTagGradient && !supporterTagGradientLocked")
+								.col-sm-4
+									label.col-form-label
+										| Gradient direction
+								.col-sm-8
+									.d-flex.align-items-center.flex-wrap(style="gap: 8px;")
+										button(
+											type="button"
+											[class]="tagGradientDirection === 'horizontal' ? 'btn btn-primary' : 'btn btn-default'"
+											(click)="tagGradientDirection = 'horizontal'"
+											title="Left to right"
+										)
+											fa-icon.mr-1([icon]="horizontalGradientIcon" [fixedWidth]="true")
+											| Left to right
+										button(
+											type="button"
+											[class]="tagGradientDirection === 'vertical' ? 'btn btn-primary' : 'btn btn-default'"
+											(click)="tagGradientDirection = 'vertical'"
+											title="Top to bottom"
+										)
+											fa-icon.mr-1([icon]="verticalGradientIcon" [fixedWidth]="true")
+											| Top to bottom
+							.row.form-group(*ngIf="tag.id && hasCustomTagGradient && !supporterTagGradientLocked")
+								.col-sm-4
+									label.col-form-label(for="tag-gradient-start")
+										| Gradient colors
+								.col-sm-8
+									.d-flex.align-items-center.flex-wrap(style="gap: 8px;")
+										color-picker(
+											id="tag-gradient-start"
+											[(color)]="tagGradientStart"
+											(colorChange)="changed()"
+											label="Gradient start"
+										)
+										color-picker(
+											id="tag-gradient-end"
+											[(color)]="tagGradientEnd"
+											(colorChange)="changed()"
+											label="Gradient end"
+										)
 
+										
 							div(*ngIf="showSupporterOptions")
 								hr
 								.row.form-group
@@ -947,7 +1766,6 @@ page-loader(*ngIf="!playing")
 
 					hr
 
-					// Social identity
 					.row.form-group
 						.col-12
 							.d-flex.align-items-center.mb-3
@@ -960,154 +1778,257 @@ page-loader(*ngIf="!playing")
 										| Social identity
 									.small.text-muted
 										| Choose the platform shown on the character.
-
-							.row.form-group
-								label#social-site-label.col-sm-4.col-form-label
-									| Social site
-								.col-sm-8
-									.dropdown.btn-group(dropdown)
-										button.btn.btn-default.dropdown-toggle(
-											dropdownToggle
-											aria-labelledby="social-site-label"
-											aria-describedby="social-site-help"
+					.row.form-group
+						label#social-site-label.col-sm-4.col-form-label
+							| Social site
+						.col-sm-8
+							.dropdown.btn-group(dropdown)
+								button.btn.btn-default.dropdown-toggle(
+									dropdownToggle
+									aria-labelledby="social-site-label"
+									aria-describedby="social-site-help"
+								)
+									fa-icon.mr-1(
+										*ngIf="site?.icon"
+										[icon]="icon(site.icon)"
+										[fixedWidth]="true"
+										[style.color]="site.color"
+										size="lg"
+									)
+									strong {{site?.name}}
+								.dropdown-menu(*dropdownMenu)
+									a.dropdown-item(
+										*ngFor="let s of sites"
+										(click)="site = s"
+									)
+										fa-icon.mr-1(
+											*ngIf="s.icon"
+											[icon]="icon(s.icon)"
+											[fixedWidth]="true"
+											[style.color]="s.color"
+											size="lg"
 										)
-											fa-icon.mr-1(
-												*ngIf="site?.icon"
-												[icon]="icon(site.icon)"
-												[fixedWidth]="true"
-												[style.color]="site.color"
-												size="lg"
-											)
-											strong {{site?.name}}
-										.dropdown-menu(*dropdownMenu)
-											a.dropdown-item(
-												*ngFor="let s of sites"
-												(click)="site = s"
-											)
-												fa-icon.mr-1(
-													*ngIf="s.icon"
-													[icon]="icon(s.icon)"
-													[fixedWidth]="true"
-													[style.color]="s.color"
-													size="lg"
-												)
-												strong {{s.name}}
-
+										strong {{s.name}}
 					hr
 
 					// Advanced controls
+
 					.row.form-group
+
 						.col-12
+
 							.d-flex.align-items-center.mb-3
+
 								fa-icon.mr-2([icon]="infoIcon" [fixedWidth]="true")
+
 								div
+
 									strong.d-block
+
 										| Advanced controls
+
 									.small.text-muted
+
 										| Less frequently used character behavior and rendering settings.
 
 							.row.form-group
+
 								label.col-sm-4.col-form-label
+
 									| Character behavior
+
 								.col-sm-8.text-muted.pt-1
+
 									custom-checkbox([(checked)]="pony.respawnAtSpawn")
+
 										| always respawn at spawn point
 
 							.row.form-group
+
 								label.col-sm-4.col-form-label
+
 									| Outline rendering
+
 								.col-sm-8.text-muted.pt-1
+
 									.mb-2
+
 										custom-checkbox([(checked)]="info.customOutlines")
+
 											| allow custom outlines
+
 									.mb-2
+
 										custom-checkbox(
+
 											[(checked)]="info.freeOutlines"
+
 											(checkedChange)="freeOutlinesChanged($event)"
+
 										)
+
 											| don't darken outlines
+
 									.mb-2
+
 										custom-checkbox(
+
 											[(checked)]="info.darkenLockedOutlines"
+
 											[disabled]="!info.freeOutlines"
+
 											(checkedChange)="darkenLockedOutlinesChanged($event)"
+
 										)
+
 											| darken locked outlines
 
 					hr
 
 					// Effects
+
 					.row.form-group(*ngIf="canUseEffects")
+
 						.col-sm-4.col-lock-box
+
 							label.col-form-label
+
 								| Effects
+
 								fa-icon.supporter-2.ml-2(
+
 									[icon]="starIcon"
+
 									[tooltip]="effectsTooltip"
+
 									[fixedWidth]="true"
+
 									aria-label="Effects information"
+
 								)
+
 							check-box.lock-box(
+
 								[icon]="eraserIcon"
+
 								[checked]="hasCustomEffects"
+
 								[disabled]="!hasCustomEffects"
+
 								(checkedChange)="resetEffects()"
+
 								label="Clear effects"
+
 								title="Clear effects"
+
 							)
+
 						.col-sm-8
+
 							.small.text-muted.mb-2
+
 								| Preview visual effects before saving.
+
 							.btn-toolbar
+
 								.d-flex.flex-wrap(style="gap: 6px;")
+
 									button(
+
 										type="button"
+
 										[class]="info.blush ? 'btn btn-primary' : 'btn btn-default'"
+
 										(click)="toggleBlushEffect()"
+
 										[tooltip]="'Toggle blush effect'"
+
 										aria-label="Blush effect"
+
 									)
+
 										| BLUSH
+
 									button(
+
 										type="button"
+
 										[class]="info.sleeping ? 'btn btn-primary' : 'btn btn-default'"
+
 										(click)="toggleSleepingEffect()"
+
 										[tooltip]="'Toggle sleeping effect'"
+
 										aria-label="Sleeping effect"
+
 									)
+
 										| ZZZ
+
 									button(
+
 										type="button"
+
 										[class]="info.tears ? 'btn btn-primary' : 'btn btn-default'"
+
 										(click)="toggleTearsEffect()"
+
 										[tooltip]="'Toggle tears effect'"
+
 										aria-label="Tears effect"
+
 									)
+
 										| TEARS
+
 									button(
+
 										type="button"
+
 										[class]="info.crying ? 'btn btn-primary' : 'btn btn-default'"
+
 										(click)="toggleCryingEffect()"
+
 										[tooltip]="'Toggle crying effect'"
+
 										aria-label="Crying effect"
+
 									)
+
 										| CRY
+
 									button(
+
 										type="button"
+
 										[class]="info.hearts ? 'btn btn-primary' : 'btn btn-default'"
+
 										(click)="toggleHeartsEffect()"
+
 										[tooltip]="'Toggle hearts effect'"
+
 										aria-label="Hearts effect"
+
 									)
+
 										| HEARTS
+
 									button(
+
 										type="button"
+
 										[class]="info.magic ? 'btn btn-primary' : 'btn btn-default'"
+
 										(click)="toggleMagicEffect()"
+
 										[disabled]="!canUseMagicEffect"
+
 										[tooltip]="canUseMagicEffect ? 'Toggle magic effect' : 'Magic requires a horn'"
+
 										aria-label="Magic effect"
+
 									)
+
 										| MAGIC
 
 					hr
@@ -1131,11 +2052,9 @@ page-loader(*ngIf="!playing")
 								title="Reset preview settings"
 							)
 						.col-sm-8
-							.small.text-muted.mb-2
-								| Fine-tune how your character looks in the editor.
-							.btn-toolbar
+							.btn-toolbar.preview-controls(style="margin-top: -6px;")
 								.btn-group
-									.dropdown(dropdown #previewScaleDropdown="ag-dropdown" [focusOnOpen]="false")
+									.dropdown(dropdown #optionsPreviewScaleDropdown="ag-dropdown" [focusOnOpen]="false")
 										button.btn.btn-default.dropdown-toggle(
 											type="button"
 											dropdownToggle
@@ -1146,12 +2065,12 @@ page-loader(*ngIf="!playing")
 											fa-icon([icon]="searchIcon")
 											span.ml-1 x{{previewScale}}
 										.dropdown-menu(style="min-width: 120px;" *dropdownMenu)
-											button.dropdown-item((click)="previewScale = 1; previewScaleDropdown.close(); changed()") x1
-											button.dropdown-item((click)="previewScale = 2; previewScaleDropdown.close(); changed()") x2
-											button.dropdown-item((click)="previewScale = 3; previewScaleDropdown.close(); changed()") x3
-											button.dropdown-item((click)="previewScale = 4; previewScaleDropdown.close(); changed()") x4
-											button.dropdown-item((click)="previewScale = 5; previewScaleDropdown.close(); changed()") x5
-											button.dropdown-item((click)="previewScale = 6; previewScaleDropdown.close(); changed()") x6
+											button.dropdown-item((click)="previewScale = 1; optionsPreviewScaleDropdown.close(); changed()") x1
+											button.dropdown-item((click)="previewScale = 2; optionsPreviewScaleDropdown.close(); changed()") x2
+											button.dropdown-item((click)="previewScale = 3; optionsPreviewScaleDropdown.close(); changed()") x3
+											button.dropdown-item((click)="previewScale = 4; optionsPreviewScaleDropdown.close(); changed()") x4
+											button.dropdown-item((click)="previewScale = 5; optionsPreviewScaleDropdown.close(); changed()") x5
+											button.dropdown-item((click)="previewScale = 6; optionsPreviewScaleDropdown.close(); changed()") x6
 									button(
 										[class]="showBackground ? 'btn btn-primary' : 'btn btn-default'"
 										type="button"
@@ -1177,15 +2096,6 @@ page-loader(*ngIf="!playing")
 									)
 										fa-icon([icon]="flipIcon")
 									button(
-										[class]="!canPreviewHoldItem ? 'btn btn-default' : (isPreviewingHoldItem ? 'btn btn-primary' : 'btn btn-default')"
-										type="button"
-										[disabled]="!canPreviewHoldItem"
-										[tooltip]="canPreviewHoldItem ? 'Show or hide held item' : 'No held item'"
-										aria-label="Show or hide held item"
-										(click)="togglePreviewHoldItem()"
-									)
-										fa-icon([icon]="holdItemIcon")
-									button(
 										[class]="hidePreviewName ? 'btn btn-primary' : 'btn btn-default'"
 										type="button"
 										[tooltip]="isMobile ? 'Show or hide name' : 'Show or hide name (Y)'"
@@ -1195,216 +2105,606 @@ page-loader(*ngIf="!playing")
 										span.fa-layers
 											fa-icon([icon]="nameIcon")
 											fa-icon(*ngIf="hidePreviewName" [icon]="slashIcon")
-									button(*ngIf="canTogglePreviewTag" [class]="hidePreviewTag ? 'btn btn-primary' : 'btn btn-default'" type="button" [tooltip]="isMobile ? 'Show or hide tag' : 'Show or hide tag (T)'" aria-label="Hide tag" (click)="toggleHidePreviewTag()")
+									button(
+										[class]="hidePreviewTag ? 'btn btn-primary' : 'btn btn-default'"
+										type="button"
+										[tooltip]="isMobile ? 'Show or hide tag' : 'Show or hide tag (T)'"
+										aria-label="Hide tag"
+										(click)="toggleHidePreviewTag()"
+									)
 										span.fa-layers
 											fa-icon([icon]="tagIcon")
 											fa-icon(*ngIf="hidePreviewTag" [icon]="slashIcon")
-
-					.row.form-group(*ngIf="showBackground")
-						.col-sm-4.col-lock-box
-							label.col-form-label(for="preview-background") Background
-							check-box.lock-box(
-								[icon]="resetIcon"
-								[checked]="hasCustomPreviewBackground"
-								[disabled]="!hasCustomPreviewBackground"
-								(checkedChange)="resetBackground()"
-								label="Reset background"
-								title="Reset background"
-							)
-						.col-sm-8
-							color-picker(
-								type="text"
-								id="preview-background"
-								[(color)]="info.previewBackground"
-								(colorChangeStart)="beginColorChange()"
-								(colorChange)="colorChanged()"
-								(colorChangeEnd)="colorChangeDone()"
-							)
-
-					hr
-
+					.row.mt-2(*ngIf="showBackground")
+						.col-sm-8.offset-sm-4
+							.d-flex.align-items-center(style="gap: 8px;")
+								color-picker(
+									[(color)]="info.previewBackground"
+									(colorChangeStart)="beginColorChange()"
+									(colorChange)="colorChanged()"
+									(colorChangeEnd)="colorChangeDone()"
+									labelledBy="preview-background"
+								)
+								button.btn.btn-default(
+									type="button"
+									[disabled]="!hasCustomPreviewBackground"
+									(click)="resetBackground()"
+									[tooltip]="'Reset background'"
+									aria-label="Reset background"
+									title="Reset background"
+								)
+									fa-icon([icon]="resetIcon")
 					// Description
+
 					.row.form-group
+
 						.col-12
+
 							.d-flex.align-items-center.mb-3
+
 								fa-icon.mr-2([icon]="infoIcon" [fixedWidth]="true")
+
 								div
+
 									strong.d-block
+
 										| Description
+
 									.small.text-muted
+
 										| Add a short description and searchable #tags.
+
 							.row
+
 								.col-12
+
 									input.form-control#description(
+
 										[(ngModel)]="pony.desc"
+
 										placeholder="example: with a hat #oc #winter"
+
 										[maxlength]="maxDescLength"
+
 									)
 
 					hr
 
 					// Animation and file tools
+
 					.row.form-group
+
 						.col-12
+
 							.d-flex.align-items-center.mb-3
+
 								fa-icon.mr-2([icon]="playIcon" [fixedWidth]="true")
+
 								div
+
 									strong.d-block
+
 										| Animation & files
+
 									.small.text-muted
-										| Inspect animation frames, manage pony data, and save animation images.
 
-							.row.form-group
-								.col-md-5
-									label.col-form-label.col-12(for="frame-input")
-										| Animation frame
-									.col-12
-										.input-group
-											input.form-control#frame-input(
-												type="number"
-												[(ngModel)]="state.animationFrame"
-												[disabled]="playAnimation"
-												min="0"
-												title="Animation frame"
-												aria-label="Animation frame"
-											)
-											.input-group-append
-												check-box.lock-box(
-													[icon]="playIcon"
-													[(checked)]="playAnimation"
-													label="Play animation"
-												)
+										| Preview animations, import or export character data, and save your character as PNG.
 
-								.col-md-7
-									.btn-toolbar.flex-wrap(style="gap: 6px;")
-										.dropdown.btn-group(dropdown)
-											button.btn.btn-default.dropdown-toggle(
-												type="button"
-												dropdownToggle
-												aria-haspopup="true"
-											)
-												fa-icon.mr-1([icon]="codeIcon")
-												| Data tools
-											.dropdown-menu(*dropdownMenu)
-												button.dropdown-item(
-													*ngIf="canSaveFiles && canExport"
-														type="button"
-														(click)="export()"
-													)
-													fa-icon.mr-2([icon]="codeIcon")
-													| Export all
-												button.dropdown-item(
-													*ngIf="canSaveFiles"
-														type="button"
-														(click)="import()"
-													)
-													fa-icon.mr-2([icon]="codeIcon")
-													| Import data
-												button.dropdown-item(
-													*ngIf="canSaveFiles"
-														type="button"
-														(click)="testSize()"
-													)
-													| Compressed size
-												button.dropdown-item(
-													*ngIf="canSaveFiles"
-														type="button"
-														(click)="testJSON()"
-													)
-													| Raw JSON
+							// Import / Export
 
-										.dropdown.btn-group(dropdown)
-											button.btn.btn-default.dropdown-toggle(
-												type="button"
-												dropdownToggle
-												aria-haspopup="true"
-											)
-												fa-icon.mr-1([icon]="codeIcon")
-												| Pony data
-											.dropdown-menu(*dropdownMenu)
-												.btn-group.d-flex.p-2(style="gap: 4px;")
-													button.btn.btn-sm.btn-default(
-														type="button"
-														(click)="exportPony()"
-													)
-														fa-icon.mr-1([icon]="codeIcon")
-														| Export pony
-													button.btn.btn-sm.btn-default(
-														type="button"
-														(click)="exportPonies()"
-													)
-														fa-icon.mr-1([icon]="codeIcon")
-														| Export all
-													button.btn.btn-sm.btn-default(
-														type="button"
-														(click)="importFile.click()"
-													)
-														fa-icon.mr-1([icon]="codeIcon")
-														| Import
-													input.d-none(
-														#importFile
-														type="file"
-														(change)="importPonies(importFile.files[0])"
-													)
+							.card.mb-3
+
+								.card-body(style="padding: 14px 16px;")
+
+									.d-flex.align-items-center.mb-3
+
+										fa-icon.mr-2(
+											[icon]="codeIcon"
+											[fixedWidth]="true"
+										)
+
+										div
+
+											strong.d-block
+
+												| Import / Export
+
+											.small.text-muted
+
+												| Manage character data and transfer characters between editors.
+
+									.d-flex.flex-wrap(style="gap: 6px;")
+
+										button.btn.btn-default(
+											*ngIf="canSaveFiles && canExport"
+											type="button"
+											(click)="export()"
+										)
+
+											fa-icon.mr-2([icon]="codeIcon" [fixedWidth]="true")
+
+											| Export data
 
 										button.btn.btn-default(
 											*ngIf="canSaveFiles"
 											type="button"
-											(click)="export(activeAnimation)"
-											title="Save as PNG"
-											aria-label="Save as PNG"
+											(click)="import()"
 										)
-											fa-icon.mr-1([icon]="saveIcon")
-											| Save PNG
 
-										.dropdown.btn-group(dropdown)
-											button.btn.btn-default.dropdown-toggle(
-												dropdownToggle
-												style="min-width: 110px;"
-											)
-												strong {{animations[activeAnimation]().name}}
-											.dropdown-menu.dropdown-menu-right(
-												*dropdownMenu
-												style="max-height: 300px; overflow-y: auto; overflow-x: hidden;"
-											)
-												ng-container(*ngFor="let group of animationGroups; let groupIndex = index")
-													.dropdown-header {{group.name}}
-													a.dropdown-item(
-														*ngFor="let index of group.indexes"
-														(click)="setActiveAnimation(index)"
-													)
-														| {{animations[index]().name}}
-													.dropdown-divider(*ngIf="groupIndex < animationGroups.length - 1")
+											fa-icon.mr-2([icon]="codeIcon" [fixedWidth]="true")
 
-							// All compact animator controls are above; the PNG/animation
-							// controls remain directly accessible.
+											| Import data
+
+										button.btn.btn-default(
+											type="button"
+											(click)="exportPony()"
+										)
+
+											fa-icon.mr-2([icon]="codeIcon" [fixedWidth]="true")
+
+											| Export character
+
+										button.btn.btn-default(
+											type="button"
+											(click)="exportPonies()"
+										)
+
+											fa-icon.mr-2([icon]="codeIcon" [fixedWidth]="true")
+
+											| Export all
+
+										button.btn.btn-default(
+											*ngIf="canSaveFiles"
+											type="button"
+											(click)="importFile.click()"
+										)
+
+											fa-icon.mr-2([icon]="codeIcon" [fixedWidth]="true")
+
+											| Import character
+
+										input.d-none(
+											#importFile
+											type="file"
+											(change)="importPonies(importFile.files[0])"
+										)
+
+									.small.text-muted.mt-2
+
+										| Imported characters are shown for confirmation before they replace your current character.
+
+							// PNG Export
+
+							.card.mb-3
+
+								.card-body(style="padding: 14px 16px;")
+
+									.d-flex.align-items-center.mb-3
+
+										fa-icon.mr-2(
+											[icon]="saveIcon"
+											[fixedWidth]="true"
+										)
+
+										div
+
+											strong.d-block
+
+												| PNG Export
+
+											.small.text-muted
+
+												| Choose exactly how your character should be saved as an image.
+
+									.row.form-group
+
+										label.col-sm-4.col-form-label
+
+											| Export size
+
+										.col-sm-8
+
+											.d-flex.flex-wrap(style="gap: 6px;")
+
+												button(
+													type="button"
+													[class]="pngExportScale === 1 ? 'btn btn-primary' : 'btn btn-default'"
+													(click)="pngExportScale = 1"
+												)
+
+													| x1
+
+												button(
+													type="button"
+													[class]="pngExportScale === 2 ? 'btn btn-primary' : 'btn btn-default'"
+													(click)="pngExportScale = 2"
+												)
+
+													| x2
+
+												button(
+													type="button"
+													[class]="pngExportScale === 4 ? 'btn btn-primary' : 'btn btn-default'"
+													(click)="pngExportScale = 4"
+												)
+
+													| x4
+
+												button(
+													type="button"
+													[class]="pngExportScale === 6 ? 'btn btn-primary' : 'btn btn-default'"
+													(click)="pngExportScale = 6"
+												)
+
+													| x6
+
+												button(
+													type="button"
+													[class]="pngExportScale === 10 ? 'btn btn-primary' : 'btn btn-default'"
+													(click)="pngExportScale = 10"
+												)
+
+													| x10
+
+												button(
+													type="button"
+													[class]="pngExportScale === 12 ? 'btn btn-primary' : 'btn btn-default'"
+													(click)="pngExportScale = 12"
+												)
+
+													| x12
+
+									.row.form-group
+
+										label.col-sm-4.col-form-label
+
+											| Character details
+
+										.col-sm-8
+
+											.mb-2
+
+												custom-checkbox([(checked)]="pngExportName")
+
+													| Show nickname and tag
+
+											.mb-2
+
+												custom-checkbox([(checked)]="pngExportBackground")
+
+													| Show background
+
+											.mb-2
+
+												custom-checkbox([(checked)]="pngExportShadow")
+
+													| Show shadow
+
+
+					.row.form-group
+
+						label.col-sm-4.col-form-label
+
+							| Animation frames
+
+						.col-sm-8
+
+							.mb-2
+
+								custom-checkbox(
+
+									[checked]="!playAnimation"
+
+									[disabled]="playAnimation"
+
+									label="Export current frame"
+
+								)
+
+									| Export current frame
+
+							.mb-2
+
+								custom-checkbox(
+
+									[checked]="playAnimation"
+
+									[disabled]="!playAnimation"
+
+									label="Export all animation frames"
+
+								)
+
+									| Export all animation frames
+
+							.small.text-muted.mt-2
+
+								| {{playAnimation ? 'Animation playback is active, so all frames will be exported.' : 'Animation is paused, so only the selected frame will be exported.'}}
+
+							.d-flex.justify-content-end.align-items-center.mt-3
+
+								button.btn.btn-default.mr-2(
+
+									type="button"
+
+									[disabled]="!playAnimation"
+
+									(click)="exportGif()"
+
+									title="Export GIF"
+
+									aria-label="Export GIF"
+
+								)
+
+									| Export GIF
+
+								button.btn.btn-default.mr-2(
+
+									type="button"
+
+									[disabled]="!playAnimation"
+
+									(click)="exportVideo()"
+
+									title="Export video"
+
+									aria-label="Export video"
+
+								)
+
+									| Export video
+
+								button.btn.btn-primary(
+
+									type="button"
+
+									(click)="export(activeAnimation)"
+
+									title="Save character as PNG"
+
+									aria-label="Save character as PNG"
+
+								)
+
+									fa-icon.mr-2(
+
+										[icon]="saveIcon"
+
+										[fixedWidth]="true"
+
+									)
+
+									| Save PNG
+
+
+					// Animation Preview
+
+					.animation-preview-section.mt-4
+
+						.d-flex.align-items-center.mb-3
+
+							fa-icon.mr-2(
+
+								[icon]="playIcon"
+
+								[fixedWidth]="true"
+
+							)
+
+							div
+
+								strong.d-block
+
+									| Animation Preview
+
+								.small.text-muted
+
+									| Select an animation and inspect its frames before exporting.
+
+
+						.row
+
+							.col-md-5
+
+								label.col-form-label(for="frame-input")
+
+									| Animation frame
+
+								.input-group
+
+									input.form-control#frame-input(
+
+										type="number"
+
+										[(ngModel)]="state.animationFrame"
+
+										[disabled]="playAnimation"
+
+										min="0"
+
+										title="Animation frame"
+
+										aria-label="Animation frame"
+
+									)
+
+									.input-group-append
+
+										button.btn.btn-default.animation-play-button(
+
+											type="button"
+
+											[class.btn-primary]="playAnimation"
+
+											(click)="playAnimation = !playAnimation"
+
+											[tooltip]="playAnimation ? 'Pause animation' : 'Play animation'"
+
+											[attr.aria-label]="playAnimation ? 'Pause animation' : 'Play animation'"
+
+										)
+
+											fa-icon(
+
+												[icon]="playAnimation ? pauseIcon : playIcon"
+
+												[fixedWidth]="true"
+
+											)
+
+
+							.col-md-7
+								label.col-form-label(for="animation-select")
+
+									| Animation
+
+								.dropdown.btn-group.w-100(dropdown)
+
+									button.btn.btn-default.dropdown-toggle.w-100#animation-select(
+
+										type="button"
+
+										dropdownToggle
+
+										aria-haspopup="true"
+
+										aria-expanded="false"
+
+									)
+
+										span.d-flex.align-items-center.w-100
+
+											strong.text-truncate.flex-grow-1.text-left
+
+												| {{animations[activeAnimation]().name}}
+
+											fa-icon.ml-2.flex-shrink-0(
+
+												[icon]="chevronDownIcon"
+
+												[fixedWidth]="true"
+
+											)
+
+									.dropdown-menu.dropdown-menu-right(
+
+										*dropdownMenu
+
+										style="max-height: 300px; overflow-y: auto; overflow-x: hidden; width: 100%;"
+
+									)
+
+										ng-container(
+
+											*ngFor="let group of animationGroups; let groupIndex = index"
+
+										)
+
+											.dropdown-header
+
+												| {{group.name}}
+
+											a.dropdown-item(
+
+												*ngFor="let index of group.indexes"
+
+												(click)="setActiveAnimation(index)"
+
+											)
+
+												| {{animations[index]().name}}
+
+											.dropdown-divider(
+
+												*ngIf="groupIndex < animationGroups.length - 1"
+
+											)
 
 					// Debug
-					.row.form-group(*ngIf="debug")
+
+					.row.form-group.mt-5(*ngIf="debug")
+
 						.col-12
-							.d-flex.align-items-center.mb-3
-								fa-icon.mr-2([icon]="warningIcon" [fixedWidth]="true")
-								div
-									strong.d-block
-										| Debug tools
-									.small.text-muted
-										| Developer-only controls.
-							button.btn.btn-sm.btn-default(
-								type="button"
-								(click)="addBlush()"
-							)
-								| Add blush
+
+							.debug-section
+
+								.d-flex.align-items-center.mb-3
+
+									fa-icon.mr-2(
+
+										[icon]="warningIcon"
+
+										[fixedWidth]="true"
+
+									)
+
+									div
+
+										strong.d-block
+
+											| Debug tools
+
+										.small.text-muted
+
+											| Developer-only controls.
+
+								button.btn.btn-sm.btn-default(
+
+									type="button"
+
+									(click)="addBlush()"
+
+								)
+
+									| Add blush
 
 ng-template(#unsavedCharacterModal)
+
 	unsaved-character-modal(
+
 		[title]="modalTitle"
+
 		[prompt]="modalPrompt"
+
 		[saveLabel]="modalSaveLabel"
+
 		[discardLabel]="modalDiscardLabel"
+
 		[ponyName]="modalPonyName"
+
+		[currentPonyData]="pony"
+
 		[currentPony]="pony.ponyInfo"
+
+		[storedPonyData]="modalContext === 'restore' ? restoreDraftCandidate : storedPony"
+
 		[storedPony]="modalContext === 'restore' ? restoreDraftCandidate?.ponyInfo : storedPonyInfo"
+
 		(save)="confirmSaveAndPlay()"
+
 		(discard)="confirmDiscardAndPlay()"
+
 		(cancel)="cancelPlay()"
+
 	)
+
+
+ng-template(#importedCharacterModal)
+
+	imported-modal(
+
+		[ponies]="importedPonies"
+
+		[account]="model.account"
+
+		[errorMessage]="importError"
+
+		(close)="closeImportedCharacterModal()"
+
+		(keep)="confirmImportedCharacter()"
+
+		(remove)="closeImportedCharacterModal()"
+
+	)
+

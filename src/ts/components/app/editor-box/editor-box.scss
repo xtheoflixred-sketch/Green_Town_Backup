@@ -21,75 +21,89 @@
 .editor-entity-modal-body {
 	display: flex;
 	flex-direction: column;
-	gap: 0.75rem;
+	gap: 0.9rem;
 	max-height: calc(100vh - 180px);
 	overflow-y: auto;
 	overflow-x: hidden;
 }
 
 .editor-entity-list {
-	max-height: 55vh;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.7rem;
+	max-height: 62vh;
 	overflow-y: auto;
 	overflow-x: hidden;
-	background-color: rgba(255, 255, 255, 0.03);
-	border: 1px solid rgba(255, 255, 255, 0.12);
-	border-radius: 8px;
-	padding: 0.25rem 0.35rem;
+	background: linear-gradient(145deg, rgba(17, 25, 35, 0.96), rgba(32, 43, 49, 0.94));
+	border: 1px solid rgba(238, 191, 105, 0.28);
+	border-radius: 10px;
+	padding: 0.7rem;
 }
 
 .editor-entity-item {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: center;
 	width: 100%;
-	font-size: 13px;
+	min-height: 132px;
+	font-size: 12px;
 	line-height: 1.3;
 	white-space: normal;
 	word-break: break-word;
-	border-radius: 6px;
-	padding: 0.4rem 0.5rem;
-	background: transparent;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 8px;
+	padding: 0.45rem;
+	background: rgba(7, 12, 17, 0.5);
 	cursor: pointer;
+	transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 
 	&:hover,
 	&:focus {
-		background: rgba(255, 255, 255, 0.07);
+		background: rgba(238, 191, 105, 0.12);
+		border-color: rgba(238, 191, 105, 0.7);
+		box-shadow: 0 5px 14px rgba(0, 0, 0, 0.24);
+		transform: translateY(-2px);
 	}
 
 	&.active {
-		background: rgba(255, 255, 255, 0.14);
-		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+		background: rgba(238, 191, 105, 0.18);
+		border-color: #eebf69;
+		box-shadow: inset 0 0 0 1px rgba(238, 191, 105, 0.45), 0 0 0 2px rgba(238, 191, 105, 0.12);
 	}
 }
 
+
 .editor-entity-main {
 	display: flex;
-	align-items: center;
+	align-items: stretch;
 	min-width: 0;
-	gap: 0.6rem;
 }
 
 .editor-entity-icon {
-	display: inline-flex;
+	display: flex;
 	align-items: center;
 	justify-content: center;
-	flex: 0 0 auto;
-	width: 30px;
-	height: 30px;
-	border-radius: 6px;
-	background: rgba(0, 0, 0, 0.25);
+	width: 100%;
+	height: 94px;
+	border-radius: 7px;
+	background: radial-gradient(circle at 50% 42%, rgba(235, 202, 135, 0.16), rgba(0, 0, 0, 0.28) 72%);
+	overflow: hidden;
 
 	action-button {
 		margin: 0;
 		pointer-events: none;
+		transform: scale(1.35);
 	}
 }
 
 .editor-entity-name {
+	display: block;
+	margin-top: 0.45rem;
+	text-align: center;
 	font-weight: 500;
-	color: rgba(255, 255, 255, 0.92);
-	overflow: hidden;
-	text-overflow: ellipsis;
+	color: rgba(255, 255, 255, 0.94);
+	overflow-wrap: anywhere;
 }
 
 .editor-entity-status {
@@ -100,17 +114,17 @@
 	color: rgba(255, 255, 255, 0.9);
 }
 
-.editor-entity-separator {
-	margin: 0.12rem 0;
-	border: 0;
-	border-top: 1px solid rgba(255, 255, 255, 0.14);
-}
-
 .editor-search-clear {
 	min-width: 34px;
 	font-size: 18px;
 	line-height: 1;
 	padding: 0 0.4rem;
+}
+
+@media (max-width: 540px) {
+	.editor-entity-list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 
 .search-highlight {

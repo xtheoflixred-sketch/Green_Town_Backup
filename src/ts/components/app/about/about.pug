@@ -124,7 +124,7 @@
 				.about-text
 					p Development updates and experimental changes.
 			button.btn.btn-outline-secondary.mb-3(type='button' (click)='openDevChangelog()') Open Dev Changelog
-			changelog-view(*ngIf="changelogResponse && changelogResponse.dev && changelogResponse.dev.length > 0" [rawEntries]="changelogResponse.dev")
+			changelog-view(*ngIf="changelogResponse && changelogResponse.dev && changelogResponse.dev.length > 0" [rawEntries]="changelogResponse.dev" [isDev]="true")
 
 ng-template(#devChangelogModal)
 	dev-changelog-modal(

@@ -22,6 +22,14 @@ export interface IAuth extends AuthBase<Types.ObjectId>, Doc { }
 export interface IOrigin extends OriginBase, Doc { }
 export interface IEvent extends EventBase<Types.ObjectId>, Doc { }
 export interface ISupporterInvite extends SupporterInviteBase<Types.ObjectId>, Doc { }
+export interface ISupporterCode extends Doc {
+	code: string;
+	level: number;
+	durationDays: number;
+	createdBy: string;
+	redeemedBy?: string;
+	redeemedAt?: Date;
+}
 export interface IFriendRequest extends FriendRequestBase<Types.ObjectId>, Doc { }
 export interface IHideRequest extends HideRequestBase<Types.ObjectId>, Doc { }
 
@@ -105,6 +113,7 @@ const accountSchema = new Schema({
 	lastSessionSeconds: Number,
 	lastCharacter: Schema.Types.ObjectId,
 	roles: [String],
+	roleTagOverrides: { type: Schema.Types.Mixed, default: () => ({}) },
 	origins: [originInfo],
 	note: String,
 	noteUpdated: Date,
@@ -117,6 +126,7 @@ const accountSchema = new Schema({
 	counters: { type: Schema.Types.Mixed, default: () => ({}) },
 	patreon: Number,
 	supporter: Number,
+	supporterExpiresAt: Date,
 	supporterLog: [logEntry],
 	supporterTotal: Number,
 	supporterDeclinedSince: Date,
@@ -151,7 +161,11 @@ const characterSchema = new Schema({
 	name: { type: String, index: true },
 	desc: String,
 	tag: String,
+		tagTranslation: String,
 	tagColor: String, // Custom color override for the tag (hex format without '#')
+	tagGradientStart: String,
+	tagGradientEnd: String,
+	tagGradientDirection: String,
 	supportTag: String,
 	supportChat: String,
 	supportTagPriority: Boolean,
@@ -224,6 +238,17 @@ accountSchema.post('remove', function (doc: Document) {
 
 export const Account = model<IAccount>('Account', accountSchema);
 export const SupporterInvite = model<ISupporterInvite>('SupporterInvite', supporterInviteSchema);
+
+const supporterCodeSchema = new Schema({
+	code: { type: String, required: true, unique: true, index: true },
+	level: { type: Number, required: true, min: 1, max: 4 },
+	durationDays: { type: Number, required: true, min: 1, max: 3650 },
+	createdBy: { type: String, required: true },
+	redeemedBy: String,
+	redeemedAt: Date,
+}, { timestamps: true });
+
+export const SupporterCode = model<ISupporterCode>('SupporterCode', supporterCodeSchema);
 export const FriendRequest = model<IFriendRequest>('FriendRequest', friendRequestSchema);
 export const HideRequest = model<IHideRequest>('HideRequest', hideRequestSchema);
 

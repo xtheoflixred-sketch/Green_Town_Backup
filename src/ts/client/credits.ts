@@ -115,7 +115,7 @@ const BADGES = {
 	anim: {
 		id: 'anim',
 		label: 'Animator',
-		color: 'rgb(116, 155, 8)',
+		color: '#ff69b4',
 		icon: faPaintBrush,
 	},
 	qa: {
@@ -226,6 +226,13 @@ export const CREDITS: Credit[] = [
 		avatarBgColor: 'rgb(168, 112, 131)',
 		links: [],
 	},
+		{
+			name: 'Rey Shlapochnik',
+			badges: [BADGES.anim],
+			avatarSkin: 'rey-shlapochnik-pony',
+			avatarBgColor: 'rgb(191, 121, 0)',
+			links: ['https://www.tiktok.com/@mr._rey?_r=1&_t=ZS-99BSpEtfoft'],
+		},
 ];
 
 

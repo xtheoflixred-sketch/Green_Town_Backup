@@ -34,6 +34,62 @@ action-button {
 	}
 }
 
+.expression-preview-layout {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+}
+
+.expression-portrait {
+	flex: 0 0 100px;
+}
+
+.expression-portrait-wrap {
+	position: relative;
+	flex: 0 0 100px;
+}
+
+.expression-rotate {
+	position: absolute;
+	right: 4px;
+	bottom: 4px;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: rgba(0, 0, 0, 0.7);
+	color: white;
+}
+
+.expression-controls {
+	min-width: 0;
+	flex: 1 1 auto;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+@media screen and (max-width: 575px) {
+	.expression-preview-layout {
+		gap: 10px;
+	}
+
+	.expression-portrait {
+		flex-basis: 66px;
+	}
+
+	.expression-portrait-wrap {
+		flex-basis: 66px;
+	}
+
+	.expression-controls {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.sub-tabset {
+		width: 100%;
+	}
+}
+
 .action-columns {
 	display: flex;
 	flex-wrap: wrap;

@@ -1,9 +1,11 @@
 import { Component, ViewChild, TemplateRef } from '@angular/core';
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
 import { AdminModel } from '../../../services/adminModel';
-import { DEFAULT_PONY } from '../../../../common/constants';
-import { decompressPonyString } from '../../../../common/compressPony';
+import { compressPonyString, decompressPonyString } from '../../../../common/compressPony';
+import { getConfiguredDefaultPony } from '../../../../client/defaultPonyClient';
 // preview conversion handled by CharacterPreview
+
+const SERVER_DEFAULT_PONY_STRING = compressPonyString(getConfiguredDefaultPony());
 
 @Component({
 	selector: 'default-pony-modal',
@@ -22,9 +24,9 @@ export class DefaultPonyModal {
 	}
 
 	open() {
-		// initialize with current server setting or constant
+		// Initialize with configured default from config or built-in default from constants
 		this.inputValue = (this.model.state && (this.model.state as any).settings && (this.model.state as any).settings.defaultPonyInfo)
-			|| DEFAULT_PONY;
+			|| SERVER_DEFAULT_PONY_STRING;
 		this.updatePreview();
 		this.modalRef = this.modalService.show(this.template, { class: 'modal-lg' });
 	}
@@ -77,7 +79,7 @@ export class DefaultPonyModal {
 			return;
 		}
 
-		const value = this.inputValue || DEFAULT_PONY;
+		const value = this.inputValue || SERVER_DEFAULT_PONY_STRING;
 		return this.model.updateSettings({ defaultPonyInfo: value })
 			.then(() => this.cancel())
 			.catch(() => undefined);
@@ -88,7 +90,7 @@ export class DefaultPonyModal {
 			return;
 		}
 
-		const value = this.inputValue || DEFAULT_PONY;
+		const value = this.inputValue || SERVER_DEFAULT_PONY_STRING;
 		return this.model.updateSettings({ defaultPonyInfo: value })
 			.then(() => {
 				// this action intentionally publishes the new default immediately

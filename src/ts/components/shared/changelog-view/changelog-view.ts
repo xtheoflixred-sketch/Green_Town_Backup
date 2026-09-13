@@ -10,6 +10,7 @@ import { ChangelogSeasonGroup, ChangelogParsedEntry, buildSeasonGroups } from '.
 export class ChangelogView implements OnInit, OnChanges {
 	@Input() rawEntries: { version: string; changes: string[]; }[] = [];
 	@Input() changelogResponse: any;
+	@Input() isDev = false;
 
 	seasonGroups: ChangelogSeasonGroup[] = [];
 	showAll = false;
@@ -104,8 +105,8 @@ export class ChangelogView implements OnInit, OnChanges {
 	}
 
 	getSeasonImageUrl(season: number) {
-		// Use the actual update previews folder used by assets
-		return `/assets/images/update_previews/season${season}.png`;
+		const folder = this.isDev ? 'dev_update_previews' : 'update_previews';
+		return `/assets/images/${folder}/season${season}.png`;
 	}
 
 	isFirstVisibleWithContent(seasonIndex: number, patchIndex: number) {

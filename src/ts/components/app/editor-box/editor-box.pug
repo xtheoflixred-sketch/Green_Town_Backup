@@ -4,6 +4,16 @@
 	.d-flex.flex-row.align-items-start
 		button.game-button.px-2((click)="toggleEditor()")
 			fa-icon([icon]="editIcon")
+		button.game-button.px-2(
+			(click)="undoEditor()"
+			title="Undo"
+			[disabled]="!hasEditor")
+			fa-icon([icon]="undoIcon")
+		button.game-button.px-2(
+			(click)="redoEditor()"
+			title="Redo"
+			[disabled]="!hasEditor")
+			fa-icon([icon]="redoIcon")
 
 		// Остальной редактор
 		.d-flex.align-items-start.pl-2.pt-1(*ngIf="hasEditor")
@@ -18,6 +28,7 @@
 						label.col-12.col-form-label
 							.float-right
 								button.btn.btn-xs.btn-warning.ml-1(
+									*ngIf="!isPonyEntity"
 									(click)="holdSelectedItem()"
 									title="Hold item")
 									| Hold
@@ -26,11 +37,6 @@
 									(click)="showEntitiesInfo()"
 									title="Show info")
 									| info
-
-								button.btn.btn-xs.btn-secondary.ml-1(
-									(click)="duplicateEntities()"
-									title="Duplicate entities")
-									fa-icon([icon]="duplicateIcon")
 
 								button.btn.btn-xs.btn-danger.ml-1(
 									(click)="deleteEntities()"
@@ -61,8 +67,17 @@
 								[(ngModel)]="entityY"
 								type="number")
 
+				//- player name
+				div(*ngIf="singlePonyEntity")
+					.row.form-group.mb-2
+						label.col-4.col-form-label name
+						.col-8
+							input.form-control(
+								[(ngModel)]="entityNameInput"
+								maxlength="30")
+
 				//- message color
-				div(*ngIf="singleEntity")
+				div(*ngIf="allPonyEntities")
 					.row.form-group.mb-2
 						label.col-5.col-form-label
 							| message color
@@ -70,7 +85,7 @@
 							color-picker([(color)]="entityMessageColor")
 
 				//- tag color
-				div(*ngIf="singleEntity")
+				div(*ngIf="allPonyEntities")
 					.row.form-group.mb-2
 						label.col-5.col-form-label
 							| tag color
@@ -171,7 +186,7 @@
 				//- 				option(value="above") Above players
 
 				//- selection highlight color
-				div(*ngIf="singleEntity")
+				div(*ngIf="hasSelectedEntities")
 					.row.form-group.mb-2
 						label.col-5.col-form-label highlight
 						.col-4
@@ -179,14 +194,32 @@
 						.col-3.text-right
 							button.btn.btn-xs.btn-warning((click)="selectionHighlightColor = '#ffcc00'") default
 
+				//- tint color
+				div(*ngIf="hasSelectedEntities && !isPonyEntity")
+					.row.form-group.mb-2
+						label.col-5.col-form-label tint color
+						.col-4
+							color-picker([(color)]="entitySpriteTint")
+						.col-3.text-right
+							button.btn.btn-xs.btn-warning((click)="entitySpriteTint = '#ffffff'") default
+
 				//- scale (non-customImage only)
-				div(*ngIf="singleEntity && !isCustomImageEntity")
+				div(*ngIf="hasSelectedEntities && !isCustomImageEntity")
 					.row.form-group.mb-2
 						label.col-5.col-form-label scale ({{entityScale | number:'1.0-2'}})
 						.col-4.py-2
 							slider-bar([(value)]="entityScale" [min]="0.1" [max]="5")
 						.col-3.text-right
 							button.btn.btn-xs.btn-warning((click)="entityScale = 1") default
+
+				//- opacity (non-customImage only)
+				div(*ngIf="hasSelectedEntities && !isCustomImageEntity")
+					.row.form-group.mb-2
+						label.col-5.col-form-label opacity ({{entityOpacity | number:'1.0-2'}})
+						.col-4.py-2
+							slider-bar([(value)]="entityOpacity" [min]="0" [max]="1")
+						.col-3.text-right
+							button.btn.btn-xs.btn-warning((click)="entityOpacity = 1") default
 
 			.input-group.input-group-sm
 				input.form-control(
@@ -326,6 +359,13 @@
 					fa-icon([icon]="hammerIcon")
 
 				button.btn.btn-sm(
+					[class.btn-info]="useEditorCustomSign"
+					[class.btn-default]="!useEditorCustomSign"
+					(click)="useEditorCustomSign = !useEditorCustomSign"
+					title="Screwdriver: edit signs")
+					fa-icon([icon]="customSignIcon")
+
+				button.btn.btn-sm(
 					[class.btn-primary]="useEditorShovel"
 					[class.btn-default]="!useEditorShovel"
 					(click)="useEditorShovel = !useEditorShovel"
@@ -353,6 +393,13 @@
 					(click)="useEditorPickaxe = !useEditorPickaxe"
 					title="Editor pickaxe — clone any entity (Ctrl+drag)")
 					fa-icon([icon]="pickaxeIcon")
+
+				button.btn.btn-sm(
+					[class.btn-warning]="useEditorOffset"
+					[class.btn-default]="!useEditorOffset"
+					(click)="useEditorOffset = !useEditorOffset"
+					title="Editor wrench — offset objects vertically (drag)")
+					fa-icon([icon]="offsetIcon")
 
 				button.btn.btn-sm(
 					[class.btn-secondary]="useEditorSaw"
@@ -410,9 +457,9 @@ ng-template(#entityPickerModal)
 						| ×
 
 		.editor-entity-list
-			ng-container(*ngFor='let e of filteredEditorEntities; let last = last')
+			ng-container(*ngFor='let e of filteredEditorEntities')
 
-				div.dropdown-item.editor-entity-item(
+				div.editor-entity-item(
 					#entityItemButton
 					[attr.data-entity]='e'
 					(click)='selectEditorEntity(e)'
@@ -420,21 +467,18 @@ ng-template(#entityPickerModal)
 					tabindex='0'
 					[class.active]='e === pendingEditorEntity')
 
-					.editor-entity-main
-						span.editor-entity-icon
-							action-button(
-								[action]='getEntityPreviewAction(e)'
-								[shadow]='false')
+					.editor-entity-icon
+						action-button(
+							[action]='getEntityPreviewAction(e)'
+							[shadow]='false')
 
-						span.editor-entity-name(
-							[class.search-highlight]='entitySearch && e === pendingEditorEntity')
-							| {{e}}
+					.editor-entity-name(
+						[class.search-highlight]='entitySearch && e === pendingEditorEntity')
+						| {{e}}
 
 					span.editor-entity-status(
 						*ngIf='e === pendingEditorEntity')
 						| selected
-
-				hr.editor-entity-separator(*ngIf='!last')
 
 			div.text-muted.px-2.py-2(*ngIf='!filteredEditorEntities.length')
 				| No objects found
@@ -453,3 +497,10 @@ ng-template(#entityPickerModal)
 			(click)='applyEditorEntity()'
 			[disabled]='!pendingEditorEntity')
 			| Apply
+
+ng-template(#customSignModal)
+	custom-sign-modal(
+		[name]="customSignName"
+		[message]="customSignMessage"
+		(cancel)="closeCustomSignModal()"
+		(save)="customSignName = $event.name; customSignMessage = $event.message; saveCustomSign(); closeCustomSignModal()")

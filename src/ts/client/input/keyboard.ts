@@ -8,7 +8,7 @@ const NUMPAD_ENTER_KEY = 108;
 function isKeyEventInvalid(e: KeyboardEvent) {
 	let target = e.target as HTMLElement | null;
 	while (target) {
-		if (/^(input|textarea|select)$/i.test(target.tagName) || target.contentEditable === 'true') {
+		if (/^(input|textarea|select)$/i.test(target.tagName) || target.isContentEditable || target.contentEditable === 'true' || target.contentEditable === 'plaintext-only') {
 			return true;
 		}
 		target = target.parentElement;

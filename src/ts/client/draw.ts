@@ -168,11 +168,12 @@ export function drawMap(
 	TIMING && timeEnd();
 
 	TIMING && timeStart('sortEntities');
-	sortEntities(map.entitiesDrawable);
+	const drawableEntities = map.entitiesDrawable.concat(map.weatherClouds);
+	sortEntities(drawableEntities);
 	TIMING && timeEnd();
 
 	TIMING && timeStart('drawEntities');
-	const entitiesDrawn = drawEntities(batch, map.entitiesDrawable, camera, options);
+	const entitiesDrawn = drawEntities(batch, drawableEntities, camera, options);
 	batch.depth = 1.0;
 	TIMING && timeEnd();
 

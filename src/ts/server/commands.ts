@@ -7,7 +7,7 @@ import { hasRole } from '../common/accountUtils';
 import { butterfly, bat, firefly, cloud, getEntityType, getEntityTypeName, woodenWalls, BunnyAnimation } from '../common/entities';
 import { emojis } from '../client/emoji';
 import { IClient, ServerEntity, ServerMap } from './serverInterfaces';
-import { World } from './world';
+import { World, isWeatherAllowedMap } from './world';
 import { NotificationService } from './services/notification';
 import { UserError } from './userError';
 import { parseExpression, expression } from '../common/expressionUtils';
@@ -23,13 +23,13 @@ import { isCommand, processCommand, clamp, flatten, includes, randomPoint, parse
 import { formatHourMinutes } from '../common/timeUtils';
 import { createNotifyUpdate, createShutdownServer } from './api/internal';
 import { logger } from './logger';
-import { pathTo } from './paths';
+import { pathTo, pathToSavedMap } from './paths';
 import { sayTo, sayToEveryone, sayToOthers, sayToAll, saySystem } from './chat';
 import { resetTiles } from './serverRegion';
 import { updateAccountState } from './accountUtils';
 import {
 	findEntities, updateMapState, loadMapFromFile, saveMapToFile, saveEntitiesToFile, getSizeOfMap,
-	saveMapToFileBinaryAlt, saveRegionCollider, saveMap, loadMap
+	saveMapToFileBinaryAlt, saveRegionCollider, saveMap, loadMap, loadEntitiesFromFile, clearEntities, resetEntities
 } from './serverMap';
 import { PARTY_LIMIT, tileWidth, tileHeight, MAP_LOAD_SAVE_TIMEOUT } from '../common/constants';
 import { PartyService } from './services/party';
@@ -699,10 +699,10 @@ function hasRoleNull(client: IClient, role: string) {
 		return (client.supporterLevel >= level || client.isMod);
 	}
 
-	// Role hierarchy: mod < admin < owner
-	if (client.isMod) return role === 'mod';
-	if (hasRole(client.account, 'admin')) return role === 'admin' || role === 'mod';
-	if (hasRole(client.account, 'owner')) return role === 'owner' || role === 'admin' || role === 'mod';
+	// Role hierarchy: builder < mod < admin < owner
+	if (client.isMod) return role === 'mod' || role === 'builder';
+	if (hasRole(client.account, 'admin')) return role === 'admin' || role === 'mod' || role === 'builder';
+	if (hasRole(client.account, 'owner')) return role === 'owner' || role === 'admin' || role === 'mod' || role === 'builder';
 
 	return false;
 }
@@ -729,6 +729,7 @@ function parseWeather(value: string): Weather | undefined {
 	switch (value.toLowerCase()) {
 		case 'none': return Weather.None;
 		case 'rain': return Weather.Rain;
+		case 'storm': return Weather.Storm;
 		default: return undefined;
 	}
 }
@@ -758,7 +759,7 @@ function getSpawnTarget(map: ServerMap, message: string) {
 	return { x, y };
 }
 
-function execWithFileName(client: IClient, message: string, action: (fileName: string) => Promise<any>) {
+function execWithFileName(client: IClient, message: string, action: (fileName: string) => Promise<any>, successText = 'saved') {
 	const fileName = message.replace(/[^a-zA-Z0-9_-]/g, '');
 
 	if (!fileName) {
@@ -767,7 +768,7 @@ function execWithFileName(client: IClient, message: string, action: (fileName: s
 
 	action(fileName)
 		.catch(e => (logger.error(e), e.message))
-		.then(error => saySystem(client, error || 'saved'));
+		.then(error => saySystem(client, error || successText));
 }
 
 function shouldNotBeCalled() {
@@ -863,8 +864,8 @@ export function createCommands(world: World): Command[] {
 
 			// Build help text with categories
 			const helpLines: string[] = [];
-			const categoryOrder = ['Chat', 'Actions', 'Pony states', 'Emotes', 'Expressions', 'House', 'Supporters', 'Debug', 'Other', 'Mod', 'Admin', 'Owner', 'Dev'];
-// moved Other above Mod so generic commands show earlier
+			const categoryOrder = ['Chat', 'Actions', 'Pony states', 'Emotes', 'Expressions', 'House', 'Supporters', 'Debug', 'Other', 'Mod', 'Builder', 'Admin', 'Owner', 'Dev'];
+// Builder is shown directly under mod so map-editing tools stay grouped with moderator utilities
 
 
 			for (const cat of categoryOrder) {
@@ -1556,7 +1557,7 @@ export function createCommands(world: World): Command[] {
 		command(['noclip'], '/noclip - toggle collision (walk through walls)', 'mod', ({}, client) => {
 			client.pony.noclip = !client.pony.noclip;
 			updateEntityOptions(client.pony, { noclip: client.pony.noclip } as any);
-			saySystem(client, `noclip: ${client.pony.noclip ? 'on' : 'off'}`);
+			saySystem(client, `No clip ${client.pony.noclip ? 'включён' : 'выключен'}`);
 		}, false, 'Mod'),
 		command(['tp'], '/tp <location|x y|to <player>|here <player>|? - teleport around', 'mod', (_context, client, message) => {
 		const input = message.trim();
@@ -1848,69 +1849,32 @@ export function createCommands(world: World): Command[] {
 			}
 
 			if (isTimeInput) {
-				// if user added "stop" as second argument, freeze at that time
-				if (args.length > 1 && args[1].toLowerCase() === 'stop') {
-					if ((world as any).timeIntervalId) {
-						clearInterval((world as any).timeIntervalId);
-					}
-					const targetTimeValue = targetHour + (targetMinute / 60);
-					world.setTime(targetTimeValue);
-					(world as any).timeIntervalId = setInterval(() => {
-						world.setTime(targetTimeValue);
-					}, 1000);
-					saySystem(client, `Time frozen at ${formatHourMinutes(world.time)}`);
-					return;
-				}
-				// Stop any running interval
-				if ((world as any).timeIntervalId) {
-					clearInterval((world as any).timeIntervalId);
-					(world as any).timeIntervalId = null;
-				}
-				// Set time to HH:MM
 				if (targetHour < 0 || targetHour > 23 || targetMinute < 0 || targetMinute > 59) {
 					throw new UserError('Invalid time. Hours must be 0-23, minutes must be 0-59');
 				}
 				const targetTimeValue = targetHour + (targetMinute / 60);
+
+				if (args.length > 1 && args[1].toLowerCase() === 'stop') {
+					world.freezeTimeAtHour(targetTimeValue);
+					saySystem(client, `Time frozen at ${formatHourMinutes(world.time)}`);
+					return;
+				}
 				world.setTime(targetTimeValue);
 				const newTime = world.time;
 				saySystem(client, `Time set to ${formatHourMinutes(newTime)}`);
 				return;
 			}
 
-			// Special commands: day and night - set time periodically every 2.5 seconds
+			// Special commands: day and night freeze the world at the selected hour.
 			if (subcommand === 'day') {
-				// Stop any running interval first
-				if ((world as any).timeIntervalId) {
-					clearInterval((world as any).timeIntervalId);
-				}
-
-				// Immediately set time to day
-				world.setTime(12);
-
-// Periodically re-set time every 1 seconds to maintain eternal day
-			(world as any).timeIntervalId = setInterval(() => {
-				world.setTime(12);
-			}, 1000);
-
-				saySystem(client, 'Time set to eternal day (12:00) - continuously enforced');
+				world.freezeTimeAtHour(12, 'day');
+				saySystem(client, 'Time set to eternal day (12:00)');
 				return;
 			}
 
 			if (subcommand === 'night') {
-				// Stop any running interval first
-				if ((world as any).timeIntervalId) {
-					clearInterval((world as any).timeIntervalId);
-				}
-
-				// Immediately set time to night
-				world.setTime(0);
-
-// Periodically re-set time every 1 seconds to maintain eternal night
-			(world as any).timeIntervalId = setInterval(() => {
-				world.setTime(0);
-			}, 1000);
-
-				saySystem(client, 'Time set to eternal night (00:00) - continuously enforced');
+				world.freezeTimeAtHour(0, 'night');
+				saySystem(client, 'Time set to eternal night (00:00)');
 				return;
 			}
 
@@ -2127,7 +2091,10 @@ export function createCommands(world: World): Command[] {
 				world.setSeason(season, holiday === undefined ? world.holiday : holiday);
 			}
 		}, false, 'Admin'),
-		BETA && command(['weather'], '/weather <none|rain>', 'admin', ({ }, client, message) => {
+		BETA && command(['weather'], '/weather <none|rain|storm>', 'admin', ({ }, client, message) => {
+			if (!isWeatherAllowedMap(client.map)) {
+				throw new UserError('weather is not available on this map');
+			}
 			const weather = parseWeather(message);
 
 			if (weather === undefined) {
@@ -2144,22 +2111,37 @@ export function createCommands(world: World): Command[] {
 		command(['shutdown'], '/shutdown - shutdown server for update', 'owner', ({ world, liveSettings }) => {
 			createShutdownServer(world, liveSettings)(true);
 	}, false, 'Owner'),
-		command(['loadmap'], '/loadmap <file name> - load map from file', 'owner', ({ world }, client, message) => {
+		command(['loadtiles', 'loadmap'], '/loadtiles <file name> - load tiles from file', 'builder', ({ world }, client, message) => {
+			const safeName = message.replace(/[^a-zA-Z0-9_-]/g, '');
 			execWithFileName(client, message, fileName =>
-				loadMapFromFile(world, client.map, pathTo('store', `${fileName}.json`), { loadOnlyTiles: true }));
-		}, false, 'Owner'),
-		command(['savemap'], '/savemap <file name> - save map to file', 'owner', (_, client, message) => {
+				loadMapFromFile(world, client.map, pathToSavedMap('tiles', fileName), { loadOnlyTiles: true }), `Loaded tiles from ${safeName}.json`);
+		}, false, 'Builder'),
+		command(['savetiles', 'savemap'], '/savetiles <file name> - save tiles to file', 'builder', (_, client, message) => {
+			const safeName = message.replace(/[^a-zA-Z0-9_-]/g, '');
 			execWithFileName(client, message, async fileName => {
-				await saveMapToFile(client.map, pathTo('store', `${fileName}.json`), { saveTiles: true });
+				await saveMapToFile(client.map, pathToSavedMap('tiles', fileName), { saveTiles: true });
 				// await saveMapToFileBinary(client.map, pathTo('store', `${fileName}.bin`));
-			});
-		}, false, 'Owner'),
+			}, `Saved tiles to ${safeName}.json`);
+		}, false, 'Builder'),
 		command(['savemapbin'], '/savemapbin <file name> - save map to file', 'owner', (_, client, message) => {
-			execWithFileName(client, message, fileName => saveMapToFileBinaryAlt(client.map, pathTo('store', `${fileName}.json`)));
-		}, false, 'Owner'),
-		command(['saveentities'], '/saveentities <file name> - save entities to file', 'owner', (_, client, message) => {
-			execWithFileName(client, message, fileName => saveEntitiesToFile(client.map, pathTo('store', `${fileName}.txt`)));
-		}, false, 'Owner'),
+			execWithFileName(client, message, fileName => saveMapToFileBinaryAlt(client.map, pathToSavedMap('tiles', fileName)), 'Saved binary map archive');
+		}, false, 'Builder'),
+		command(['saveplacedentities', 'saveentities'], '/saveplacedentities <file name> - save only newly placed entities', 'builder', (_, client, message) => {
+			const safeName = message.replace(/[^a-zA-Z0-9_-]/g, '');
+			execWithFileName(client, message, fileName => saveEntitiesToFile(client.map, pathToSavedMap('entities', fileName), true), `Saved placed entities to ${safeName}.json`);
+		}, false, 'Builder'),
+		command(['loadentities'], '/loadentities <file name> - load entities from JSON file', 'builder', ({ world }, client, message) => {
+			const safeName = message.replace(/[^a-zA-Z0-9_-]/g, '');
+			execWithFileName(client, message, fileName => loadEntitiesFromFile(world, client.map, pathToSavedMap('entities', fileName)), `Loaded entities from ${safeName}.json`);
+		}, false, 'Builder'),
+		command(['clearentities'], '/clearentities - clear all entities on current map', 'builder', ({ world }, client) => {
+			const removed = clearEntities(world, client.map, (entity: ServerEntity) => entity !== client.pony);
+			saySystem(client, `Cleared ${removed} entities from the current map`);
+		}, false, 'Builder'),
+		command(['resetentities'], '/resetentities - reset all entities on current map', 'builder', ({ world }, client) => {
+			const removed = resetEntities(world, client.map, (entity: ServerEntity) => entity !== client.pony);
+			saySystem(client, `Reset ${removed} entities on the current map`);
+		}, false, 'Builder'),
 		command(['savehides'], '/savehides - save hides to file', 'owner', async ({ world }, client) => {
 			const json = world.hidingService.serialize();
 			await writeFileAsync(pathTo('store', 'hides.json'), json, 'utf8');

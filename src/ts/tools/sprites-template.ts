@@ -165,6 +165,10 @@ export function createShadow(shadow: number): Shadow {
 	return { shadow: sprites2[shadow] };
 }
 
+export function createColorShadow(color: number, shadow: number): ColorShadow {
+	return { color: sprites2[color], shadow: sprites2[shadow] };
+}
+
 export function createColorShadowPalette(color: number, shadow: number, paletteIndexes: number[]): ColorShadow {
 	return { color: sprites2[color], shadow: sprites2[shadow], palettes: paletteIndexes.map(getPalette) };
 }

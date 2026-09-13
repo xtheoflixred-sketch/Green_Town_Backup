@@ -1,7 +1,7 @@
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { emojis } from '../../../client/emoji';
 import { CREDITS, CONTRIBUTORS, Credit, } from '../../../client/credits';
-import { OFFLINE_PONY, DEL_PONY, KOKOSIK_PONY, HIKA_MIG_PONY, AALIK_PONY, SOFA_PONY, ENOT_PONY, LAI_PONY, KRIF_PONY } from '../../../common/constants';
+import { OFFLINE_PONY, DEL_PONY, KOKOSIK_PONY, HIKA_MIG_PONY, AALIK_PONY, SOFA_PONY, ENOT_PONY, LAI_PONY, KRIF_PONY, REY_SHLAPOCHNIK_PONY } from '../../../common/constants';
 import { decompressPonyString } from '../../../common/compressPony';
 import { SUPPORTER_REWARDS_LIST } from '../../../common/constants';
 import { discordLink, contactEmail, contactDiscord, version, shortVersion } from '../../../client/data';
@@ -29,6 +29,7 @@ const SKIN_MAP: { [key: string]: string } = {
 	'enot-pony': ENOT_PONY,
 	'lai-pony': LAI_PONY,
 	'krif-pony': KRIF_PONY,
+	'rey-shlapochnik-pony': REY_SHLAPOCHNIK_PONY,
 };
 
 function toCredit(credit: Credit) {

@@ -8,13 +8,14 @@ import { cleanName } from '../../client/clientUtils';
 import { toAccountData, toPonyObject, toSocialSite, toPonyObjectFields, toSocialSiteFields } from '../serverUtils';
 import {
 	IAccount, FindAccountSafe, FindAuth, FindAuths, FindCharacters, CountAuths, Auth,
-	ID, findFriends, Account, HideRequest
+	ID, findFriends, Account, HideRequest, SupporterCode
 } from '../db';
 import { UserError } from '../userError';
 import * as entities from '../../common/entities';
 import { includes, clamp, createValidBirthDate, parseISODate, formatISODate } from '../../common/utils';
 import { getAccountAlertMessage } from '../accountUtils';
 import { getAge, supporterLevel } from '../../common/adminUtils';
+import { SupporterFlags } from '../../common/adminInterfaces';
 
 export type GetAccountCharacters = ReturnType<typeof createGetAccountCharacters>;
 export type UpdateAccount = ReturnType<typeof createUpdateAccount>;
@@ -22,11 +23,28 @@ export type UpdateSettings = ReturnType<typeof createUpdateSettings>;
 export type RemoveSite = ReturnType<typeof createRemoveSite>;
 export type GetAccountData = ReturnType<typeof createGetAccountData>;
 
+export async function redeemSupporterCode(account: IAccount, rawCode: string | undefined) {
+	const code = typeof rawCode === 'string' ? rawCode.trim().toUpperCase() : '';
+	if (!/^SUP-[A-F0-9]{12}$/.test(code)) throw new UserError('Invalid supporter code');
+	const redeemed = await SupporterCode.findOneAndUpdate(
+		{ code, redeemedAt: { $exists: false } },
+		{ $set: { redeemedBy: account._id.toString(), redeemedAt: new Date() } },
+		{ new: true },
+	).exec();
+	if (!redeemed) throw new UserError('This supporter code is invalid or has already been used');
+	const level = Math.max(supporterLevel(account), redeemed.level) as SupporterFlags;
+	const supporterExpiresAt = new Date(Date.now() + redeemed.durationDays * 86400000);
+	await Account.updateOne({ _id: account._id }, { $max: { supporter: level }, supporterExpiresAt }).exec();
+	account.supporter = level;
+	account.supporterExpiresAt = supporterExpiresAt;
+	return toAccountData(account);
+}
+
 type LogAccount = (accountId: ID, message: string) => void;
 
 const exclude = [
 	'getEntityType', 'getEntityTypeName', 'createAnEntity', 'createEntity', 'pony',
-	'createBaseEntity', 'getEntityTypesAndNames', 'getNextRecolorType', 'isRecolorable',
+	'createBaseEntity', 'getEntityTypesAndNames', 'getNextRecolorType', 'isRecolorable', 'isSafeScreenUrl', 'normalizeScreenUrl', 'normalizeScreenSource',
 ];
 
 export const allEntities = Object.keys(entities)
@@ -39,7 +57,8 @@ function getEntityNamesToTypes() {
 	for (const name of allEntities) {
 		const created = (entities as any)[name](0, 0);
 		const array = Array.isArray(created) ? created : [created];
-		const types = array.map(e => e.type);
+		const types = array.filter(e => e && typeof e.type === 'number').map(e => e.type);
+		if (!types.length) continue;
 		result.push({ name, types });
 	}
 

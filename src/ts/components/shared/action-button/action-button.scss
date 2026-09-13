@@ -11,6 +11,12 @@ $pressed-box-shadow: 0 0 7px rgba(0, 0, 0, 1) !important;
 	width: $button-size;
 	height: $button-size;
 
+	&.draggable-dragging {
+		opacity: 0.95;
+		filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.8));
+		transform-origin: center center;
+	}
+
 	&.zoom-large canvas {
 		transform: scale(1.12);
 		transform-origin: center center;
@@ -24,6 +30,16 @@ $pressed-box-shadow: 0 0 7px rgba(0, 0, 0, 1) !important;
 	&.draggable-hover {
 		box-shadow: 0 0 5px 1px white;
 		border-radius: 4px;
+	}
+
+	&.draggable-delete {
+		box-shadow: 0 0 5px 1px #e74c3c !important;
+		border-radius: 4px;
+		filter: grayscale(0.35) sepia(0.8) saturate(3);
+
+		&.empty {
+			visibility: visible;
+		}
 	}
 
 	&.empty {
@@ -50,6 +66,9 @@ $pressed-box-shadow: 0 0 7px rgba(0, 0, 0, 1) !important;
 
 .action-button {
 	display: flex;
+	width: $button-size;
+	height: $button-size;
+	padding: 0;
 	justify-content: center;
 	align-items: center;
 	background: rgba(0, 0, 0, 0.3);
@@ -57,6 +76,48 @@ $pressed-box-shadow: 0 0 7px rgba(0, 0, 0, 1) !important;
 	box-shadow: $default-box-shadow;
 	position: relative;
 	user-select: none;
+
+	&.disabled {
+		background: #808080;
+		cursor: default;
+		color: white;
+	}
+
+	fa-icon {
+		color: white;
+	}
+
+	.main-action-icon {
+		font-size: 16px;
+	}
+
+	.secondary-action-icon {
+		position: absolute;
+		left: 2px;
+		bottom: 1px;
+		font-size: 9px;
+		color: #d8d8d8;
+		line-height: 1;
+		text-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+	}
+
+	&.icon-action canvas {
+		display: none;
+	}
+
+	&.icon-action {
+		background: #5fb7b3;
+		color: white;
+		font-size: 16px;
+	}
+
+	&.mod-action {
+		background: #c399ff;
+	}
+
+	&.icon-action.disabled {
+		background: #808080;
+	}
 
 	&:hover, &:focus:hover {
 		box-shadow: $hover-box-shadow;
@@ -119,4 +180,5 @@ canvas {
 	top: -5px;
 	right: -5px;
 	bottom: -5px;
+	pointer-events: none;
 }

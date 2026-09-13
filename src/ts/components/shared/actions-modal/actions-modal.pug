@@ -33,14 +33,22 @@ chat-log#chat-log
 
 		tab(title="Expressions" [icon]="expressionsIcon")
 			div(*tabContent)
-				.d-flex.mb-3
-					action-button.mb-0.mr-sm-4(
-						[draggableItem]="emoteAction" [action]="emoteAction" [shadow]="false" (draggableDrop)="drop($event)")
-					.sub-tabset.nav.nav-pills.mb-0
-						button.btn-unstyled.nav-link([class.active]="activeTab === 'right-eye'" (click)="activeTab = 'right-eye'") Right eye
-						button.btn-unstyled.nav-link([class.active]="activeTab === 'left-eye'" (click)="activeTab = 'left-eye'") Left eye
-						button.btn-unstyled.nav-link([class.active]="activeTab === 'mouth'" (click)="activeTab = 'mouth'") Mouth
-						button.btn-unstyled.nav-link([class.active]="activeTab === 'extra'" (click)="activeTab = 'extra'") Extra
+				.expression-preview-layout
+					.expression-portrait-wrap
+						square-portrait-box.expression-portrait(
+							[pony]="previewPony" size="large" [noBorder]="true" [renderState]="previewState")
+						button.btn-unstyled.expression-rotate(
+							type="button" (click)="rotatePreview()" [attr.aria-label]="previewHeadTurned ? 'Turn head left' : 'Turn head right'"
+							[tooltip]="previewHeadTurned ? 'Turn head left' : 'Turn head right'" placement="top")
+							fa-icon([icon]="rotateIcon")
+					.d-flex.expression-controls
+						action-button.mb-0(
+							[draggableItem]="emoteAction" [action]="emoteAction" [shadow]="false" (draggableDrop)="drop($event)")
+						.sub-tabset.nav.nav-pills.mb-0
+							button.btn-unstyled.nav-link([class.active]="activeTab === 'right-eye'" (click)="activeTab = 'right-eye'") Right eye
+							button.btn-unstyled.nav-link([class.active]="activeTab === 'left-eye'" (click)="activeTab = 'left-eye'") Left eye
+							button.btn-unstyled.nav-link([class.active]="activeTab === 'mouth'" (click)="activeTab = 'mouth'") Mouth
+							button.btn-unstyled.nav-link([class.active]="activeTab === 'extra'" (click)="activeTab = 'extra'") Extra
 				.fixed-height-tabset
 					div([class.inactive-tab]="activeTab !== 'right-eye'")
 						sprite-selection(
@@ -83,6 +91,13 @@ chat-log#chat-log
 							custom-checkbox.ml-4([(checked)]="tears" (checkedChange)="changed(lockEyes)") Tears
 							custom-checkbox.ml-4([(checked)]="crying" (checkedChange)="changed(lockEyes)") Crying
 							custom-checkbox.ml-4([(checked)]="hearts" (checkedChange)="changed(lockEyes)") Hearts
+
+		tab(*ngIf="isMod" title="Mod" [icon]="modIcon")
+			#modListContainer.action-columns(*tabContent cdkDropListGroup)
+				.d-flex.align-items-center.mb-2(*ngFor="let a of modActions")
+					.cdk-drop-list-wrapper(cdkDropList cdkDropListSortingDisabled)
+						action-button.mb-0.draggable([draggableItem]="a" [action]="a" [shadow]="false")
+					b.description {{a.title}}
 
 		tab(title="Chat" [icon]="chatIcon")
 			#chatListContainer.action-columns(*tabContent cdkDropListGroup)

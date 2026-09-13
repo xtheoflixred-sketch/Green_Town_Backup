@@ -60,9 +60,14 @@ export class Tabset {
 		return `nav-${this.type}${this.orientation === 'horizontal' ? ` ${this.justifyClass}` : ' flex-column'}`;
 	}
 	select(index: number) {
-		if (this.activeIndex !== index) {
-			this.activeIndex = index;
-			this.activeIndexChange.emit(index);
+		const tabs = this.tabs && this.tabs.toArray();
+		if (!tabs || !tabs.length) {
+			return;
+		}
+		const selectedIndex = Math.max(0, Math.min(index, tabs.length - 1));
+		if (!tabs[selectedIndex].disabled && this.activeIndex !== selectedIndex) {
+			this.activeIndex = selectedIndex;
+			this.activeIndexChange.emit(selectedIndex);
 		}
 	}
 	keydown(e: KeyboardEvent) {

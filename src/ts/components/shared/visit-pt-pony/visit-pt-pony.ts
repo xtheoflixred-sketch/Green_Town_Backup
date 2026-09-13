@@ -57,6 +57,9 @@ export class VisitPTPony implements OnInit, OnDestroy {
 	@Input() noShadow = true;
 	@Input() topOffset = -20;
 	@Input() tagColor?: string;
+	@Input() tagGradientStart?: string;
+	@Input() tagGradientEnd?: string;
+	@Input() tagGradientDirection: 'horizontal' | 'vertical' = 'horizontal';
 	private defaultPony = decompressPonyString(MENO);
 	state = defaultPonyState();
 	private expression?: Expression;

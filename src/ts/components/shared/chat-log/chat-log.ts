@@ -115,6 +115,7 @@ export interface ChatLogMessage {
 	entityId?: number;
 	dom?: ChatLogLineDOM;
 	color?: string;
+	gradient?: string;
 }
 
 type Tab = 'local' | 'personal' | 'party' | 'whisper';
@@ -380,19 +381,30 @@ export function updateChatLogLine(line: ChatLogLineDOM, entry: ChatLogMessage, h
 	removeAllNodes(line.message);
 	line.message.append(...createMarkdownNodes(message));
 
-	const { color } = entry;
+	const { color, gradient } = entry;
 
-	if (color) {
+	if (gradient) {
+		for (const element of [line.label, line.name, line.nameContent, line.message]) {
+			element.style.color = 'transparent';
+			element.style.backgroundImage = gradient;
+			element.style.backgroundClip = 'text';
+		(element.style as any).webkitBackgroundClip = 'text';
+		}
+	} else if (color) {
 		const cssColor = color.startsWith('#') ? color : `#${color}`;
-		line.label.style.color = cssColor;
-		line.name.style.color = cssColor;
-		line.nameContent.style.color = cssColor;
-		line.message.style.color = cssColor;
+		for (const element of [line.label, line.name, line.nameContent, line.message]) {
+			element.style.color = cssColor;
+			element.style.backgroundImage = '';
+			element.style.backgroundClip = '';
+		(element.style as any).webkitBackgroundClip = '';
+		}
 	} else {
-		line.label.style.color = '';
-		line.name.style.color = '';
-		line.nameContent.style.color = '';
-		line.message.style.color = '';
+		for (const element of [line.label, line.name, line.nameContent, line.message]) {
+			element.style.color = '';
+			element.style.backgroundImage = '';
+			element.style.backgroundClip = '';
+		(element.style as any).webkitBackgroundClip = '';
+		}
 	}
 }
 
@@ -791,7 +803,7 @@ export class ChatLog implements AfterViewInit, OnDestroy, DoCheck {
 	get inactiveBg() {
 		return `rgba(0, 0, 0, ${(this.opacity / 200) * 0.5})`;
 	}
-	private createEntry({ id, crc, name, message, type, color }: ChatMessage): ChatLogMessage {
+	private createEntry({ id, crc, name, message, type, color, gradient }: ChatMessage): ChatLogMessage {
 		const system = type === MessageType.System;
 		const entry: ChatLogMessage = {
 			entityId: system ? 0 : id,
@@ -804,6 +816,7 @@ export class ChatLog implements AfterViewInit, OnDestroy, DoCheck {
 			suffix: SUFFIXES[type] || '',
 			classes: CLASSES[type] || '',
 			color,
+			gradient,
 		};
 
 		if (!system) {

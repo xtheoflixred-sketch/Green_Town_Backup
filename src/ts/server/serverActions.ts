@@ -6,12 +6,12 @@ import {
 	typingIndicatorMessage, MessageType
 } from '../common/interfaces';
 import { CharacterState, ServerConfig } from '../common/adminInterfaces';
-import { PARTY_LIMIT, OFFLINE_PONY, TILE_CHANGE_RANGE, MIN_HIDE_TIME, MAX_HIDE_TIME, PONY_TYPE } from '../common/constants';
+import { PARTY_LIMIT, OFFLINE_PONY, TILE_CHANGE_RANGE, MIN_HIDE_TIME, MAX_HIDE_TIME, PONY_TYPE, REGION_SIZE } from '../common/constants';
 import { toInt, formatDuration, includes, clamp, hasFlag, distanceXY, computeFriendsCRC } from '../common/utils';
 import { banMessage } from '../common/adminUtils';
 import { hasRole } from '../common/accountUtils';
 import * as entities from '../common/entities';
-import { IClient, IgnorePlayer, FindClientByEntityId, AccountService, GetSettings, ServerEntity } from './serverInterfaces';
+import { IClient, IgnorePlayer, FindClientByEntityId, AccountService, GetSettings, ServerEntity, ServerMap } from './serverInterfaces';
 import { getModInfo } from './accountUtils';
 import { NotificationService } from './services/notification';
 import { PartyService } from './services/party';
@@ -19,13 +19,13 @@ import { HoldItemService } from './services/holdItemService2';
 import { World, findClientByAccountId, findAllOnlineFriends } from './world';
 import { HidingService } from './services/hiding';
 import {
-	createCharacterState, interactWith, useHeldItem, setEntityExpression, getPlayerState, execAction,
+	createCharacterState, interactWith, useHeldItem, setEntityExpression, getPlayerState, execAction, teleportTo,
 	updateEntityPlayerState, holdToy, holdItem, unholdItem,
 } from './playerUtils';
 import { allEntities } from './api/account';
 import { CounterService } from './services/counter';
 import { decodeExpression, isCancellableExpression } from '../common/encoders/expressionEncoder';
-import { updateEntity, updateEntityOptions, pushUpdateEntityToClient, pushUpdateTileToClient } from './entityUtils';
+import { updateEntity, updateEntityOptions, pushUpdateEntity, pushUpdateEntityToClient, pushUpdateTileToClient, setEntityName } from './entityUtils';
 import { mirrorEntity } from '../common/entityUtils';
 import { SupporterInvitesService } from './services/supporterInvites';
 import { Move } from './move';
@@ -34,7 +34,7 @@ import { findFriends, updateAccount } from './db';
 import { Say, saySystem, sayToOthers, sayTypingIndicator } from './chat';
 import { getTile } from '../common/worldMap';
 import { updateRegion, getExpectedRegion } from './regionUtils';
-import { findEntities } from './serverMap';
+import { findEntities, getSizeOfMap } from './serverMap';
 import { FriendsService, isShownOfflineForAccount, toFriend } from './services/friends';
 import { setupCamera } from '../common/camera';
 import { swapCharacter } from './characterUtils';
@@ -45,6 +45,131 @@ import { mockPaletteManager } from '../common/ponyInfo';
 interface AddedEntity {
 	name: string;
 	entities: Entity[];
+}
+
+interface EditorEntitySnapshot {
+	entity: ServerEntity;
+	data: any;
+}
+
+interface EditorSnapshot {
+	entities: EditorEntitySnapshot[];
+	trackedIds: Set<number>;
+	tiles: Uint8Array[];
+	tileIndices: Int16Array[];
+}
+
+interface EditorHistoryEntry {
+	before: EditorSnapshot;
+	after: EditorSnapshot;
+}
+
+const editorHistory = new Map<string, { undo: EditorHistoryEntry[]; redo: EditorHistoryEntry[]; }>();
+
+function getEditorHistory(accountId: string) {
+	let history = editorHistory.get(accountId);
+	if (!history) {
+		history = { undo: [], redo: [] };
+		editorHistory.set(accountId, history);
+	}
+	return history;
+}
+
+function getEditorActionEntityIds(action: EditorAction) {
+	const ids = new Set<number>();
+	if (Array.isArray((action as any).entities)) {
+		for (const entity of (action as any).entities) ids.add(typeof entity === 'number' ? entity : entity.id);
+	}
+	if (typeof (action as any).entity === 'number') ids.add((action as any).entity);
+	return ids;
+}
+
+function cloneEditorValue(value: any): any {
+	if (value instanceof Uint8Array) return new Uint8Array(value);
+	if (value instanceof Int16Array) return new Int16Array(value);
+	if (Array.isArray(value)) return value.slice();
+	if (value && typeof value === 'object') return { ...value };
+	return value;
+}
+
+function takeEditorSnapshot(map: ServerMap, entityIds: Set<number> = new Set(), includeAllEntities = false): EditorSnapshot {
+	const entities: EditorEntitySnapshot[] = [];
+	const trackedIds = new Set(entityIds);
+	const seen = new Set<ServerEntity>();
+	for (const region of map.regions) {
+		for (const entity of region.entities as ServerEntity[]) {
+			if (entity.type === PONY_TYPE ? !entityIds.has(entity.id) : !includeAllEntities && !hasFlag(entity.state, EntityState.Editable) && !entityIds.has(entity.id)) continue;
+			trackedIds.add(entity.id);
+			if (seen.has(entity)) continue;
+			seen.add(entity);
+			const data: any = {};
+			for (const key of Object.keys(entity)) {
+				if (key !== 'region' && key !== 'client' && key !== 'serverUpdate') {
+					data[key] = cloneEditorValue((entity as any)[key]);
+				}
+			}
+			entities.push({ entity, data });
+		}
+	}
+	return {
+		entities,
+		trackedIds,
+		tiles: map.regions.map(region => new Uint8Array(region.tiles)),
+		tileIndices: map.regions.map(region => new Int16Array(region.tileIndices)),
+	};
+}
+
+function restoreEditorSnapshot(world: World, map: ServerMap, snapshot: EditorSnapshot) {
+	const wanted = new Map(snapshot.entities.map(item => [item.entity.id, item]));
+	const current = new Map<number, ServerEntity>();
+	for (const region of map.regions) {
+		for (const entity of region.entities as ServerEntity[]) current.set(entity.id, entity);
+	}
+
+	for (const entity of Array.from(current.values())) {
+		if (snapshot.trackedIds.has(entity.id) && !wanted.has(entity.id)) world.removeEntityFromSomeMap(entity);
+	}
+
+	for (const item of snapshot.entities) {
+		const currentEntity = world.getEntityById(item.entity.id);
+		if (currentEntity && currentEntity !== item.entity) world.removeEntityFromSomeMap(currentEntity);
+		Object.assign(item.entity, item.data);
+		if (!world.getEntityById(item.entity.id)) world.addEntity(item.entity, map);
+		updateRegion(item.entity, map);
+		pushUpdateEntity({
+			entity: item.entity,
+			flags: UpdateFlags.Position | UpdateFlags.Velocity | UpdateFlags.State | UpdateFlags.Type |
+				UpdateFlags.Options | UpdateFlags.Info | UpdateFlags.Name | UpdateFlags.SwitchRegion,
+			x: item.entity.x,
+			y: item.entity.y,
+			vx: item.entity.vx,
+			vy: item.entity.vy,
+			options: item.entity.options,
+		});
+	}
+
+	for (let regionIndex = 0; regionIndex < map.regions.length; regionIndex++) {
+		const region = map.regions[regionIndex];
+		const tiles = snapshot.tiles[regionIndex];
+		for (let tileIndex = 0; tileIndex < tiles.length; tileIndex++) {
+			if (region.tiles[tileIndex] !== tiles[tileIndex]) {
+				const x = region.x * REGION_SIZE + tileIndex % REGION_SIZE;
+				const y = region.y * REGION_SIZE + Math.floor(tileIndex / REGION_SIZE);
+				world.setTile(map, x, y, tiles[tileIndex] as TileType);
+			}
+		}
+		region.colliderDirty = true;
+	}
+}
+
+function recordEditorHistory(accountId: string, map: ServerMap, before: EditorSnapshot) {
+	const history = getEditorHistory(accountId);
+	history.undo.push({ before, after: takeEditorSnapshot(map, before.trackedIds) });
+	history.redo.length = 0;
+}
+
+function isSignType(type: number) {
+	return type === entities.sign.type || type === entities.signQuest.type || type === entities.signQuestion.type || type === entities.signDonate.type || type === entities.signDebug.type;
 }
 
 const modActionNames = ['None', 'Report', 'Mute', 'Shadow', 'Kick', 'Ban'];
@@ -68,6 +193,7 @@ const playerActionNames = [
 ];
 
 const editorAdded = new Map<string, AddedEntity[]>();
+const editorRedo = new Map<string, AddedEntity[]>();
 const debugRate = DEVELOPMENT ? '1000/s' : '';
 
 function clearToolHover(client: IClient, world: World, map = client.map) {
@@ -400,6 +526,15 @@ export class ServerActions implements IServerActions, SocketServer {
 			case Action.UnhideAllHiddenPlayers:
 				this.hiding.requestUnhideAll(this.client);
 				break;
+				case Action.NoClip:
+					if (!this.client.isMod || !this.pony) {
+						return;
+					}
+
+					this.pony.noclip = !this.pony.noclip;
+					updateEntityOptions(this.pony, { noclip: this.pony.noclip } as any);
+					saySystem(this.client, `No clip ${this.pony.noclip ? 'включён' : 'выключен'}`);
+					break;
 			default:
 				if (this.client.isSwitchingMap) return;
 				execAction(this.client, action, this.getSettings());
@@ -531,12 +666,85 @@ export class ServerActions implements IServerActions, SocketServer {
 				updateEntityOptions(this.pony, { pickableX, pickableY });
 				break;
 			}
+			case Action.SpeedUp:
+			case Action.SpeedDown: {
+				if (!this.client.isMod || !this.pony) {
+					return;
+				}
+
+				const currentSpeed = this.pony.speedMultiplier === undefined
+					? 1
+					: Math.max(1, Math.min(7, Math.round(this.pony.speedMultiplier)));
+				const direction = action === Action.SpeedUp ? 1 : -1;
+				const speedMultiplier = Math.max(1, Math.min(7, currentSpeed + direction));
+				this.pony.speedMultiplier = speedMultiplier;
+				this.client.speedMultiplier = speedMultiplier;
+				updateEntityOptions(this.pony, { speedMultiplier });
+				saySystem(this.client, `Скорость: ${speedMultiplier}x`);
+				break;
+			}
+			case Action.Players: {
+				if (!this.client.isMod) return;
+				const mapClients = this.world.clients.filter(c => c.map === this.client.map);
+				const totalClients = this.world.clients.length;
+				if (totalClients <= 1) {
+					saySystem(this.client, "You're the only one on the server right now");
+					break;
+				}
+				const lines: string[] = [`PLAYERS (${mapClients.length} here / ${totalClients} total)`, ''];
+				if (mapClients.length === 0) {
+					lines.push('No players on this map');
+				} else {
+					mapClients.forEach(c => {
+						const afkStatus = c.lastPacket && (Date.now() - c.lastPacket) > 300000 ? ' (afk)' : '';
+						lines.push(`  ${c.characterName} - ${c.accountName}${afkStatus}`);
+					});
+				}
+				saySystem(this.client, lines.join('\n'));
+				break;
+			}
+			case Action.Maps: {
+				if (!this.client.isMod) return;
+				const mapData = new Map<string, { instances: number; players: number }>();
+				for (const map of this.world.maps) {
+					const mapPlayers = this.world.clients.filter(c => c.map === map).length;
+					const data = mapData.get(map.id) || { instances: 0, players: 0 };
+					data.instances++;
+					data.players += mapPlayers;
+					mapData.set(map.id, data);
+				}
+				const lines: string[] = [`Server Maps (${mapData.size} total)`, '---------------------'];
+				let index = 1;
+				mapData.forEach((data, id) => {
+					const playerText = data.players === 1 ? 'pony' : 'ponies';
+					lines.push(data.players === 0 ? `${index}. ${id}` : `${index}. ${id}: ${data.players} ${playerText}`);
+					index++;
+				});
+				saySystem(this.client, lines.join('\n'));
+				break;
+			}
+			case Action.MapInfo: {
+				if (!this.client.isMod) return;
+				const map = this.client.map;
+				const { memory, entities: entityCount } = getSizeOfMap(map);
+				const players = this.world.clients.filter(c => c.map === map).length;
+				const mapName = map.id || 'unknown';
+				saySystem(this.client, [
+					'Map info', '-----------------',
+					`Name:        ${mapName}${map.instance ? ` (${map.instance})` : ''}`,
+					`Position:    ${this.client.pony.x.toFixed(1)}x, ${this.client.pony.y.toFixed(1)}y`,
+					`Dimensions:  ${map.width}x | ${map.height}y tiles`,
+					`Players:     ${players}`, `Regions:     ${map.regions.length}`,
+					`Entities:    ${entityCount}`, `Memory:      ${(memory / 1024).toFixed(2)} KB`,
+				].join('\n'));
+				break;
+			}
 			case Action.RemoveEntity: {
 				validateNumber(param, 'param');
 				this.updateLastAction();
 				const entity = this.world.getEntityById(param | 0);
 				if (
-					entity && hasFlag(entity.state, EntityState.Editable) && this.pony.options!.hold === entities.broom.type &&
+					entity && hasFlag(this.map.flags, MapFlags.EditableEntities) && hasFlag(entity.state, EntityState.Editable) && this.pony.options!.hold === entities.broom.type &&
 					entity.type !== entities.poof.type && entity.type !== entities.poof2.type &&
 					this.map.regions.some(r => includes(r.entities, entity))
 				) {
@@ -872,6 +1080,13 @@ export class ServerActions implements IServerActions, SocketServer {
 
 		       if (this.client.isSwitchingMap)
 			       return;
+		       if (this.isHouseLocked()) {
+			       saySystem(this.client, `House is locked`);
+			       return;
+		       }
+
+	       const canEditHouseTiles = hasFlag(this.map.flags, MapFlags.EditableTiles) || hasFlag(this.map.flags, MapFlags.EditableWalls);
+	       const historyBefore = canEditHouseTiles && !this.isHouseLocked() ? takeEditorSnapshot(this.map) : undefined;
 
 		       const wallTile = type === TileType.WallH || type === TileType.WallV || type === TileType.WallHTall || type === TileType.WallVTall;
 		       const wallMaterialTile = type === TileType.WallMaterialWood || type === TileType.WallMaterialStone;
@@ -913,6 +1128,8 @@ export class ServerActions implements IServerActions, SocketServer {
 				       }
 			       }
 		       }
+
+		       if (historyBefore) recordEditorHistory(this.client.accountId, this.map, historyBefore);
 	}
 	@Method({ rateLimit: '1/s', binary: [] })
 	leave() {
@@ -927,8 +1144,13 @@ export class ServerActions implements IServerActions, SocketServer {
 		}
 		const isPlayerRopeMove =
 			action.type === 'move' &&
+			!action.preview &&
 			hasFlag(this.map.flags, MapFlags.EditableEntities) &&
 			(this.pony.options!.hold === entities.rope.type || this.pony.options!.hold === entities.hammer.type);
+		const isPlayerOffset =
+			action.type === 'offset' &&
+			hasFlag(this.map.flags, MapFlags.EditableEntities) &&
+			this.pony.options!.hold === entities.doubleEndedWrench.type;
 		const isPlayerMirror =
 			action.type === 'mirror' &&
 			Array.isArray(action.entities) &&
@@ -941,8 +1163,22 @@ export class ServerActions implements IServerActions, SocketServer {
 			action.type === 'season' &&
 			Array.isArray(action.entities) &&
 			this.pony.options!.hold === entities.season.type;
+		const isHouseEditorHistory = (action.type === 'undo' || action.type === 'redo') &&
+			(hasFlag(this.map.flags, MapFlags.EditableTiles) || hasFlag(this.map.flags, MapFlags.EditableWalls));
 
-		if (!isModEditor && !isPlayerRopeMove && !isPlayerMirror && !isPlayerRecolor && !isPlayerSeason) {
+		if (!isModEditor && !isPlayerRopeMove && !isPlayerOffset && !isPlayerMirror && !isPlayerRecolor && !isPlayerSeason && !isHouseEditorHistory) {
+			return;
+		}
+
+		if (!isModEditor && isHouseEditorHistory) {
+			const history = getEditorHistory(this.client.accountId);
+			if (this.isHouseLocked()) return;
+			const entry = action.type === 'undo' ? history.undo.pop() : history.redo.pop();
+			if (entry) {
+				if (action.type === 'undo') history.redo.push(entry);
+				else history.undo.push(entry);
+				restoreEditorSnapshot(this.world, this.map, action.type === 'undo' ? entry.before : entry.after);
+			}
 			return;
 		}
 
@@ -958,19 +1194,44 @@ export class ServerActions implements IServerActions, SocketServer {
 
 				if (
 					entity &&
-					entity.type !== PONY_TYPE &&
-					hasFlag(entity.state, EntityState.Editable) &&
+					(entity.type === PONY_TYPE ? entity.client !== undefined : hasFlag(entity.state, EntityState.Editable)) &&
 					this.map.regions.some(r => includes(r.entities, entity))
 				) {
-					entity.x = x;
-					entity.y = y;
+					if (entity.client && !isPreview) {
+						teleportTo(entity.client, x, y);
+					} else {
+						entity.x = x;
+						entity.y = y;
+					}
 					entity.coverLifting = 0;
 					entity.selected = false;
-					updateEntity(entity, false);
 					if (!isPreview) {
 						updateRegion(entity, this.client.map);
 						getExpectedRegion(entity, this.client.map).colliderDirty = true;
 					}
+					updateEntity(entity, !isPreview);
+				}
+			}
+
+			return;
+		}
+
+		if (!isModEditor && action.type === 'offset') {
+			if (this.isHouseLocked() || !Array.isArray(action.entities)) {
+				return;
+			}
+
+			for (const { id, offsetY } of action.entities) {
+				const entity = this.world.getEntityById(id);
+
+				if (
+					entity &&
+					entity.type !== PONY_TYPE &&
+					hasFlag(entity.state, EntityState.Editable) &&
+					this.map.regions.some(r => includes(r.entities, entity)) &&
+					Number.isFinite(offsetY)
+				) {
+					updateEntityOptions(entity, { offsetY } as any);
 				}
 			}
 
@@ -1064,9 +1325,27 @@ export class ServerActions implements IServerActions, SocketServer {
 
 		if (isModEditor) {
 			const added = editorAdded.get(this.client.accountId) || [];
+			const redo = editorRedo.get(this.client.accountId) || [];
 			editorAdded.set(this.client.accountId, added);
+			editorRedo.set(this.client.accountId, redo);
+			const history = getEditorHistory(this.client.accountId);
+			const historyEntityIds = getEditorActionEntityIds(action);
+			const historyBefore = action.type !== 'undo' && action.type !== 'redo' &&
+				!(action.type === 'move' && action.preview) ? takeEditorSnapshot(this.map, historyEntityIds) : undefined;
 
 			switch (action.type) {
+				case 'setCustomSign': {
+					const sign = this.world.getEntityById(action.entity);
+					if (!sign || !isSignType(sign.type)) break;
+					const options: any = {};
+					if (action.name !== undefined) {
+						setEntityName(sign, action.name.substring(0, 60));
+						options.name = sign.name;
+					}
+					if (action.message !== undefined) options.customSignMessage = action.message.substring(0, 500);
+					updateEntityOptions(sign, options);
+					break;
+				}
 				case 'place':
 					if (action.preview === false) {
 						clearToolPreview(this.client, this.world);
@@ -1097,8 +1376,15 @@ export class ServerActions implements IServerActions, SocketServer {
 					const name = action.entity;
 					const entity = (entities as any)[name](action.x, action.y, action.options || {});
 					const toAdd = Array.isArray(entity) ? entity : [entity];
+					if (toAdd.length > 1) {
+						const compoundId = `${name}:${Date.now()}:${Math.random()}`;
+						for (const part of toAdd) {
+							part.options = { ...(part.options || {}), compoundId };
+						}
+					}
 					toAdd.forEach(e => this.world.addEntity(e, this.map));
 					added.push({ name, entities: toAdd });
+					redo.length = 0;
 				} else {
 					saySystem(this.client, 'Invalid entity');
 				}
@@ -1108,11 +1394,13 @@ export class ServerActions implements IServerActions, SocketServer {
 						for (const { id, x, y } of action.entities) {
 							const entity = this.world.getEntityById(id);
 
-							if (entity && entity.type !== PONY_TYPE) {
+							if (entity) {
 								entity.x = x;
 								entity.y = y;
 								entity.coverLifting = 0.85;
-								updateEntity(entity, false);
+								updateRegion(entity, this.client.map);
+								getExpectedRegion(entity, this.client.map).colliderDirty = true;
+								updateEntity(entity, true);
 							}
 						}
 						break;
@@ -1121,14 +1409,20 @@ export class ServerActions implements IServerActions, SocketServer {
 					for (const { id, x, y } of action.entities) {
 						const entity = this.world.getEntityById(id);
 
-						if (entity && entity.type !== PONY_TYPE) {
-							entity.x = x;
-							entity.y = y;
+						if (entity) {
+							if (entity.client) {
+								teleportTo(entity.client, x, y);
+							} else {
+								entity.x = x;
+								entity.y = y;
+							}
+							entity.vx = 0;
+							entity.vy = 0;
 							entity.coverLifting = 0;
 							entity.selected = false;
-							updateEntity(entity, false);
 							updateRegion(entity, this.client.map);
 							getExpectedRegion(entity, this.client.map).colliderDirty = true;
+							updateEntity(entity, true);
 						}
 					}
 					break;
@@ -1149,6 +1443,51 @@ export class ServerActions implements IServerActions, SocketServer {
 					}
 					break;
 				}
+				case 'setLightColor':
+					for (const id of action.entities) {
+						const entity = this.world.getEntityById(id);
+						if (entity && entity.type !== PONY_TYPE) {
+							entity.lightColor = action.color;
+							updateEntityOptions(entity, { lightColor: action.color } as any);
+						}
+					}
+					break;
+				case 'setLightSpriteColor':
+					for (const id of action.entities) {
+						const entity = this.world.getEntityById(id);
+						if (entity && entity.type !== PONY_TYPE) {
+							entity.lightSpriteColor = action.color;
+							updateEntityOptions(entity, { lightSpriteColor: action.color } as any);
+						}
+					}
+					break;
+				case 'setLightSpriteX':
+					for (const id of action.entities) {
+						const entity = this.world.getEntityById(id);
+						if (entity && entity.type !== PONY_TYPE) {
+							entity.lightSpriteX = action.x;
+							updateEntityOptions(entity, { lightSpriteX: action.x } as any);
+						}
+					}
+					break;
+				case 'setLightSpriteY':
+					for (const id of action.entities) {
+						const entity = this.world.getEntityById(id);
+						if (entity && entity.type !== PONY_TYPE) {
+							entity.lightSpriteY = action.y;
+							updateEntityOptions(entity, { lightSpriteY: action.y } as any);
+						}
+					}
+					break;
+				case 'setLightScale':
+					for (const id of action.entities) {
+						const entity = this.world.getEntityById(id);
+						if (entity && entity.type !== PONY_TYPE) {
+							entity.lightScaleAdjust = action.scale;
+							updateEntityOptions(entity, { lightScaleAdjust: action.scale } as any);
+						}
+					}
+					break;
 				case 'mirror':
 					for (const id of action.entities) {
 						const entity = this.world.getEntityById(id);
@@ -1163,13 +1502,32 @@ export class ServerActions implements IServerActions, SocketServer {
 						}
 					}
 					break;
+				case 'offset':
+					for (const { id, offsetY } of action.entities) {
+						const entity = this.world.getEntityById(id);
+						if (entity && entity.type !== PONY_TYPE && Number.isFinite(offsetY)) {
+							updateEntityOptions(entity, { offsetY } as any);
+						}
+					}
+					break;
 				case 'undo':
-					const remove = added.pop();
-					remove && remove.entities.forEach(e => this.world.removeEntityFromSomeMap(e));
+					const previous = history.undo.pop();
+					if (previous) {
+						history.redo.push(previous);
+						restoreEditorSnapshot(this.world, this.map, previous.before);
+					}
+					break;
+				case 'redo':
+					const next = history.redo.pop();
+					if (next) {
+						history.undo.push(next);
+						restoreEditorSnapshot(this.world, this.map, next.after);
+					}
 					break;
 				case 'clear':
 					added.forEach(x => x.entities.forEach(e => this.world.removeEntityFromSomeMap(e)));
 					added.length = 0;
+					redo.length = 0;
 					break;
 			case 'list':
 				const existingEntities = added
@@ -1202,8 +1560,8 @@ export class ServerActions implements IServerActions, SocketServer {
 			case 'setname': {
 				for (const id of action.entities) {
 					const entity = this.world.getEntityById(id);
-					if (entity && entity.type !== PONY_TYPE) {
-						if (action.name !== undefined) entity.name = action.name;
+					if (entity) {
+						if (action.name !== undefined) setEntityName(entity, action.name.substring(0, 60));
 						if (action.messageColor !== undefined) (entity as any).messageColor = action.messageColor;
 						if (action.tagColor !== undefined) (entity as any).tagColor = action.tagColor;
 						updateEntityOptions(entity, {
@@ -1220,6 +1578,16 @@ export class ServerActions implements IServerActions, SocketServer {
 					const entity = this.world.getEntityById(id);
 					if (entity) {
 						const options: any = {};
+
+						if (action.spriteTint !== undefined) {
+							(entity as any).spriteTint = action.spriteTint;
+							options.spriteTint = action.spriteTint;
+						}
+
+						if (action.entityOpacity !== undefined) {
+							(entity as any).entityOpacity = action.entityOpacity;
+							options.entityOpacity = action.entityOpacity;
+						}
 
 						if (action.customImageScale !== undefined) {
 							(entity as any).customImageScale = action.customImageScale;
@@ -1387,6 +1755,14 @@ export class ServerActions implements IServerActions, SocketServer {
 				}
 				default:
 					throw new Error(`Invalid editor action (${action})`);
+			}
+
+			if (historyBefore) {
+				history.undo.push({
+					before: historyBefore,
+					after: takeEditorSnapshot(this.map, historyEntityIds, action.type === 'place'),
+				});
+				history.redo.length = 0;
 			}
 		}
 	}

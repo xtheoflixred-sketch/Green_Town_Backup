@@ -27,14 +27,14 @@
 				div(*ngFor="let category of filteredCategories")
 					p {{ category.name }}
 					.emoji-picker-list
-							button.pixelart(
+							button(
 								*ngFor="let emote of category.emotes"
 								(click)="selectEmoji(emote)"
 								(mouseenter)="onMouseEnterEmojiButton($event)"
 								[title]="':' + emote.names[0] + ':'"
 								[attr.aria-label]="emote.names[0]"
 							)
-								emote-box([emote]="emote.names[0]" [square]="true" class="pixelart")
+								emote-box([emote]="emote.names[0]" [square]="true")
 
 	.emoji-picker-resize-handle(
 		[class.emoji-picker-resize-bottom-left]="resizeCorner === 'bottom-left'"

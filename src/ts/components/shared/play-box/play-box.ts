@@ -1,9 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { PonyObject, ServerInfo, AccountDataFlags, LeaveReason } from '../../../common/interfaces';
-import { RequestError, delay, includes, hasFlag, parseAccountAlert, AlertType } from '../../../common/utils';
-import { GlobalAlertsService } from '../../services/global-alerts.service';
-import { combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { RequestError, delay, includes, hasFlag, AlertType } from '../../../common/utils';
 import {
 	WEBGL_CREATION_ERROR, ACCESS_ERROR, ACCOUNT_ERROR, BROWSER_NOT_SUPPORTED_ERROR, NAME_ERROR, VERSION_ERROR,
 	OFFLINE_ERROR, PROTECTION_ERROR, NOT_AUTHENTICATED_ERROR, CHARACTER_LIMIT_ERROR
@@ -11,7 +8,11 @@ import {
 import { version } from '../../../client/data';
 import { GameService } from '../../services/gameService';
 import { Model } from '../../services/model';
-import { faSpinner, faExclamationCircle, faInfoCircle, faGlobe, faStar, faWrench } from '../../../client/icons';
+import {
+	faSpinner, faExclamationCircle, faInfoCircle, faGlobe, faStar, faWrench, faCode, faPlay,
+	faCog, faDatabase, faMicrochip, faMap, faHorse, faCogs, faCloud, faPlug,
+	faBullhorn,
+} from '../../../client/icons';
 import { isBrowserOutdated, hardReload, isAndroidBrowser } from '../../../client/clientUtils';
 import { loadAndInitSpriteSheets } from '../../../client/spriteUtils';
 import { StorageService } from '../../services/storageService';
@@ -40,28 +41,25 @@ export class PlayBox implements OnInit {
 	readonly spinnerIcon = faSpinner;
 	readonly warningIcon = faExclamationCircle;
 	readonly infoIcon = faInfoCircle;
+	readonly playIcon = faPlay;
+	readonly loadingIcons = [faCog, faDatabase, faMicrochip, faMap, faHorse, faCogs, faCloud, faPlug];
 	readonly requestBirthdate = REQUEST_DATE_OF_BIRTH;
 	@Output() errorChange = new EventEmitter<string | undefined>();
 	@Output() beforePlay = new EventEmitter<(options?: { pony?: PonyObject; skipSave?: boolean }) => void>();
 	@Input() label?: string;
 	joining = false;
 	failedToLoadImages = false;
+	loadingProgress = 0;
+	loadingIconIndex = 0;
 	birthdate = '';
 	birthdateSet = false;
 	private locked = false;
-	globalAlertsEntries$ = combineLatest([
-		this.globalAlertsService.globalAlerts$,
-		this.model.accountChanged.pipe(map(() => parseAccountAlert(this.model.accountAlert)))
-	]).pipe(
-		map(([global, local]) => [...global, ...local])
-	);
-
+	private loadingIconTimer: any;
 	constructor(
 		public gameService: GameService,
 		public model: Model,
 		private storage: StorageService,
 		private errorReporter: ErrorReporter,
-		private globalAlertsService: GlobalAlertsService,
 	) {}
 	@Input()
 	get error() {
@@ -81,6 +79,9 @@ export class PlayBox implements OnInit {
 	}
 	get servers() {
 		return this.gameService.servers;
+	}
+	get isDevOrTestServer(): boolean {
+		return !!this.server && !!this.server.flags && (this.server.flags.test === true || this.server.flags.editor === true);
 	}
 	get offline(): boolean {
 		return this.gameService.offline;
@@ -134,18 +135,27 @@ export class PlayBox implements OnInit {
 		return this.gameService.leftReason === LeaveReason.Afk ? 'alert-info' : 'alert-warning';
 	}
 
-	// accountAlertEntries устарел, используйте globalAlertsEntries$
-
 	alertClass(type: AlertType) {
 		switch (type) {
 			case 'danger': return 'alert-danger';
 			case 'info': return 'alert-info';
+			case 'announcement': return 'alert-announcement';
 			default: return 'alert-warning';
 		}
 	}
 
 	alertIcon(type: AlertType) {
-		return type === 'info' ? this.infoIcon : this.warningIcon;
+		switch (type) {
+			case 'danger':
+			case 'warning':
+				return this.warningIcon;
+			case 'info':
+				return this.infoIcon;
+			case 'announcement':
+				return faBullhorn;
+			default:
+				return this.warningIcon;
+		}
 	}
 
 	get accountAlert() {
@@ -171,6 +181,11 @@ export class PlayBox implements OnInit {
 	private performPlay(options: { pony?: PonyObject; skipSave?: boolean } = {}) {
 		this.joining = true;
 		this.locked = true;
+		this.loadingProgress = 8;
+		this.loadingIconIndex = 0;
+		this.loadingIconTimer = setInterval(() => {
+			this.loadingIconIndex = (this.loadingIconIndex + 1) % this.loadingIcons.length;
+		}, 420);
 		this.error = undefined;
 
 		const delayTime = (!DEVELOPMENT && this.gameService.wasPlaying) ? 1500 : 10;
@@ -179,7 +194,11 @@ export class PlayBox implements OnInit {
 			: delay(delayTime).then(() => this.model.savePony(options.pony || this.model.pony));
 
 		ponyPromise
-			.then(pony => this.joining ? this.gameService.join(pony.id) : Promise.resolve())
+			.then(pony => {
+				this.loadingProgress = 38;
+				return this.joining ? this.gameService.join(pony.id) : Promise.resolve();
+			})
+			.then(() => this.loadingProgress = 100)
 			.catch((e: RequestError) => {
 				if (!/^Cancelled/.test(e.message)) {
 					this.error = e.message;
@@ -191,7 +210,11 @@ export class PlayBox implements OnInit {
 					DEVELOPMENT && console.error(e);
 				}
 			})
-			.finally(() => this.joining = false)
+			.finally(() => {
+				this.joining = false;
+				clearInterval(this.loadingIconTimer);
+				this.loadingIconTimer = undefined;
+			})
 			.then(() => delay(1500))
 			.finally(() => this.locked = false);
 	}
@@ -199,13 +222,19 @@ export class PlayBox implements OnInit {
 		this.gameService.leave('Cancelled joining');
 	}
 	reload() {
-		location.reload(true);
+		location.reload();
 	}
 	hardReload() {
 		hardReload();
 	}
 	hasFlag(server: ServerInfo) {
 		return server.countryFlags && server.countryFlags.length;
+	}
+	getServerFlags(server: ServerInfo) {
+		return [
+			server.flags && server.flags.test ? { icon: faWrench, className: 'server-marker-test' } : undefined,
+			server.flags && server.flags.editor ? { icon: faCode, className: 'server-marker-dev' } : undefined,
+		].filter(marker => !!marker);
 	}
 	getIcon(server: ServerInfo) {
 		switch (server.flag) {

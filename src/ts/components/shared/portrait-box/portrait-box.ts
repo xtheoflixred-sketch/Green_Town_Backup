@@ -1,7 +1,7 @@
 ﻿import {
 Component, Input, AfterViewInit, OnChanges, DoCheck, ElementRef, ChangeDetectionStrategy, ViewChild, NgZone
 } from '@angular/core';
-import { PalettePonyInfo } from '../../../common/interfaces';
+import { PalettePonyInfo, PonyState } from '../../../common/interfaces';
 import { ContextSpriteBatch } from '../../../graphics/contextSpriteBatch';
 import { createCanvas, disableImageSmoothing, getPixelRatio, resizeCanvasWithRatio } from '../../../client/canvasUtils';
 import { defaultDrawPonyOptions, defaultPonyState } from '../../../client/ponyHelpers';
@@ -37,6 +37,7 @@ export class PortraitBox implements AfterViewInit, OnChanges, DoCheck {
 @Input() size = 'large';
 @Input() pony: PalettePonyInfo | undefined = undefined;
 @Input() chatHoverColor: number | undefined = undefined;
+@Input() renderState: PonyState | undefined = undefined;
 @ViewChild('canvas', { static: true }) canvas!: ElementRef;
 private frame = 0;
 private batch?: ContextSpriteBatch;
@@ -87,7 +88,7 @@ this.options.outlineColor = this.chatHoverColor;
 this.options.toy = (this.pony as any).toy || 0;
 
 this.batch.start(paletteSpriteSheet, 0);
-drawPony(this.batch, this.pony, this.state, 25, 54, this.options);
+	drawPony(this.batch, this.pony, this.renderState || this.state, 25, 54, this.options);
 this.batch.end();
 
 disableImageSmoothing(context);

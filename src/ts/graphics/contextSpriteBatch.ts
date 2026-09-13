@@ -91,12 +91,14 @@ export class ContextSpriteBatch extends BaseStateBatch implements PaletteSpriteB
 				x = palette as number;
 				drawImageNormal(
 					this.sheetData, this.data, this.transform, this.globalAlpha,
-					color, s.x, s.y, s.w, s.h, x + s.ox, y + s.oy, s.w, s.h);
+						color, s.x, s.y, s.w, s.h, x + s.ox, y + s.oy, s.w, s.h,
+						this.hasCrop ? this.cropRect : undefined);
 			} else {
 				drawImagePalette(
 					this.sheetData, this.data, this.transform, this.globalAlpha,
 					this.ignoreColor, this.disableShading,
-					s.type, color, palette as Palette, s.x, s.y, s.w, s.h, x + s.ox, y + s.oy, s.w, s.h);
+						s.type, color, palette as Palette, s.x, s.y, s.w, s.h, x + s.ox, y + s.oy, s.w, s.h,
+						this.hasCrop ? this.cropRect : undefined);
 			}
 		}
 	}
@@ -217,7 +219,7 @@ function drawRect(
 function drawImageNormal(
 	src: ImageData | undefined, dst: ImageData | undefined, transform: Matrix2D, globalAlpha: number,
 	tint: number, sx: number, sy: number, sw: number, sh: number,
-	dx: number, dy: number, dw: number, dh: number
+	dx: number, dy: number, dw: number, dh: number, crop?: { x: number; y: number; w: number; h: number; }
 ) {
 	if (sw !== dw || sh !== dh)
 		throw new Error('Different dimentions not supported');
@@ -250,9 +252,12 @@ function drawImageNormal(
 					const tx = Math.round((dx + x) * transform[0] + (dy + y) * transform[2] + transform[4]);
 					const ty = Math.round((dx + x) * transform[1] + (dy + y) * transform[3] + transform[5]);
 
-					if (tx >= 0 && ty >= 0 && tx < dstWidth && ty < dstHeight) {
+					if (tx >= 0 && ty >= 0 && tx < dstWidth && ty < dstHeight &&
+						(!crop || (tx >= crop.x && ty >= crop.y && tx < crop.x + crop.w && ty < crop.y + crop.h))) {
 						const dst0 = (tx + ty * dstWidth) << 2;
-						blendPrecise(dstData, dst0, rr, gg, bb, srcAlpha);
+						if (!crop || (dx + x >= crop.x && dy + y >= crop.y && dx + x < crop.x + crop.w && dy + y < crop.y + crop.h)) {
+							blendPrecise(dstData, dst0, rr, gg, bb, srcAlpha);
+						}
 					}
 				}
 			}
@@ -304,7 +309,9 @@ function drawImageNormal(
 				const gg = blendColor(g, sg, 255);
 				const bb = blendColor(b, sb, 255);
 				const dst0 = ((dx + x) + (dy + y) * dstWidth) << 2;
-				blendPrecise(dstData, dst0, rr, gg, bb, srcAlpha);
+				if (!crop || (dx + x >= crop.x && dy + y >= crop.y && dx + x < crop.x + crop.w && dy + y < crop.y + crop.h)) {
+					blendPrecise(dstData, dst0, rr, gg, bb, srcAlpha);
+				}
 			}
 		}
 	}
@@ -314,7 +321,8 @@ function drawImagePalette(
 	src: ImageData | undefined, dst: ImageData | undefined, transform: Matrix2D, globalAlpha: number,
 	ignoreColorOption: number, disableShadingOption: boolean,
 	type: number, tint: number, palette: Palette | undefined,
-	sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number
+	sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number,
+	crop?: { x: number; y: number; w: number; h: number; }
 ) {
 	if (sw !== dw || sh !== dh)
 		throw new Error('Different dimentions not supported');
@@ -354,9 +362,12 @@ function drawImagePalette(
 					const tx = Math.round((dx + x) * transform[0] + (dy + y) * transform[2] + transform[4]);
 					const ty = Math.round((dx + x) * transform[1] + (dy + y) * transform[3] + transform[5]);
 
-					if (tx >= 0 && ty >= 0 && tx < dstWidth && ty < dstHeight) {
+					if (tx >= 0 && ty >= 0 && tx < dstWidth && ty < dstHeight &&
+						(!crop || (tx >= crop.x && ty >= crop.y && tx < crop.x + crop.w && ty < crop.y + crop.h))) {
 						const dst0 = (tx + ty * dstWidth) << 2;
-						blendPrecise(dstData, dst0, rr, gg, bb, srcAlpha);
+						if (!crop || (dx + x >= crop.x && dy + y >= crop.y && dx + x < crop.x + crop.w && dy + y < crop.y + crop.h)) {
+							blendPrecise(dstData, dst0, rr, gg, bb, srcAlpha);
+						}
 					}
 				}
 			}
@@ -411,7 +422,9 @@ function drawImagePalette(
 				const gg = blendColor(getG(color), g, shade);
 				const bb = blendColor(getB(color), b, shade);
 				const dst0 = ((dx + x) + (dy + y) * dstWidth) << 2;
-				blendPrecise(dstData, dst0, rr, gg, bb, srcAlpha);
+				if (!crop || (dx + x >= crop.x && dy + y >= crop.y && dx + x < crop.x + crop.w && dy + y < crop.y + crop.h)) {
+					blendPrecise(dstData, dst0, rr, gg, bb, srcAlpha);
+				}
 			}
 		}
 	}

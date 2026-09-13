@@ -3,8 +3,9 @@ import { Subscription } from 'rxjs';
 
 import { clamp } from 'lodash';
 import { PLAYER_NAME_MAX_LENGTH, PLAYER_DESC_MAX_LENGTH } from '../../../common/constants';
+import { Character as ImportedCharacter } from '../../../common/adminInterfaces';
 import {
-	PonyInfo, PonyObject, PonyState, SocialSiteInfo, ColorExtraSet, ColorExtra, CharacterTag, PonyEye, Eye, Muzzle,
+	PonyInfo, PonyObject, PonyState, SocialSiteInfo, ColorExtraSet, ColorExtra, CharacterTag, PonyEye, Eye, Muzzle, ButtonAction,
 	Entity, defaultWorldState,
 	Iris, ExpressionExtra
 } from '../../../common/interfaces';
@@ -30,15 +31,16 @@ import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
 import { loadAndInitSpriteSheets, addTitles, createEyeSprite, addLabels } from '../../../client/spriteUtils';
 import { GameService } from '../../services/gameService';
 import { TRANSPARENT, BLACK, blushColor } from '../../../common/colors';
-import { colorToHexRGB } from '../../../common/color';
+import { colorToHexRGB, parseColorFast } from '../../../common/color';
 import { precompressPony, compressPonyString, decompressPony, decompressPonyString } from '../../../common/compressPony';
-import { saveCanvas } from '../../../client/canvasUtils';
+import { createCanvas, disableImageSmoothing, saveCanvas } from '../../../client/canvasUtils';
 import { drawPony } from '../../../client/ponyDraw';
+import { commonPalettes, drawNamePlate, DrawNameFlags, DrawNameRenderMode } from '../../../graphics/graphicsUtils';
 import { getProviderIcon } from '../../shared/sign-in-box/sign-in-box';
-import { faPlay, faUser, faLock, faBan, faRedo, faSave, faCode, faInfoCircle, faPaintBrush, faHorseHead, faRetweet, faSearch, faUndo, faEraser, faSlash, faFont, faStar, faHandHolding } from '../../../client/icons';
+import { faPlay, faUser, faLock, faPause, faBan, faRedo, faSave, faCode, faInfoCircle, faPaintBrush, faHorseHead, faRetweet, faSearch, faUndo, faEraser, faSlash, faFont, faStar, faLanguage, faPalette, faArrowsAltH, faArrowsAltV, faTimes, faChevronUp } from '../../../client/icons';
 import { isFileSaverSupported, createExpression, readFileAsText } from '../../../client/clientUtils';
 import { isMobile } from '../../../client/data';
-import { emptyTag, getAvailableTags } from '../../../common/tags';
+import { emptyTag, getAvailableTags, getTagGradient, getTagTranslation } from '../../../common/tags';
 import { ButtMarkEditorState } from '../../shared/butt-mark-editor/butt-mark-editor';
 import { getContrastTextColor, parseColorWithAlpha } from '../../../common/color';
 import { createAnEntity } from '../../../common/entities';
@@ -88,10 +90,13 @@ interface CharacterUndoState {
 export class Character implements DoCheck, OnInit, OnDestroy {
 	@ViewChild('characterPreview', { static: true }) characterPreview!: any;
 	@ViewChild('unsavedCharacterModal', { static: true }) unsavedCharacterModalTpl!: TemplateRef<any>;
+	@ViewChild('importedCharacterModal', { static: true }) importedCharacterModalTpl!: TemplateRef<any>;
+	@ViewChild('importFile', { static: true }) importFileInput!: any;
 	@Input() inGameMode = false;
 	readonly debug = DEVELOPMENT || BETA;
 	previewScale: number = 4;
 	showBackground = false;
+	showPreviewControls = true;
 	hidePreviewName = false;
 	hidePreviewTag = false;
 
@@ -108,13 +113,19 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	readonly paintBrushIcon = faPaintBrush;
 	readonly horseHeadIcon = faHorseHead;
 	readonly flipIcon = faRetweet;
+	readonly closeIcon = faTimes;
+	readonly previewControlsUpIcon = faChevronUp;
 	readonly searchIcon = faSearch;
 	readonly eraserIcon = faEraser;
 	readonly nameIcon = faFont;
 	readonly tagIcon = faCode;
 	readonly slashIcon = faSlash;
 	readonly starIcon = faStar;
-	readonly holdItemIcon = faHandHolding;
+	readonly translateIcon = faLanguage;
+	readonly gradientIcon = faPalette;
+	readonly horizontalGradientIcon = faArrowsAltH;
+	readonly verticalGradientIcon = faArrowsAltV;
+	readonly pauseIcon = faPause;
 	readonly maxNameLength = PLAYER_NAME_MAX_LENGTH;
 	readonly maxDescLength = PLAYER_DESC_MAX_LENGTH;
 	readonly horns = horns;
@@ -202,6 +213,11 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	activeAnimation = 0;
 	loaded = false;
 	playAnimation = true;
+	pngExportScale = 1;
+	pngExportName = true;
+	pngExportTag = true;
+	pngExportBackground = false;
+	pngExportShadow = true;
 	deleting = false;
 	fixed = false;
 	previewExtra = false;
@@ -240,9 +256,12 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	public modalCurrentPony?: PonyInfo;
 	public modalStoredPony?: PonyInfo;
 	public modalPonyName?: string;
+	public importedPonies: ImportedCharacter[] = [];
+	public importError?: string;
 	private accountChangedSubscription?: Subscription;
 	private ponyChangedSubscription?: Subscription;
 	private unsavedChangesModalRef?: BsModalRef;
+	private importedCharacterModalRef?: BsModalRef;
 	private pendingPlayCallback?: (options?: { pony?: PonyObject; skipSave?: boolean }) => void;
 	constructor(private gameService: GameService, private model: Model, private storage: StorageService, private modalService: BsModalService) {
 		this.createMuzzles();
@@ -303,9 +322,11 @@ get previewState(): PonyState {
 			const right: Eye = info.eyeOpennessRight != null ? info.eyeOpennessRight : Eye.Neutral;
 			const left: Eye = info.eyeOpennessLeft != null ? info.eyeOpennessLeft : Eye.Neutral;
 			const muzzle: Muzzle = info.muzzle != null ? info.muzzle : Muzzle.Smile;
+			const expression = this.state.expression || createExpression(
+				Eye.Neutral, Eye.Neutral, Muzzle.Smile, Iris.Forward, Iris.Forward, ExpressionExtra.None);
 			return {
 				...defaultPonyState(),
-				expression: { right, left, muzzle, extra: ExpressionExtra.None, leftIris: Iris.Forward, rightIris: Iris.Forward },
+				expression: { ...expression, right, left, muzzle },
 				blinkFrame: 1,
 				blushColor: info.blushColor ? parseColorWithAlpha(info.blushColor, 1) : blushColor(parseColorWithAlpha(info.coatFill || '', 1)),
 			};
@@ -336,6 +357,38 @@ get previewState(): PonyState {
 		}
 
 		return getPonyTag(pony, this.account);
+	}
+	get previewTagColor() {
+		const previewTag = this.previewTag;
+		if (previewTag && /^sup[1-4]$/.test(previewTag)) {
+			return undefined;
+		}
+		const pony = this.previewPony || this.pony;
+		return pony.tagColor || undefined;
+	}
+	get previewTagGradientStart() {
+		const previewTag = this.previewTag;
+		if (previewTag && /^sup[1-4]$/.test(previewTag)) {
+			return undefined;
+		}
+		const pony = this.previewPony || this.pony;
+		const gradient = previewTag ? getTagGradient(previewTag) : undefined;
+		return pony.tagGradientStart || (gradient && gradient.start) || this.previewTagColor;
+	}
+	get previewTagGradientEnd() {
+		const previewTag = this.previewTag;
+		if (previewTag && /^sup[1-4]$/.test(previewTag)) {
+			return undefined;
+		}
+		const pony = this.previewPony || this.pony;
+		const gradient = previewTag ? getTagGradient(previewTag) : undefined;
+		return pony.tagGradientEnd || (gradient && gradient.end) || this.previewTagColor;
+	}
+	get previewTagGradientDirection(): 'horizontal' | 'vertical' {
+		const pony = this.previewPony || this.pony;
+		const previewTag = this.previewTag;
+		const gradient = previewTag ? getTagGradient(previewTag) : undefined;
+		return pony.tagGradientDirection || (gradient && gradient.direction) || 'horizontal';
 	}
 	get displayedSupporterTag(): string | undefined {
 		if (this.supporterTagPreviewActive) {
@@ -368,6 +421,16 @@ get previewState(): PonyState {
 		this.renderChanged();
 	}
 
+	previewSettingsOpen = false;
+
+	openPreviewSettings() {
+		this.previewSettingsOpen = true;
+	}
+
+	closePreviewSettings() {
+		this.previewSettingsOpen = false;
+	}
+	
 	clearCharacterTagPreview() {
 		if (!this.tagPreview) {
 			return;
@@ -405,7 +468,7 @@ get previewState(): PonyState {
 	}
 
 	get hasCustomPreviewBackground() {
-		return this.globalPreviewBackground !== '90ee90';
+		return this.info.previewBackground !== '90ee90' || this.globalPreviewBackground !== '90ee90';
 	}
 
 	get previewBackgroundColor(): string {
@@ -495,7 +558,8 @@ get previewState(): PonyState {
 		this.changed();
 	}
 	get canTogglePreviewTag() {
-		return this.tags.length > 1 || !!(this.account && this.account.supporter);
+		return (this.tags.length > 1 || !!(this.account && this.account.supporter))
+			&& this.pony.tag !== 'hidden' && this.pony.supportTag !== 'hidden';
 	}
 	get ponies() {
 		return this.model.ponies;
@@ -532,6 +596,9 @@ get previewState(): PonyState {
 	}
 
 	set tag(value: CharacterTag) {
+		if (this.pony.tag !== value.id) {
+			this.pony.tagTranslation = undefined;
+		}
 		this.pony.tag = value.id;
 	}
 
@@ -541,10 +608,112 @@ get previewState(): PonyState {
 
 	set tagColor(value: string) {
 		this.pony.tagColor = value;
+		this.pony.tagGradientStart = undefined;
+		this.pony.tagGradientEnd = undefined;
+	}
+
+	get hasCustomTagColor() {
+		return !!this.pony.tagColor;
+	}
+
+	get supporterTagGradientLocked() {
+		return /^sup[1-4]$/.test(this.previewTag || '');
+	}
+
+	get hasCustomTagGradient() {
+		return !!(this.pony.tagGradientStart && this.pony.tagGradientEnd);
 	}
 
 	get tagTextColor() {
 		return getContrastTextColor(this.tagColor);
+	}
+
+	get hasTagGradient() {
+		return !!(this.hasCustomTagGradient || getTagGradient(this.tag.id));
+	}
+
+	get tagGradientCss() {
+		return this.hasTagGradient && !this.hasCustomTagColor
+			? `linear-gradient(${this.tagGradientDirection === 'vertical' ? 'to bottom' : 'to right'}, #${this.tagGradientStart}, #${this.tagGradientEnd})`
+			: undefined;
+	}
+
+	get tagGradientDirection(): 'horizontal' | 'vertical' {
+		const gradient = getTagGradient(this.tag.id);
+		return this.pony.tagGradientDirection || (gradient && gradient.direction) || 'horizontal';
+	}
+
+	set tagGradientDirection(value: 'horizontal' | 'vertical') {
+		this.pony.tagGradientDirection = value;
+		this.changed();
+	}
+
+	get tagGradientStart() {
+		const gradient = getTagGradient(this.tag.id);
+		return this.pony.tagGradientStart || (gradient && gradient.start) || this.tagColor;
+	}
+
+	set tagGradientStart(value: string) {
+		this.pony.tagColor = undefined;
+		this.pony.tagGradientStart = value.replace(/^#/, '');
+	}
+
+	get tagGradientEnd() {
+		const gradient = getTagGradient(this.tag.id);
+		return this.pony.tagGradientEnd || (gradient && gradient.end) || this.tagColor;
+	}
+
+	set tagGradientEnd(value: string) {
+		this.pony.tagColor = undefined;
+		this.pony.tagGradientEnd = value.replace(/^#/, '');
+	}
+
+	addTagGradient() {
+		this.pony.tagColor = undefined;
+		this.pony.tagGradientStart = this.tagGradientStart;
+		this.pony.tagGradientEnd = this.tagGradientEnd;
+		this.pony.tagGradientDirection = this.tagGradientDirection;
+		this.changed();
+	}
+
+	addTagColor() {
+		this.pony.tagGradientStart = undefined;
+		this.pony.tagGradientEnd = undefined;
+		this.pony.tagColor = this.tagColor;
+		this.changed();
+	}
+
+	resetTagGradient() {
+		this.pony.tagGradientStart = undefined;
+		this.pony.tagGradientEnd = undefined;
+		this.pony.tagGradientDirection = undefined;
+		this.changed();
+	}
+
+	get tagTranslation() {
+		return this.pony.tagTranslation;
+	}
+
+	get translatedTagText() {
+		return getTagTranslation(this.tag.id);
+	}
+
+	get tagTranslationActionLabel() {
+		return this.pony.tagTranslation ? 'untranslate' : 'translate';
+	}
+
+	get tagColorActionLabel() {
+		return this.hasCustomTagColor ? 'change color' : 'add color';
+	}
+
+	get tagGradientActionLabel() {
+		return this.hasCustomTagGradient ? 'remove gradient' : 'add gradient';
+	}
+
+	toggleTagTranslation() {
+		if (!this.tag.id || !this.translatedTagText) return;
+		this.pony.tagTranslation = this.pony.tagTranslation ? undefined : this.translatedTagText;
+		this.changed();
 	}
 
 	get lockEyeWhites() {
@@ -755,6 +924,24 @@ get previewState(): PonyState {
 			this.renderChanged();
 		}
 	}
+	applyExpressionAction(action: ButtonAction | undefined) {
+		if (!action || action.type !== 'expression' || !action.expression) {
+			return;
+		}
+
+		const expression = action.expression;
+		this.info.lockEyes = expression.right === expression.left;
+		this.lockIrises = expression.rightIris === expression.leftIris;
+		this.info.eyeOpennessRight = expression.right;
+		this.info.eyeOpennessLeft = expression.left;
+		this.info.muzzle = expression.muzzle;
+		this.state.expression = { ...expression };
+		this.changed();
+		this.renderChanged();
+	}
+	isExpressionAction(action: ButtonAction | undefined) {
+		return !!action && action.type === 'expression' && !!action.expression;
+	}
 	ngOnDestroy() {
 		clearInterval(this.interval);
 		this.accountChangedSubscription && this.accountChangedSubscription.unsubscribe();
@@ -778,11 +965,17 @@ get previewState(): PonyState {
 	private matchesKey(event: KeyboardEvent, code: string, keyCode: number) {
 		return event.code === code || event.keyCode === keyCode || (event as any).which === keyCode;
 	}
+	private isTextEditingTarget(target: EventTarget | null): boolean {
+		const el = target as HTMLElement | null;
+		if (!el) return false;
+		if (/^(input|textarea|select)$/i.test(el.tagName)) return true;
+		if (el.isContentEditable || el.contentEditable === 'true' || el.contentEditable === 'plaintext-only') return true;
+		return !!el.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"], .character-name-editor');
+	}
 	@HostListener('window:keydown', ['$event'])
 	onKeyDown(event: KeyboardEvent) {
 		if (this.playing) return;
-		const tag = ((event.target as HTMLElement) && (event.target as HTMLElement).tagName || '').toUpperCase();
-		if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+		if (this.isTextEditingTarget(event.target)) return;
 		if (event.ctrlKey || event.metaKey) {
 			if (this.matchesKey(event, 'KeyZ', 90)) {
 				event.preventDefault();
@@ -794,6 +987,49 @@ get previewState(): PonyState {
 			return;
 		}
 		if (!this.info) return;
+		if (this.matchesKey(event, 'KeyH', 72)) {
+			event.preventDefault();
+			this.toggleHeadTurned();
+			return;
+		}
+		if (this.matchesKey(event, 'KeyA', 65)) {
+			if (this.info.flip) {
+				event.preventDefault();
+				this.info.flip = false;
+				this.changed();
+			}
+			return;
+		}
+		if (this.matchesKey(event, 'KeyD', 68)) {
+			if (!this.info.flip) {
+				event.preventDefault();
+				this.info.flip = true;
+				this.changed();
+			}
+			return;
+		}
+		if (this.matchesKey(event, 'KeyG', 71)) {
+			event.preventDefault();
+			this.previewScale = this.previewScale >= 7 ? 1 : this.previewScale + 1;
+			this.changed();
+			return;
+		}
+		if (this.matchesKey(event, 'KeyF', 70)) {
+			event.preventDefault();
+			this.previewScale = this.previewScale <= 1 ? 7 : this.previewScale - 1;
+			this.changed();
+			return;
+		}
+		if (this.matchesKey(event, 'KeyY', 89)) {
+			event.preventDefault();
+			this.toggleHidePreviewName();
+			return;
+		}
+		if (this.matchesKey(event, 'KeyT', 84)) {
+			event.preventDefault();
+			this.toggleHidePreviewTag();
+			return;
+		}
 
 	}
 	private createUndoPonySnapshot() {
@@ -1096,6 +1332,18 @@ get previewState(): PonyState {
 		this.info.blushColor = 'ff89ae';
 		this.changed();
 	}
+	resetMouthColor() {
+		this.info.mouthColor = '721946';
+		this.changed();
+	}
+	resetTongueColor() {
+		this.info.tongueColor = 'f39f4b';
+		this.changed();
+	}
+	resetTeethColor() {
+		this.info.teethColor = 'ffffff';
+		this.changed();
+	}
 
 	resetTagColor() {
 		this.pony.tagColor = undefined;
@@ -1144,6 +1392,10 @@ get previewState(): PonyState {
 		this.changed();
 	}
 
+	togglePreviewControls() {
+		this.showPreviewControls = !this.showPreviewControls;
+	}
+
 	toggleHidePreviewName() {
 		this.hidePreviewName = !this.hidePreviewName;
 		this.changed();
@@ -1186,6 +1438,13 @@ get previewState(): PonyState {
 	eyeOpennessChanged(locked: boolean) {
 		if (locked) {
 			this.info.eyeOpennessLeft = this.info.eyeOpennessRight;
+		}
+		this.changed();
+	}
+	muzzleChanged(muzzle: Muzzle) {
+		this.info.muzzle = muzzle;
+		if (this.state.expression) {
+			this.state.expression = { ...this.state.expression, muzzle };
 		}
 		this.changed();
 	}
@@ -1395,7 +1654,7 @@ get previewState(): PonyState {
 		}
 
 		if (this.pony.name !== stored.name || this.pony.desc !== stored.desc || this.pony.site !== stored.site
-			|| this.pony.tag !== stored.tag || this.pony.tagColor !== stored.tagColor || this.pony.supportTag !== stored.supportTag
+			|| this.pony.tag !== stored.tag || this.pony.tagColor !== stored.tagColor || this.pony.tagTranslation !== stored.tagTranslation || this.pony.tagGradientStart !== stored.tagGradientStart || this.pony.tagGradientEnd !== stored.tagGradientEnd || this.pony.tagGradientDirection !== stored.tagGradientDirection || this.pony.supportTag !== stored.supportTag
 			|| this.pony.hideSupport !== stored.hideSupport || this.pony.respawnAtSpawn !== stored.respawnAtSpawn) {
 			return true;
 		}
@@ -1459,7 +1718,7 @@ get previewState(): PonyState {
 		}
 
 		if (a.name !== b.name || a.id !== b.id || a.desc !== b.desc || a.site !== b.site
-			|| a.tag !== b.tag || a.tagColor !== b.tagColor || a.supportTag !== b.supportTag
+			|| a.tag !== b.tag || a.tagColor !== b.tagColor || a.tagTranslation !== b.tagTranslation || a.tagGradientStart !== b.tagGradientStart || a.tagGradientEnd !== b.tagGradientEnd || a.tagGradientDirection !== b.tagGradientDirection || a.supportTag !== b.supportTag
 			|| a.hideSupport !== b.hideSupport || a.respawnAtSpawn !== b.respawnAtSpawn) {
 			return false;
 		}
@@ -1498,6 +1757,46 @@ get previewState(): PonyState {
 		}
 		this.pendingPlayCallback = undefined;
 		this.restoreDraftCandidate = undefined;
+	}
+
+	openImportedCharacterModal(ponies: ImportedCharacter[] = [], errorMessage?: string) {
+		this.importedPonies = ponies;
+		this.importError = errorMessage;
+		this.importedCharacterModalRef = this.modalService.show(this.importedCharacterModalTpl, { class: 'modal-md' });
+	}
+
+	closeImportedCharacterModal() {
+		if (this.importedCharacterModalRef) {
+			this.importedCharacterModalRef.hide();
+			this.importedCharacterModalRef = undefined;
+		}
+		this.importedPonies = [];
+		this.importError = undefined;
+	}
+
+	confirmImportedCharacter() {
+		if (!this.importedPonies.length) {
+			this.closeImportedCharacterModal();
+			return;
+		}
+
+		Promise.all(this.importedPonies.map(pony => {
+			const ponyInfo = pony.ponyInfo || (pony.info ? decompressPonyString(pony.info, true) : undefined);
+
+			return this.model.savePony({
+				id: '',
+				name: pony.name || 'Imported pony',
+				desc: pony.desc || '',
+				info: pony.info || '',
+				ponyInfo,
+			}, true);
+		}))
+			.then(() => {
+				this.closeImportedCharacterModal();
+			})
+			.catch(error => {
+				this.importError = error && error.message ? error.message : 'Failed to import character(s).';
+			});
 	}
 
 	confirmSaveAndPlay() {
@@ -1581,34 +1880,78 @@ get previewState(): PonyState {
 	}
 
 	export(index?: number) {
+		if (typeof index === 'number') {
+			this.exportPng(index);
+			return;
+		}
+
+		this.exportPony();
+	}
+
+	private exportPng(index: number) {
+		const animation = (typeof index === 'number' && index >= 0 && index < this.animations.length)
+			? this.animations[index]()
+			: stand;
 		const frameWidth = 80;
 		const frameHeight = 90;
-		const animations = index === undefined ? this.animations.map(a => a()) : [this.animations[index]()];
-		const frames = animations.reduce((sum, a) => sum + a.frames.length, 0);
+		const renderFrameCount = this.playAnimation ? animation.frames.length : 1;
+		const safeScale = [1, 2, 4, 6, 10, 12].includes(this.pngExportScale) ? this.pngExportScale : 1;
 		const info = toPalette(this.info);
-		const options = defaultDrawPonyOptions();
+		const options = { ...defaultDrawPonyOptions(), shadow: this.pngExportShadow };
+		const baseFrame = clamp(this.state.animationFrame || 0, 0, Math.max(animation.frames.length - 1, 0));
+		const outputWidth = frameWidth * renderFrameCount;
+		const outputHeight = frameHeight;
+		const previewBackground = (this.previewInfo && this.previewInfo.previewBackground) || '90ee90';
+		const backgroundColor = this.pngExportBackground
+			? parseColorFast(previewBackground)
+			: TRANSPARENT;
+		const sourceCanvas = drawCanvas(outputWidth, outputHeight, sprites.paletteSpriteSheet, backgroundColor, batch => {
+			for (let frameIndex = 0; frameIndex < renderFrameCount; frameIndex++) {
+				const state: PonyState = {
+					...defaultPonyState(),
+					animation,
+					animationFrame: this.playAnimation ? frameIndex : baseFrame,
+					blinkFrame: 1,
+				};
 
-		const canvas = drawCanvas(frameWidth * frames, frameHeight, sprites.paletteSpriteSheet, TRANSPARENT, batch => {
-			let i = 0;
+				drawPony(batch, info, state, frameIndex * frameWidth + frameWidth / 2, frameHeight - 10, options);
 
-			animations.forEach(a => {
-				for (let f = 0; f < a.frames.length; f++ , i++) {
-					const state: PonyState = {
-						...defaultPonyState(),
-						animation: a,
-						animationFrame: f,
-						blinkFrame: 1,
-					};
-
-					drawPony(batch, info, state, i * frameWidth + frameWidth / 2, frameHeight - 10, options);
+				if (this.pngExportName) {
+					drawNamePlate(
+						batch,
+						this.pony.name,
+						frameIndex * frameWidth + frameWidth / 2,
+						16,
+						DrawNameFlags.None,
+						commonPalettes,
+						this.previewTag,
+						this.tagColor,
+						false,
+						DrawNameRenderMode.NameAndTag,
+						this.tagTranslation,
+						this.tagGradientStart,
+						this.tagGradientEnd,
+						this.tagGradientDirection,
+					);
 				}
-			});
+			}
 		});
 
-		const name = animations.length === 1 ? animations[0].name : 'all';
-		saveCanvas(canvas, `${this.pony.name}-${name}.png`);
+		const scaledCanvas = createCanvas(sourceCanvas.width * safeScale, sourceCanvas.height * safeScale);
+		const context = scaledCanvas.getContext('2d');
+		if (context) {
+			disableImageSmoothing(context);
+			context.drawImage(sourceCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+		}
+
+		saveCanvas(scaledCanvas, `${this.pony.name}-${animation.name}.png`);
 	}
 	import() {
+		if (this.importFileInput && this.importFileInput.nativeElement) {
+			this.importFileInput.nativeElement.click();
+			return;
+		}
+
 		if (DEVELOPMENT) {
 			const data = prompt('enter data');
 
@@ -1669,29 +2012,40 @@ get previewState(): PonyState {
 		saveAs(new Blob([data], { type: 'text/plain;charset=utf-8' }), 'ponies.txt');
 	}
 	async importPonies(file: File | undefined) {
-		if (file) {
+		if (!file) {
+			return;
+		}
+
+		try {
 			const text = await readFileAsText(file);
-			const lines = text.split(/\r?\n/g);
+			const lines = text.split(/\r?\n/g).map(line => line.trim()).filter(Boolean);
+			const parsedPonies: ImportedCharacter[] = [];
 
 			for (const line of lines) {
-				try {
-					const [name, info, desc = ''] = line.split(/\t/g);
+				const [name, info, desc = ''] = line.split(/\t/g);
 
-					if (name && info) {
-						const pony: PonyObject = {
-							name,
-							id: '',
-							info,
-							desc,
-							ponyInfo: decompressPonyString(info, true),
-						};
-
-						await this.model.savePony(pony, true);
-					}
-				} catch (e) {
-					DEVELOPMENT && console.error(e);
+				if (name && info) {
+					parsedPonies.push({
+						_id: '',
+						name,
+						info,
+						desc,
+						account: this.model.account ? this.model.account.id : '',
+						flags: 0,
+						ponyInfo: decompressPonyString(info, true),
+					} as any);
 				}
 			}
+
+			if (!parsedPonies.length) {
+				this.openImportedCharacterModal([], 'No valid pony data was found in the selected file.');
+				return;
+			}
+
+			this.openImportedCharacterModal(parsedPonies);
+		} catch (e) {
+			const errorMessage = e instanceof Error ? e.message : 'Failed to import pony data.';
+			this.openImportedCharacterModal([], errorMessage);
 		}
 	}
 }

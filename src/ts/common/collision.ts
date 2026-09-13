@@ -1,7 +1,7 @@
 import { Entity, IMap, Region, EntityFlags } from './interfaces';
 import { clamp } from './utils';
 import { toWorldX, toWorldY } from './positionUtils';
-import { getRegionGlobal, isInWaterAt } from './worldMap';
+import { getRegionGlobal, isBoatSurfaceAt, isInWaterAt } from './worldMap';
 import { tileWidth, tileHeight, PONY_TYPE, REGION_SIZE, REGION_WIDTH, REGION_HEIGHT } from './constants';
 import { isInTheAir, isFlying } from './entityUtils';
 
@@ -52,6 +52,10 @@ export function fixCollision<T>(entity: Entity, map: IMap<T>) {
 function isPonyColliding<T extends Region | undefined>(x: number, y: number, map: IMap<T>, flying: boolean): boolean {
 	if (isOutsideMap(x, y, map)) {
 		return true;
+	}
+
+	if (!flying && isBoatSurfaceAt(map, x, y)) {
+		return false;
 	}
 
 	const region = getRegionGlobal(map, x, y);

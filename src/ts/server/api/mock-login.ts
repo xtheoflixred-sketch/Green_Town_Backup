@@ -1,8 +1,8 @@
 import { RequestHandler } from 'express';
 import { Account, Character } from '../db';
 import { createCharacter } from './ponies';
-import { compressPonyString } from '../../common/compressPony';
 import { createServerDefaultPony } from '../../common/ponyInfo';
+import { compressPonyString } from '../../common/compressPony';
 import { settings as globalSettings } from '../settings';
 
 export const getMockAccounts: RequestHandler = async (_req, res, next) => {

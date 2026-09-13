@@ -10,7 +10,7 @@ export function createHtmlNodes(value: string | undefined, scale: number): Node[
 		if (sprite) {
 			const emote = findEmoji(x);
 			const img = document.createElement('img');
-			img.className = 'pixelart';
+			img.className = 'ui-emoji';
 			img.style.display = 'inline-block';
 			img.style.visibility = 'hidden';
 			img.style.width = `${(sprite.w + sprite.ox) * scale}px`;

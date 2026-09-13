@@ -127,6 +127,7 @@ export default function (server: ServerConfig, settings: Settings, world: World 
 		const fps: number = req.body.fps || 24;
 		const cols: number = req.body.cols || 1;
 		const frames: number = req.body.frames || 1;
+		const loops: number = Math.max(1, Math.min(10, req.body.loops | 0 || 1));
 
 		const name = randomString(10);
 		const filePath = path.join(paths.store, name + '.png');
@@ -135,7 +136,7 @@ export default function (server: ServerConfig, settings: Settings, world: World 
 		const mp4Path = filePath.replace(/\.png$/, '.mp4');
 
 		fs.writeFileAsync(filePath, buffer)
-			.then(() => exportMp4(filePath, mp4Path, width, height, fps, cols, frames))
+			.then(() => exportMp4(filePath, mp4Path, width, height, fps, cols, frames, loops))
 			.then(() => res.send({ name }))
 			.catch(error => {
 				console.error('animation-mp4 failed', error);
@@ -193,13 +194,13 @@ function exportGif(filePath: string, gifPath: string, width: number, height: num
 	return runCommandAttempts(attempts, 'GIF export requires ffmpeg or ImageMagick (magick) in PATH, or FFMPEG_PATH/MAGICK_PATH to be set.');
 }
 
-function exportMp4(filePath: string, mp4Path: string, width: number, height: number, fps: number, cols: number, frames: number) {
+function exportMp4(filePath: string, mp4Path: string, width: number, height: number, fps: number, cols: number, frames: number, loops: number) {
 	const ffmpegArgs = [
 		'-y',
 		'-loop', '1',
 		'-i', filePath,
-		'-vf', createMp4Filter(width, height, fps, cols),
-		'-frames:v', String(frames),
+		'-vf', createMp4Filter(width, height, fps, cols, frames),
+		'-frames:v', String(frames * loops),
 		'-movflags', '+faststart',
 		'-pix_fmt', 'yuv420p',
 		'-c:v', 'libx264',
@@ -264,13 +265,14 @@ function createGifFilter(width: number, height: number, fps: number, cols: numbe
 	return `${crop},split[a][b];[a]palettegen=reserve_transparent=on[p];[b][p]paletteuse`;
 }
 
-function createMp4Filter(width: number, height: number, fps: number, cols: number) {
-	const crop = createCropFilter(width, height, fps, cols);
+function createMp4Filter(width: number, height: number, fps: number, cols: number, frames: number) {
+	const crop = createCropFilter(width, height, fps, cols, frames);
 	return `${crop},scale=trunc(iw/2)*2:trunc(ih/2)*2`;
 }
 
-function createCropFilter(width: number, height: number, fps: number, cols: number) {
-	return `fps=${fps},crop=${width}:${height}:mod(n\\,${cols})*${width}:floor(n/${cols})*${height}`;
+function createCropFilter(width: number, height: number, fps: number, cols: number, frames?: number) {
+	const frameIndex = frames ? `mod(n\\,${frames})` : 'n';
+	return `fps=${fps},crop=${width}:${height}:mod(${frameIndex}\\,${cols})*${width}:floor(${frameIndex}/${cols})*${height}`;
 }
 
 function uniqueDefined(values: (string | undefined)[]) {

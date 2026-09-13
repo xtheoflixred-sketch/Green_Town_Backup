@@ -1,0 +1,14 @@
+.mini-map(*ngIf="showPanel")
+	.minimap-wrapper
+		.minimap-box
+			.minimap
+				canvas#mini-map-canvas.pixelart(#miniMapCanvas width="180" height="180")
+		.minimap-buttons
+			.minimap-buttons-background
+				button.minimap-btn.primary(type="button" (click)="toggleMiniMap()" title="Toggle minimap")
+					fa-icon([icon]="mapIcon" [fixedWidth]="true")
+				hr.m-1
+				button.minimap-btn(type="button" (click)="zoomMiniMapIn()" title="Zoom in")
+					fa-icon([icon]="plusIcon" [fixedWidth]="true")
+				button.minimap-btn(type="button" (click)="zoomMiniMapOut()" title="Zoom out")
+					fa-icon([icon]="minusIcon" [fixedWidth]="true")

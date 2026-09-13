@@ -1,0 +1,144 @@
+@import 'partials/variables';
+
+.role-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background: rgba(255, 255, 255, 0.04);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	padding: 16px 20px;
+}
+
+.role-modal-body {
+	padding: 20px;
+}
+
+.role-assignment-modal-host {
+	max-width: 1100px;
+}
+
+.role-modal-note {
+	display: flex;
+	align-items: center;
+	margin-bottom: 20px;
+	padding: 10px 12px;
+}
+
+.role-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.role-option {
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 4px;
+	padding: 9px 10px;
+	transition: border-color 120ms ease, background-color 120ms ease;
+
+	&.is-active {
+		border-color: rgba(40, 167, 69, 0.7);
+		background: rgba(40, 167, 69, 0.09);
+	}
+
+	&.is-disabled {
+		opacity: 0.62;
+	}
+
+	.custom-control-label {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		cursor: pointer;
+	}
+}
+
+.role-option-icon {
+	width: 25px;
+	margin-right: 8px;
+	color: $body-color;
+	text-align: center;
+}
+
+.role-option-copy {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	flex-direction: column;
+
+	small {
+	color: $text-muted;
+	font-size: 11px;
+	}
+}
+
+.role-tag-badge {
+	margin-left: 6px;
+	font-size: 10px;
+	white-space: nowrap;
+}
+
+.role-tag-markers {
+	display: inline-flex;
+	gap: 3px;
+	margin-left: 4px;
+	color: currentColor;
+}
+
+.role-tag-marker {
+	font-size: 0.85em;
+	opacity: 0.9;
+}
+
+.tag-preview-panel {
+	min-height: 150px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 4px;
+	padding: 14px;
+}
+
+.tag-cloud {
+	line-height: 2.2;
+}
+
+.tag-preview-footer {
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	padding-top: 10px;
+	color: $text-muted;
+	font-size: 12px;
+}
+
+@media (max-width: 575px) {
+	.role-list {
+		grid-template-columns: 1fr;
+	}
+
+	.role-modal-header {
+		padding: 14px;
+	}
+
+	.role-modal-body {
+		padding: 14px;
+	}
+}
+
+.role-modal-title,
+.role-modal-account,
+.role-modal-close {
+	flex: 1 1 0;
+}
+
+.role-modal-account {
+	font-size: 12px;
+}
+
+.role-modal-close {
+	margin: 0;
+	text-align: right;
+}
+
+.role-tag-routing {
+	max-width: 150px;
+	margin-left: 8px;
+	font-size: 11px;
+}

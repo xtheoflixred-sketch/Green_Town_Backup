@@ -243,6 +243,11 @@ export interface IClient extends ClientActions, ClientExtensions {
 export type Interact = (target: ServerEntity, client: IClient, x?: number, y?: number) => void;
 
 export interface ServerEntity extends Entity {
+	tagTranslation?: string;
+	tagGradientStart?: string;
+	tagGradientEnd?: string;
+	tagGradientDirection?: 'horizontal' | 'vertical';
+
 	// flags
 	serverFlags?: ServerFlags;
 	canFly?: boolean;

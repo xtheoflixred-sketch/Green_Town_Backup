@@ -7,7 +7,7 @@ import {
 } from '../../common/colors';
 import { MessageType } from '../../common/interfaces';
 import { getContrastTextColor, parseColorFast } from '../../common/color';
-import { getTag } from '../../common/tags';
+import { getTag, getChatColorOverride, getChatGradientOverride } from '../../common/tags';
 
 describe('colors', () => {
 	describe('getTag()', () => {
@@ -26,6 +26,26 @@ describe('colors', () => {
 
 		it('uses light text for dark backgrounds', () => {
 			expect(getContrastTextColor('000000')).equals('#fff');
+		});
+	});
+
+	describe('getChatColorOverride()', () => {
+		it('inherits a custom tag color for regular chat', () => {
+			expect(getChatColorOverride({ tag: 'mod', tagColor: '00ff00' }, MessageType.Chat)).equals('00ff00');
+		});
+
+		it('prefers a direct message color over the tag color', () => {
+			expect(getChatColorOverride({ tag: 'admin', tagColor: '00ff00', messageColor: 'ff0000' }, MessageType.Chat)).equals('ff0000');
+		});
+	});
+
+	describe('getChatGradientOverride()', () => {
+		it('inherits a custom tag gradient for regular chat', () => {
+			expect(getChatGradientOverride({ tag: 'mod', tagGradientStart: 'ff0000', tagGradientEnd: '0000ff', tagGradientDirection: 'vertical' }, MessageType.Chat)).deep.equals({
+				start: 'ff0000',
+				end: '0000ff',
+				direction: 'vertical',
+			});
 		});
 	});
 

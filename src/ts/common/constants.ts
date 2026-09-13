@@ -182,14 +182,16 @@ export const DISCORD_PONY = 'IBRyidpYZfIaGy6is++KnuOlsd+RpOqwwPb09vfl9v/BzPeDl96
 export const DEL_PONY = 'IBVISEg4azQrKysQHg9XV1dra2tgqGlEcUr7vyw6OjoWhU0EVQqgQRUEVSyLMwvVXCT4dDdxJgS9UiHvYiBVHQTLIAAlQAwAArCAQADAAACTQAn4AAWAKITV1IdFxColqVBBEgTRQGIAhOAEhCMiVQxIpMAUSlAAQBoZjGNAGhmMY2ALYAAGuaB8IwfKdJyBKsg=';
 export const KOKOSIK_PONY = 'IA77+Hx6MzPRzm3/5l/Tc791pfd9pfC0Yc2hSZbKOFno6Ojr6+vAbbVNTU2zAAAkEeYgUsAJ+AAHAAZQAlMUVaSMC8TSCAXBAMiATdiAGgCGUDwAEABAAIACAA==';
 export const DEFAULT_PONY = 'HAmZmZmflSA6NhJkSpZIMHWVV9hKSkq7u7uxsbEbQMEAGxAgAAAAOSAE/AAYIDVAElAMkBQgIigRiQZ4AgCjMgAIACA=';
+export const DEFAULT_PONY_STRING = DEFAULT_PONY;
 export const HIKA_MIG_PONY = 'ICW/zOKogOrgzP8nD13X5PqXqMZxhKVshKvagtzDccXsre3toe/vmPHHcsnus++ot9GOosNpfqKjss2lYhblggZupje8aC3GcCCKxTilZSrPlF1amDpnoz3c5fW5xtyVo7mKn8Oru9aWqMeKmrWBjaHLAAIlQwQABbBACADAAAAAEmhAeEBRYIsRhyJBShJRcMmZhsEraceQSYoIpQQBOCAJqYoKKrQQBdGEjDIQhQabchiV2BhXgAEA7K/BDAGwxRySgA==';
 export const AALIK_PONY = 'IAjNzc3vsBLg4ODw8PDErpfXxrSmvcKVGQDLAAAkggTECmhAeAAHFAYI1Q0RIwtUSSMqiEESmIopKxFAHAgK9MABAS6mcAaCZmZzAIAAgIAIiACAgA==';
 export const SOFA_PONY = 'IAxLUG+KpLo5PVrg4OCfn7yRv/+t3v+urq4wNEfM6/6Cw+xjf9OzAAAkECYgUsAJ+AAHAAaoAkoBmIVUEAYEwAdGAICEATDAQACAA4AKsAAKuwCsy7vAzMA=';
 export const ENOT_PONY = 'IASZmZmflSA6NhJkSpYbQMIAGyEAAAHLACfgAMEBqgElAMkBQgCAAAABAAQA';
 export const LAI_PONY = 'IBrWSUmWEUZojCTs+9HEPj68NTWO5Sv/xwD/1wAhyjL/fTuKui//uRmUxy6YxSuOomz/oWpcXFwqKipISEgICAhOTk7/cXFQv8H/ugAtHxa3AAAqAGAAEoRDASWAE/+AAFwRZmD8IYA6EnTxS5glZxxoDUpcl/5BEsOKARxACMhgAKcAShCFCdK+EJAW4Bp34ACAA6ABjAAZxjQM6zoGdZ0A';
 export const KRIF_PONY = 'IBOrkVh6knzj1bJoSDiLWymaf0drWzuTYS5xUC9yUTC+pWxST0E/ZF6AgIAvVE7UxIu6pnSzo2LRxZGzAAAqCEAAEYQCngBPwgIMkUmJTHgjQEIQlKaYDQJFSxFAGRABimKDXNJwA8ISke6GAwFYhhAABAagxjCQYA0CU5znOANADOc5zAA=';
+export const REY_SHLAPOCHNIK_PONY = 'IDn18u4tKyYmJiboS5PFxcUrLjPlKX/YGnHr6Obd3d16fH5zcnofHCFkYm4kISUsKS4REBJ4e4AiHyJLRUooJSkhHiE+Pj4VExY6Eh8iHiIbGBwmIydjY2cJCQkODQ8NCg4iISR0c3ppaWwwKjMaGhoyMjIiIiIpKSncYMQ4DTDS0tJUdjEeCBodWJ0KEANfWlFXVE4oKCgQEBD/pQA9PT1wcHA5OTkSEhIYGBjmIAzIkAFgIQYgowAAA5A1UAJ/8ICEkhRcIBwRoBhpx6CICSaiqy9gYBhlplsDjrzrdQYB8xmCEEMUchkICy00IBkIAnwQCihAAGEKAA4HmgFKoIWQFNdllgLbr774YDgJNjnwxQRoGWQIOYIGeeeWWQiAGkBAGj5ZZcBBBQCgBxwQQQBBBBBQBoGWu2/HHvJAGgAggggjgBBBBBBA';
 export const SERVER_DEFAULT_PONY_MANE_TYPE = 1;
-export const SERVER_DEFAULT_PONY_BACK_MANE_TYPE = 25;
+export const SERVER_DEFAULT_PONY_BACK_MANE_TYPE = 24;
 export const SERVER_DEFAULT_PONY_TAIL_TYPE = 6;
 export const SERVER_DEFAULT_PONY_COAT_FILL = 'ff0000';
 export const SERVER_DEFAULT_PONY_COAT_OUTLINE = '8b0000';
@@ -274,32 +276,165 @@ export const SUPPORTER_REWARDS_LIST = [
 
 export const ROLE_PRIVILEGES: { [role: string]: string[] } = {
 	owner: [
-		'Full owner access to administration tools',
-		'All admin, moderator, developer and builder privileges',
+		'Full control of server administration and account management',
+		'Can grant or remove roles and configure role tags for individual players',
+		'All admin, moderator, developer, builder and NPC privileges',
 	],
 	admin: [
-		'Access to the admin panel',
-		'Account, event, chat log and server management tools',
-		'All moderator privileges',
+		'Access to the admin panel and account details',
+		'Can browse server state, events, accounts and pony records',
+		'Can inspect account history, characters, origins, events and chat information',
+		'Can manage supporters, invites, account notes, limits and moderation state',
+		'Can update server and game-server settings exposed by the admin panel',
+		'Can use announcement and administrative chat tools',
+		'Can moderate players and use all moderator and builder commands through the role hierarchy',
+		'Role management remains owner-only; admin cannot grant or remove roles',
 	],
 	mod: [
-		'Moderation tools and player actions',
-		'Access to account, event and chat log information',
+		'Private moderator chat through /m',
+		'Can report another player and record a moderation action',
+		'Can temporarily mute another player',
+		'Can shadow-mute another player so their messages are hidden from others',
+		'Can ban another player and kick them from the server',
+		'Can inspect selected players and receive moderator information about them',
+		'Can save a moderation note on another player account',
+		'Can list players on the current map and see online totals and AFK markers',
+		'Can list server maps and their instances and player counts',
+		'Can view current map diagnostics: position, dimensions, players, regions, entities and memory usage',
+		'Can teleport to named locations, coordinates, maps and other players',
+		'Can teleport another player to a target or bring them to the moderator; can teleport all players to self',
+		'Can inspect named spawn locations on the current map',
+		'Can change own speed from 0.1x to 7x and reset it',
+		'Can change own character scale from 0.1x to 10x and reset it',
+		'Can toggle own noclip mode',
+		'Can inspect emotes and rare hold items for moderation/testing work',
+		'Can use builder-level commands; map editing bypass is available only when the server editor mode allows it',
+		'Moderator actions cannot target the moderator account itself',
+		'Does not grant access to role management, server administration or admin-only account tools',
 	],
 	dev: [
-		'Developer and testing tools',
-		'Access to experimental game features',
-		'Supporter-level convenience features',
+		'Private developer chat through /dev',
+		'Access to the developer section of help and development changelogs',
+		'Access to developer-only and experimental client features',
+		'Can unlock all toys for the current account with /graballtoys',
+		'Can use developer-tagged interface features such as developer tools and previews',
+		'Can use supporter-gated features and supporter requirements where the code explicitly grants mod/dev access',
+		'Supporter invite limit is increased to 100 active invites',
+		'Keeps the regular friends limit without requiring a supporter tier',
+		'Can open the privileged admin panel views exposed to developer accounts, but cannot manage roles or use owner-only administration',
 	],
 	wcode: [
-		'Wcode development tools',
+		'Wcode role and its dedicated <WCODE> identity tag',
+		'Wcode badge is shown with the built-in wcode color and terminal icon',
+		'Can be recognized by role-aware UI and tag rendering where wcode is explicitly supported',
+		'Does not provide its own slash commands in the server command registry',
+		'Does not automatically grant developer, moderator, administrator or builder permissions',
+		'Does not unlock animator tools, artist studio or map builder access by itself',
 	],
 	builder: [
-		'Building and map editing tools',
+		'Private builder chat through /build',
+		'Access to the map editor when the server editor mode is enabled',
+		'Can place editable objects without the regular-player placeable-object and object-limit restrictions',
+		'Can remove, move and transform map entities through editor actions',
+		'Can edit map tiles when editor mode permits tile editing',
+		'Can add, remove and modify horizontal, vertical and tall walls when editor mode permits wall editing',
+		'Can edit wall materials such as wood and stone where wall editing is enabled',
+		'Can use editor history with undo and redo for map changes',
+		'Can move objects and adjust their vertical offset',
+		'Can mirror objects and cycle supported object recolors',
+		'Can cycle supported seasonal variants for objects',
+		'Can edit custom sign text and sign messages within editor limits',
+		'Can use editor placement, selection and map editing actions without needing a building tool in the regular-player mode',
+		'House locks still prevent editing; map flags and server editor settings still apply',
+		'Does not grant moderation, administration, role-management or account-management privileges',
 	],
 	npc: [
-		'NPC tools and special character controls',
+		'NPC chat mode through /npc',
+		'NPC chat mode is available in the chat type menu for this role',
+		'NPC messages use the dedicated NPC message type and the <NPC> tag',
+		'Can present the account as an NPC-oriented role where NPC chat UI is explicitly supported',
+		'Does not create, spawn, edit or remove server NPC entities by itself',
+		'Does not grant moderator, developer, builder, administrator or owner permissions',
 	],
+};
+
+export const DEV_ROLE_DEFAULT_TAG = 'dev';
+export const DEV_ROLE_TAGS = [
+	'dev',
+	'dev:prog',
+	'dev:animate',
+	'dev:art',
+	'dev:design',
+	'dev:music',
+];
+export const DEV_ROLE_TAG_COUNT = DEV_ROLE_TAGS.length;
+
+export const WCODE_ROLE_DEFAULT_TAG = 'wcode';
+export const WCODE_ROLE_TAGS = ['wcode'];
+export const WCODE_ROLE_TAG_COUNT = WCODE_ROLE_TAGS.length;
+
+export const NPC_ROLE_DEFAULT_TAG = 'npc';
+export const NPC_ROLE_TAGS = ['npc'];
+export const NPC_ROLE_TAG_COUNT = NPC_ROLE_TAGS.length;
+
+export const ROLE_TAGS: { [role: string]: string[] } = {
+	owner: ['owner'],
+	admin: ['admin'],
+	mod: ['mod'],
+	dev: DEV_ROLE_TAGS,
+	wcode: WCODE_ROLE_TAGS,
+	builder: ['builder'],
+	npc: NPC_ROLE_TAGS,
+};
+
+export interface RoleLink {
+	label: string;
+	href: string;
+}
+
+export const ROLE_LINKS: { [role: string]: RoleLink[] } = {
+	owner: [
+		{ label: 'Admin panel', href: '/admin' },
+		{ label: 'Events', href: '/admin/events' },
+		{ label: 'Accounts', href: '/admin/accounts' },
+		{ label: 'Ponies', href: '/admin/ponies' },
+	],
+	admin: [
+		{ label: 'Admin panel', href: '/admin' },
+		{ label: 'Events', href: '/admin/events' },
+		{ label: 'Accounts', href: '/admin/accounts' },
+		{ label: 'Ponies', href: '/admin/ponies' },
+	],
+	mod: [
+		{ label: 'Admin panel', href: '/admin' },
+		{ label: 'Events', href: '/admin/events' },
+		{ label: 'Accounts', href: '/admin/accounts' },
+		{ label: 'Ponies', href: '/admin/ponies' },
+	],
+	dev: [
+		{ label: 'Admin panel', href: '/admin' },
+		{ label: 'Events', href: '/admin/events' },
+		{ label: 'Accounts', href: '/admin/accounts' },
+		{ label: 'Ponies', href: '/admin/ponies' },
+		{ label: 'Animation tools', href: '/tools/animation' },
+		{ label: 'Sprite palette', href: '/tools/palette' },
+		{ label: 'Map tools', href: '/tools/map' },
+	],
+	builder: [
+		{ label: 'Map tools', href: '/tools/map' },
+	],
+	wcode: [],
+	npc: [],
+};
+
+export const ROLE_DISPLAY_NAMES: { [role: string]: string } = {
+	owner: 'Server owner',
+	admin: 'Administrator',
+	mod: 'Moderator',
+	dev: 'Developer',
+	wcode: 'Wcode developer',
+	builder: 'Map builder',
+	npc: 'NPC operator',
 };
 
 export const PAST_SUPPORTER_REWARDS = [

@@ -1,21 +1,21 @@
 import {
 	Says, Rect, SpriteBatch, Sprite, SpriteBorder, MessageType, Entity, Point, Pony, SpriteBatchCommons,
-	PaletteSpriteBatch, Palette, isPartyMessage, PartyInfo, Camera, CommonPalettes, FontPalettes, PaletteManager,
+	PaletteSpriteBatch, Palette, isPartyMessage, PartyInfo, Camera, CommonPalettes, FontPalettes, PaletteManager, TagGradientDirection,
 	isWhisperTo, isWhisper, isThinking, isPublicMessage, isTypingIndicatorMessage, getTypingIndicatorFrame
 } from '../common/interfaces';
 import { clamp, contains, intersect, toInt, hasFlag } from '../common/utils';
 import { BLACK, WHITE, OUTLINE_COLOR, getMessageColor, PARTY_COLOR, MESSAGE_COLOR, FRIENDS_COLOR, CHAT_HOVER_BUBBLE_COLOR } from '../common/colors';
-import { parseColorFast } from '../common/color';
+import { parseColorFast, colorFromRGBA, getAlpha } from '../common/color';
 import { tileWidth, tileHeight, tileElevation, PONY_TYPE } from '../common/constants';
 import {
-	HAlign, VAlign, TextOptions, lineBreak, drawTextAligned, measureText, drawText, drawOutlinedText
+	HAlign, VAlign, TextOptions, lineBreak, drawTextAligned, measureText, drawText, drawOutlinedText, drawGradientText
 } from '../graphics/spriteFont';
 import * as sprites from '../generated/sprites';
 import { fontPal, fontSmallPal } from '../client/fonts';
 import { getPonyChatHeight, isPony } from '../common/pony';
 import { worldToScreen } from '../common/camera';
 import { multiplyColor, colorToCSS } from '../common/color';
-import { getTag, getTagPalette } from '../common/tags';
+import { getTag, getTagGradient, getTagPalette } from '../common/tags';
 import { rect } from '../common/rect';
 import { mockPaletteManager } from '../common/ponyInfo';
 	import { sortEntities, isHidden, isFriend, getChatBubbles, isTyping } from '../common/entityUtils';
@@ -183,7 +183,8 @@ export function drawBaloon(
 		} else if (isWhisper(type) || isWhisperTo(type)) {
 			drawWhisperBaloon(batch, message, color, options, drawX, y, w, h, alpha, nippleX, showPointer, backgroundColor);
 		} else {
-			drawSpeechBaloon(batch, message, color, options, drawX, y, w, h, alpha, nippleX, showPointer, backgroundColor);
+			drawSpeechBaloon(batch, message, color, options, drawX, y, w, h, alpha, nippleX, showPointer, backgroundColor,
+				says.gradientStart, says.gradientEnd, palettes.gradientFontPalette, says.gradientDirection);
 		}
 	}
 }
@@ -191,6 +192,8 @@ export function drawBaloon(
 export function drawSpeechBaloon(
 	batch: PaletteSpriteBatch, text: string, color: number, options: TextOptions, x: number, y: number, w: number, h: number,
 	alpha: number, nippleX: number, showPointer = true, backgroundColor = BLACK,
+	gradientStart?: string, gradientEnd?: string, gradientPalette?: Palette,
+	gradientDirection: TagGradientDirection = 'horizontal',
 ) {
 	const pad = 4;
 	const xx = x - Math.round(w / 2);
@@ -209,7 +212,12 @@ export function drawSpeechBaloon(
 	}
 
 	batch.globalAlpha = alpha;
-	drawText(batch, text, fontPal, color, xx, yy, options);
+	if (gradientStart && gradientEnd && gradientPalette) {
+		drawGradientText(batch, text, fontPal, parseColorFast(gradientStart), parseColorFast(gradientEnd), xx, yy,
+			{ ...options, palette: gradientPalette }, gradientDirection);
+	} else {
+		drawText(batch, text, fontPal, color, xx, yy, options);
+	}
 	batch.globalAlpha = 1;
 }
 
@@ -323,14 +331,25 @@ export function getNameRenderMode(isHovered: boolean, alwaysShowTags: boolean, t
 	return DrawNameRenderMode.Hidden;
 }
 
-function drawTagLabel(batch: PaletteSpriteBatch, x: number, y: number, palettes: CommonPalettes, tagId?: string, tagColor?: string, allowRawTag = false) {
-	const tag = getTag(tagId, tagColor);
+function drawTagLabel(batch: PaletteSpriteBatch, x: number, y: number, palettes: CommonPalettes, tagId?: string, tagColor?: string, allowRawTag = false, tagTranslation?: string, gradientStart?: string, gradientEnd?: string, gradientDirection: TagGradientDirection = 'horizontal') {
+	const isSupporterTag = !!tagId && /^sup[1-4]$/.test(tagId);
+	let tag = getTag(tagId, isSupporterTag ? undefined : tagColor);
 
 	if (tag) {
+		if (tagTranslation) {
+			tag = { ...tag, label: `<${tagTranslation.toUpperCase()}>` };
+		}
 		const tagSize = measureText(tag.label, fontSmallPal);
 		const textX = x - Math.round(tagSize.w / 2);
-		const palette = getTagPalette(tag, palettes.smallFont);
-		drawOutlinedText(batch, tag.label, fontSmallPal, tag.color, OUTLINE_COLOR, textX, y, { palette });
+		const palette = gradientStart && gradientEnd
+			? palettes.smallFont.white
+			: tagColor && !isSupporterTag ? palettes.smallFont.white : getTagPalette(tag, palettes.smallFont);
+		if (gradientStart && gradientEnd && palettes.gradientFontPalette) {
+			drawOutlinedText(batch, tag.label, fontSmallPal, OUTLINE_COLOR, OUTLINE_COLOR, textX, y, { palette });
+			drawGradientText(batch, tag.label, fontSmallPal, parseColorFast(gradientStart), parseColorFast(gradientEnd), textX, y, { palette: palettes.gradientFontPalette }, gradientDirection);
+		} else {
+			drawOutlinedText(batch, tag.label, fontSmallPal, tag.color, OUTLINE_COLOR, textX, y, { palette });
+		}
 	} else if (allowRawTag && tagId) {
 		const label = `<${tagId.toUpperCase()}>`;
 		const tagSize = measureText(label, fontSmallPal);
@@ -342,6 +361,8 @@ function drawTagLabel(batch: PaletteSpriteBatch, x: number, y: number, palettes:
 export function drawNamePlate(
 	batch: PaletteSpriteBatch, text: string, x: number, y: number, flags: DrawNameFlags,
 	palettes: CommonPalettes, tagId?: string, tagColor?: string, allowRawTag = false, renderMode = DrawNameRenderMode.NameAndTag,
+	tagTranslation?: string, gradientStart?: string, gradientEnd?: string,
+	gradientDirection: TagGradientDirection = 'horizontal',
 ) {
 	const tag = getTag(tagId, tagColor);
 	const hasTag = !!tag || (allowRawTag && !!tagId);
@@ -353,12 +374,12 @@ export function drawNamePlate(
 
 	if (renderMode === DrawNameRenderMode.NameAndTag) {
 		drawOutlinedText(batch, text, fontPal, color, OUTLINE_COLOR, xx, yy, options);
-		drawTagLabel(batch, x, yy + 11, palettes, tagId, tagColor, allowRawTag);
+		drawTagLabel(batch, x, yy + 11, palettes, tagId, tagColor, allowRawTag, tagTranslation, gradientStart, gradientEnd, gradientDirection);
 	} else if (renderMode === DrawNameRenderMode.TagOnly) {
 		// Position tag the same way as when name is drawn so vertical offset matches
 		const size = measureText(text, fontPal);
 		const yy = y - size.h + 6 - (hasTag ? 3 : 0);
-		drawTagLabel(batch, x, yy + 8, palettes, tagId, tagColor, allowRawTag);
+		drawTagLabel(batch, x, yy + 8, palettes, tagId, tagColor, allowRawTag, tagTranslation, gradientStart, gradientEnd, gradientDirection);
 	}
 }
 
@@ -588,6 +609,11 @@ export function drawNames(
 			const isHovered = chatBounds !== undefined && bounds !== undefined && contains(e.x, e.y, bounds, hover);
 			const tag = (isHidden(e) && drawHidden) ? 'hidden' : e.tag;
 			const tagColor = (e as any).tagColor as string | undefined;
+			const tagTranslation = (e as any).tagTranslation as string | undefined;
+			const builtInGradient = getTagGradient(tag);
+			const gradientStart = (e as any).tagGradientStart || (builtInGradient && builtInGradient.start);
+			const gradientEnd = (e as any).tagGradientEnd || (builtInGradient && builtInGradient.end);
+			const gradientDirection = (e as any).tagGradientDirection || (builtInGradient && builtInGradient.direction) || 'horizontal';
 			const renderMode = getNameRenderMode(isHovered, alwaysShowTags, tag);
 			if (renderMode !== DrawNameRenderMode.Hidden) {
 				const { x, y } = worldToScreen(camera, e);
@@ -596,7 +622,7 @@ export function drawNames(
 				const flags = DrawNameFlags.None |
 					(isPartyMember(e, party) ? DrawNameFlags.Party : 0) |
 					(isFriend(e) ? DrawNameFlags.Friend : 0);
-				drawNamePlate(batch, e.name, x, y + chatOffsetY - nameOffset, flags, palettes, tag, tagColor, false, renderMode);
+				drawNamePlate(batch, e.name, x, y + chatOffsetY - nameOffset, flags, palettes, tag, tagColor, false, renderMode, tagTranslation, gradientStart, gradientEnd, gradientDirection);
 			}
 		}
 	}
@@ -824,6 +850,8 @@ export function drawFullScreenMessage(batch: PaletteSpriteBatch, camera: Camera,
 }
 
 export function createCommonPalettes(paletteManager: PaletteManager): CommonPalettes {
+	const smallFontWhite = paletteManager.addArray(sprites.fontSmallPalette);
+	const gradientFontPalette = paletteManager.addArray(new Uint32Array(smallFontWhite.colors.map(color => colorFromRGBA(255, 255, 255, getAlpha(color)))));
 	return {
 		defaultPalette: paletteManager.addArray(sprites.defaultPalette),
 		mainFont: {
@@ -844,5 +872,6 @@ export function createCommonPalettes(paletteManager: PaletteManager): CommonPale
 			supporter4: paletteManager.addArray(sprites.fontSmallSupporter4Palette),
 			owner: paletteManager.addArray(sprites.fontSmallSupporterOwnerPalette),
 		},
+			gradientFontPalette,
 	};
 }

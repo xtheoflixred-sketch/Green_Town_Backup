@@ -68,12 +68,8 @@ function applyPonyOverrides(pony: PonyInfo, overrides: Partial<PonyInfo>): PonyI
 }
 
 export function createDefaultPony(): PonyInfo {
-	const pony = createBasePony();
-	return applyPonyOverrides(pony, {
-		mane: { ...pony.mane!, type: 2 },
-		backMane: { ...pony.backMane!, type: 1 },
-		tail: { ...pony.tail!, type: 1 },
-	});
+	// Default pony creation must always use the server default pony defined by constants.
+	return createServerDefaultPony();
 }
 
 export function createServerDefaultPony(): PonyInfo {
@@ -105,8 +101,8 @@ export function createBasePony(): PonyInfo {
 		wingsRight: spriteSet(0, true, 'ff0000'),
 		frontHooves: spriteSet(0, false, 'ffa500', ['ffff00', '32cd32', 'da70d6', 'dc143c', '7fffd4', 'ffd700', 'ff8c00', '800080', '00ffff', 'ff1493', '8a2be2', '00ff7f', 'ff6347', '4169e1', '20b2aa', 'ff69b4', 'adff2f', 'ff4500', '4682b4', 'c71585']),
 		frontHoovesRight: spriteSet(0, false, 'ffa500', ['ffff00', '32cd32', 'da70d6', 'dc143c', '7fffd4', 'ffd700', 'ff8c00', '800080', '00ffff', 'ff1493', '8a2be2', '00ff7f', 'ff6347', '4169e1', '20b2aa', 'ff69b4', 'adff2f', 'ff4500', '4682b4', 'c71585']),
-		backHooves: spriteSet(0, true, 'ffa500'),
-		backHoovesRight: spriteSet(0, true, 'ffa500'),
+		backHooves: spriteSet(0, false, 'ffa500'),
+		backHoovesRight: spriteSet(0, false, 'ffa500'),
 
 		mane: spriteSet(0, false),
 		backMane: spriteSet(0),
@@ -176,6 +172,10 @@ export function createBasePony(): PonyInfo {
 
 		fangs: 0,
 		muzzle: 0,
+		mouthColor: '721946',
+		tongueColor: 'f39f4b',
+		teethColor: 'ffffff',
+		fangsColor: 'ffffff',
 		freckles: 0,
 		frecklesColor: '8b0000',
 		magicColor: 'ffffff',
@@ -358,8 +358,6 @@ function syncLockedBasePonyInfo<T>(
 	} else if (info.frontLegsRight === info.frontLegs) {
 		info.frontLegsRight = copySpriteSet(undefined, info.frontLegs);
 		unlockFirstFill(info.frontLegsRight);
-	} else {
-		unlockFirstFill(info.frontLegsRight);
 	}
 
 	if (info.lockBackLegs !== false) {
@@ -417,6 +415,10 @@ function syncLockedBasePonyInfo<T>(
 			info.backHoovesRight = copySpriteSet(undefined, info.backHooves);
 		}
 	}
+	unlockFirstFill(info.frontHooves);
+	unlockFirstFill(info.frontHoovesRight);
+	unlockFirstFill(info.backHooves);
+	unlockFirstFill(info.backHoovesRight);
 
 	if (!info.unlockEars) {
 		info.earsRight = copySpriteSet(info.earsRight, info.ears);
@@ -731,6 +733,15 @@ export function toPaletteGeneric<T>(
 	const darken = !info.freeOutlines;
 	const toSet = createToPaletteSet(manager, getColorsForSet, false, darken);
 	const toSetExtra = createToPaletteSet(manager, getColorsForSet, true, darken);
+	const createFacePalette = (mouth: T | undefined, tongue: T | undefined, teeth: T | undefined) => {
+		const mouthValue = mouth === undefined ? 0 : toColorList([mouth])[1];
+		const tongueValue = tongue === undefined ? mouthValue : toColorList([tongue])[1];
+		const teethValue = teeth === undefined ? 0xffffffff : toColorList([teeth])[1];
+		return manager.addArray(defaultPalette.map((base, index) => {
+			const value = index === 1 ? teethValue : index === 5 ? darkenForOutline(teethValue) : index === 3 ? mouthValue : index === 4 ? tongueValue : base;
+			return value === 0 ? base : (value & 0xffffff00) | (base & 0xff);
+		}));
+	};
 
 	const defaultSet = { type: 0, pattern: 0, fills: [info.coatFill], outlines: [info.coatOutline] };
 	const bodySet = info.body || defaultSet;
@@ -857,6 +868,14 @@ export function toPaletteGeneric<T>(
 
 		fangs: toInt(info.fangs),
 		muzzle: toInt(info.muzzle),
+		mouthColorValue: typeof info.mouthColor === 'string' ? parseColorFast(info.mouthColor) : toInt(info.mouthColor),
+		tongueColorValue: typeof info.tongueColor === 'string' ? parseColorFast(info.tongueColor) : toInt(info.tongueColor),
+		teethColorValue: typeof info.teethColor === 'string' ? parseColorFast(info.teethColor) : toInt(info.teethColor),
+		fangsColorValue: typeof info.fangsColor === 'string' ? parseColorFast(info.fangsColor) : toInt(info.fangsColor),
+		mouthColorPalette: createFacePalette(info.mouthColor, info.tongueColor, info.teethColor),
+		tongueColorPalette: createFacePalette(info.mouthColor, info.tongueColor, info.teethColor),
+		teethColorPalette: createFacePalette(info.mouthColor, info.tongueColor, info.teethColor),
+		fangsColorPalette: createFacePalette(info.mouthColor, info.tongueColor, info.teethColor),
 		freckles: 0, // remove
 		frecklesColor: undefined, // TODO: remove
 		magicColor: undefined,

@@ -1,0 +1,31 @@
+@import '../../../styles/partials/variables';
+
+:host { display: block; background: $dark-bg; color: $body-color; }
+.modal-header { border-color: rgba(255, 255, 255, 0.12); }
+.modal-footer { border-color: rgba(255, 255, 255, 0.12); }
+.select-all-label { cursor: pointer; gap: 6px; }
+.modal-header { background: $dark-bg; }
+.modal-footer { background: $dark-bg; }
+.modal-body { background: $dark-bg; }
+.input-group-text { background: lighten($dark-bg, 5%); border-color: $border-color; color: $text-muted; }
+.select-all-label { color: $body-color; }
+.select-all-label input { margin-right: 6px; }
+.teleport-hint { margin-bottom: 12px; font-size: 0.85rem; }
+.list-group-item { background: lighten($dark-bg, 3%); border-color: $border-color; color: $body-color; }
+.list-group-item:hover { background: lighten($dark-bg, 8%); color: $body-color; }
+.list-group-item:focus { background: lighten($dark-bg, 8%); color: $body-color; }
+.list-group-item.active { background: lighten($dark-bg, 10%); border-color: $primary; color: $body-color; }
+.player-row { display: flex; align-items: center; gap: 12px; min-height: 66px; text-align: left; }
+.player-portrait { flex: 0 0 44px; width: 44px; height: 44px; }
+.player-details { min-width: 0; flex: 1; }
+.player-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-account { color: $text-muted; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-id { color: $text-muted; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-row.active .player-account, .player-row.active .player-id { color: rgba(255, 255, 255, 0.8); }
+.player-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.player-map { max-width: 130px; color: $text-muted; font-size: 0.7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 576px) {
+	.player-row { gap: 8px; padding-left: 0.75rem; padding-right: 0.75rem; }
+	.modal-footer { flex-wrap: wrap; }
+}

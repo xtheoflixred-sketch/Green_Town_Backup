@@ -1,7 +1,7 @@
 import { Component, Input, OnDestroy } from '@angular/core';
 import { Subscription } from '../../../../common/interfaces';
 import { AdminModel } from '../../../services/adminModel';
-import { faTrash, faArrowRight } from '../../../../client/icons';
+import { faTrash, faArrowRight, faCopy, faDownload } from '../../../../client/icons';
 import { Character, PonyIdDateName, DuplicateResult } from '../../../../common/adminInterfaces';
 
 @Component({
@@ -12,11 +12,14 @@ import { Character, PonyIdDateName, DuplicateResult } from '../../../../common/a
 export class PonyListRemote implements OnDestroy {
 	readonly trashIcon = faTrash;
 	readonly assignIcon = faArrowRight;
+	readonly duplicateIcon = faCopy;
+	readonly exportIcon = faDownload;
 	@Input() limit = 10;
 	@Input() expanded = false;
 	@Input() deletable = false;
 	@Input() highlight: (pony: Character) => boolean = () => false;
 	@Input() duplicates?: DuplicateResult[];
+	@Input() manageDetails = false;
 	full = false;
 	ponies: string[] = [];
 	loading = false;
@@ -59,6 +62,23 @@ export class PonyListRemote implements OnDestroy {
 	}
 	assignTo(pony: string, account: string) {
 		this.model.assignPony(pony, account);
+	}
+	duplicate(characterId: string) {
+		if (!this._accountId || !confirm('Duplicate this character into the account?')) return;
+		this.model.getPony(characterId).then(pony => {
+			if (pony && pony.info) this.model.createPony(this._accountId!, `${pony.name} copy`, pony.info);
+		});
+	}
+	export(characterId: string) {
+		this.model.getPony(characterId).then(pony => {
+			if (!pony || !pony.info) return;
+			const blob = new Blob([pony.info], { type: 'text/plain;charset=utf-8' });
+			const link = document.createElement('a');
+			link.href = URL.createObjectURL(blob);
+			link.download = `${pony.name || 'pony'}.pony.txt`;
+			link.click();
+			URL.revokeObjectURL(link.href);
+		});
 	}
 	private updatePonies() {
 		const compare = this.full ? compareNames : compareDates;

@@ -17,7 +17,7 @@
 
 	.changelog-container
 		.changelog-view-container(*ngIf="changelogResponse")
-			changelog-view([rawEntries]="changelogResponse.dev")
+			changelog-view([rawEntries]="changelogResponse.dev" [isDev]="true")
 		.spinner.text-center(*ngIf="!changelogResponse")
 			fa-icon([icon]="spinnerIcon" [spin]="true")
 

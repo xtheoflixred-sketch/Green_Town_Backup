@@ -1,6 +1,14 @@
 # Changelog
 
 
+## Season 1 — Patch 9 | Exp. Only
+
+### Notes
+- This is the biggest patch with changes so far.
+- A full announcement and detailed breakdown will be shared later.
+
+---
+
 ## Season 1 — Patch 8 | Exp. Only
 
 ### Notes

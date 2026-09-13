@@ -1,0 +1,112 @@
+@import '../../../styles/partials/variables';
+
+:host {
+	display: block;
+	background: $dark-bg;
+	color: $body-color;
+}
+
+.modal-header,
+.modal-footer {
+	background: $dark-bg;
+	border-color: rgba(255, 255, 255, 0.12);
+}
+
+.modal-body {
+	background: $dark-bg;
+}
+
+.time-status {
+	display: flex;
+	align-items: center;
+	min-height: 3.1rem;
+	margin-bottom: 1.25rem;
+	padding: 0.75rem 1rem;
+	border-color: $border-color;
+}
+
+.time-status strong {
+	font-size: 1.25rem;
+}
+
+.time-control {
+	display: flex;
+	align-items: stretch;
+	gap: 0.75rem;
+	width: 100%;
+	min-height: 3.5rem;
+}
+
+.time-toggle {
+	width: 3.5rem;
+	flex: 0 0 3.5rem;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.time-toggle .custom-control-label {
+	display: block;
+	min-height: 3.5rem;
+	padding-top: 0.85rem;
+	padding-left: 2.25rem;
+}
+
+.time-input {
+	flex: 1;
+	min-width: 0;
+}
+
+.time-part {
+	font-size: 2rem;
+	font-weight: 600;
+	line-height: 1.25;
+	text-align: center;
+	min-width: 0;
+}
+
+.time-separator {
+	font-size: 2rem;
+	line-height: 1.25;
+	padding-left: 0.5rem;
+	padding-right: 0.5rem;
+}
+
+.time-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
+
+.modal-footer {
+	min-height: 5.5rem;
+	margin-top: 1.75rem;
+	padding-top: 1.5rem;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
+.form-control,
+.input-group-text {
+	border-color: $border-color;
+}
+
+.input-group-text {
+	background: lighten($dark-bg, 5%);
+	color: $body-color;
+}
+
+@media (max-width: 576px) {
+	.time-control {
+		gap: 0.5rem;
+	}
+
+	.time-toggle {
+		width: 3rem;
+		flex-basis: 3rem;
+	}
+
+	.time-part {
+		font-size: 1.5rem;
+	}
+}

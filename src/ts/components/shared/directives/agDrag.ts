@@ -14,6 +14,7 @@ export interface AgDragEvent {
 export interface AgDragOptions {
 	relative?: 'self' | 'parent';
 	prevent?: boolean;
+	delay?: number;
 }
 
 export function handleDrag(element: HTMLElement, emit: (event: AgDragEvent) => void, options: AgDragOptions = {}) {
@@ -32,6 +33,8 @@ export function handleDrag(element: HTMLElement, emit: (event: AgDragEvent) => v
 	let startY = 0;
 	let button = 0;
 	let dragging = false;
+	let active = false;
+	let delayTimer: any;
 	let lastEvent: any;
 
 	function setupScrollAndRect() {
@@ -71,6 +74,12 @@ export function handleDrag(element: HTMLElement, emit: (event: AgDragEvent) => v
 	const handlers = eventSets.map(events => {
 		function move(e: any) {
 			lastEvent = e;
+			if (options.delay && !active) {
+				if (Math.abs(getX(e) - startX) > 5 || Math.abs(getY(e) - startY) > 5) {
+					end();
+				}
+				return;
+			}
 			e.preventDefault();
 			send(e, 'drag');
 		}
@@ -86,12 +95,19 @@ export function handleDrag(element: HTMLElement, emit: (event: AgDragEvent) => v
 		}
 
 		function end() {
-			send(lastEvent, 'end');
+			if (delayTimer) {
+				clearTimeout(delayTimer);
+				delayTimer = undefined;
+			}
+			if (active) {
+				send(lastEvent, 'end');
+			}
 			window.removeEventListener(events.move, move);
 			window.removeEventListener(events.up, up);
 			events.up2 && window.removeEventListener(events.up2, up);
 			window.removeEventListener('blur', end);
 			dragging = false;
+			active = false;
 		}
 
 		function handler(e: any) {
@@ -101,8 +117,19 @@ export function handleDrag(element: HTMLElement, emit: (event: AgDragEvent) => v
 				button = getButton(e);
 				startX = getX(e);
 				startY = getY(e);
-				send(e, 'start');
 				lastEvent = e;
+				active = !options.delay;
+				if (active) {
+					send(e, 'start');
+				}
+				else {
+					delayTimer = setTimeout(() => {
+						if (dragging) {
+							active = true;
+							send(lastEvent, 'start');
+						}
+					}, options.delay);
+				}
 
 				window.addEventListener(events.move, move);
 				window.addEventListener(events.up, up);
@@ -110,7 +137,7 @@ export function handleDrag(element: HTMLElement, emit: (event: AgDragEvent) => v
 				window.addEventListener('blur', end);
 				e.stopPropagation();
 
-				if (options.prevent) {
+				if (options.prevent && !options.delay) {
 					e.preventDefault();
 				}
 			}

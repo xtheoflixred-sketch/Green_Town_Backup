@@ -9,19 +9,35 @@
 			p.unsaved-info-text
 				| A previous draft was found. Choose which version you want to continue editing.
 
-	.preview-layout
-		.preview-col.stored
-			h6 Server draft
+	.unsaved-summary(*ngIf="changes.length")
+		h6.unsaved-summary-title
+			| Changed fields
+		ul.unsaved-summary-list
+			li(*ngFor="let change of changes") {{change}}
 
-			.preview-card
+	.preview-layout(*ngIf="hasVisualChanges")
+		.preview-col.before
+			h6 Before
+			.preview-card.preview-card-before
 				.character-preview-wrapper
 					character-preview(
-						[pony]="currentPony"
-						[noBackground]="true"  
-                        [scale]="3")
-
-				div.text-muted(*ngIf="!storedPony")
-					| No saved draft found
+						[pony]="storedPony || currentPony"
+						[state]="beforePreviewState"
+						[name]="beforePreviewName"
+						[tag]="beforePreviewTag"
+						[tagColor]="beforePreviewTagColor"
+						[tagTranslation]="beforePreviewTagTranslation"
+						[tagGradientStart]="beforePreviewTagGradientStart"
+						[tagGradientEnd]="beforePreviewTagGradientEnd"
+						[tagGradientDirection]="beforePreviewTagGradientDirection"
+						[noBackground]="!beforePreviewBackground"
+						[scale]="3"
+						[namePlateOffsetY]="4"
+						[tagOnlyNamePlateOffsetY]="4"
+						[namePlateTextY]="8"
+						[tagOnlyNamePlateTextY]="8"
+						[globalBackgroundColor]="beforePreviewBackground"
+					)
 
 			button.btn.btn-danger.action-btn(
 				(click)="confirmDiscard()")
@@ -33,16 +49,28 @@
 
 		.preview-divider
 
-		.preview-col.current
-			h6 Local changes
-
-			.preview-card
+		.preview-col.after
+			h6 After
+			.preview-card.preview-card-after
 				.character-preview-wrapper
 					character-preview(
-						*ngIf="storedPony"
-						[pony]="storedPony"
-						[noBackground]="true"  
-                        [scale]="3")
+						[pony]="currentPony || storedPony"
+						[state]="afterPreviewState"
+						[name]="afterPreviewName"
+						[tag]="afterPreviewTag"
+						[tagColor]="afterPreviewTagColor"
+						[tagTranslation]="afterPreviewTagTranslation"
+						[tagGradientStart]="afterPreviewTagGradientStart"
+						[tagGradientEnd]="afterPreviewTagGradientEnd"
+						[tagGradientDirection]="afterPreviewTagGradientDirection"
+						[noBackground]="!afterPreviewBackground"
+						[scale]="3"
+						[namePlateOffsetY]="4"
+						[tagOnlyNamePlateOffsetY]="4"
+						[namePlateTextY]="8"
+						[tagOnlyNamePlateTextY]="8"
+						[globalBackgroundColor]="afterPreviewBackground"
+					)
 
 			button.btn.btn-success.action-btn(
 				(click)="confirmSave()")
@@ -51,6 +79,73 @@
 					class="icon-gap"
 					aria-label="Save")
 				span {{saveLabel}}
+
+	.field-compare-grid(*ngIf="hasTextFieldComparison")
+		.field-compare-card
+			.field-compare-title Before
+			.field-compare-group
+				.field-row(*ngIf="showNicknameComparison")
+					.field-label Nickname
+					.field-value {{beforePreviewName || '—'}}
+				.field-row(*ngIf="showTagComparison")
+					.field-label Tag
+					.field-value
+						span.compare-tag-badge(
+							[style.background]="beforePreviewTagBadgeBackground"
+							[style.color]="beforePreviewTagBadgeColor"
+							[textContent]="beforePreviewTag || '—'"
+						)
+				.field-row(*ngIf="showSiteComparison")
+					.field-label Social site
+					.field-value.site-row
+						button.compare-site-button(type="button")
+							fa-icon.mr-1(
+								[icon]="beforePreviewSiteIcon"
+								[fixedWidth]="true"
+								[style.color]="beforePreviewSiteName === 'No social site' ? '#9aa7b4' : '#3ab7da'"
+							)
+							strong {{beforePreviewSiteName}}
+		.field-compare-card
+			.field-compare-title After
+			.field-compare-group
+				.field-row(*ngIf="showNicknameComparison")
+					.field-label Nickname
+					.field-value {{afterPreviewName || '—'}}
+				.field-row(*ngIf="showTagComparison")
+					.field-label Tag
+					.field-value
+						span.compare-tag-badge(
+							[style.background]="afterPreviewTagBadgeBackground"
+							[style.color]="afterPreviewTagBadgeColor"
+							[textContent]="afterPreviewTag || '—'"
+						)
+				.field-row(*ngIf="showSiteComparison")
+					.field-label Social site
+					.field-value.site-row
+						button.compare-site-button(type="button")
+							fa-icon.mr-1(
+								[icon]="afterPreviewSiteIcon"
+								[fixedWidth]="true"
+								[style.color]="afterPreviewSiteName === 'No social site' ? '#9aa7b4' : '#3ab7da'"
+							)
+							strong {{afterPreviewSiteName}}
+
+	.field-actions(*ngIf="hasTextFieldComparison || shouldHidePreview")
+		button.btn.btn-danger.action-btn(
+			(click)="confirmDiscard()")
+			fa-icon(
+				[icon]="discardIcon"
+				class="icon-gap"
+				aria-label="Discard")
+			span {{discardLabel}}
+
+		button.btn.btn-success.action-btn(
+			(click)="confirmSave()")
+			fa-icon(
+				[icon]="saveIcon"
+				class="icon-gap"
+				aria-label="Save")
+			span {{saveLabel}}
 
 .modal-footer
 	button.btn.btn-outline-secondary(

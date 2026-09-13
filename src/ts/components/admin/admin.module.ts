@@ -35,6 +35,8 @@ import { AuthListRemote } from './shared/auth-list-remote/auth-list-remote';
 import { AlertModal } from './shared/alert-modal/alert-modal';
 import { AnnounceModal } from './shared/announce-modal/announce-modal';
 import { DefaultPonyModal } from './shared/default-pony-modal/default-pony-modal';
+import { RoleAssignmentModal } from './shared/role-assignment-modal/role-assignment-modal';
+import { SupporterAssignmentModal } from './shared/supporter-assignment-modal/supporter-assignment-modal';
 import { OnOffSwitch } from './shared/on-off-switch/on-off-switch';
 import { AdminChatLog } from './shared/admin-chat-log/admin-chat-log';
 import { BanIcon } from './shared/ban-icon/ban-icon';
@@ -118,6 +120,8 @@ export const routes: Routes = [
 		AlertModal,
 		AnnounceModal,
 		DefaultPonyModal,
+		RoleAssignmentModal,
+		SupporterAssignmentModal,
 		OnOffSwitch,
 		AdminChatLog,
 		BanIcon,

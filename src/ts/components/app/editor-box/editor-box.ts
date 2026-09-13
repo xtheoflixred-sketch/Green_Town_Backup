@@ -3,13 +3,14 @@ import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
 import { Subscription } from 'rxjs';
 import { uniq } from 'lodash';
 import { entityButtonAction } from '../../../client/buttonActions';
-import { faBroom, faTools, faArrowsAlt, faCog, faExchangeAlt, faDrawPolygon, faTrash, emptyIcon, faCheck, faClone, faCopy, faArchway, faHammer, faGlobeAsia, faUpload, faPalette, faSnowflake } from '../../../client/icons';
+import { faBroom, faTools, faArrowsAlt, faCog, faExchangeAlt, faDrawPolygon, faTrash, emptyIcon, faCheck, faCopy, faArchway, faHammer, faGlobeAsia, faUpload, faPalette, faSnowflake, faUndo, faRedo, faWrench, faScrewdriver } from '../../../client/icons';
 import { PonyTownGame, engines } from '../../../client/game';
 import { StorageService } from '../../services/storageService';
 import { Model, getEntityNameFromType, getEntityNames, getEntityTypesFromName } from '../../services/model';
 import { getAlpha, withAlpha, colorToHexRGB, parseColor } from '../../../common/color';
 import { BLACK } from '../../../common/colors';
 import { Entity, Engine, EngineInfo, DebugFlags, EntityButtonAction, Action, TileType, houseTiles, editorTiles } from '../../../common/interfaces';
+import { PONY_TYPE } from '../../../common/constants';
 import { CUSTOM_IMAGE_TYPE } from '../../../common/entities';
 
 @Component({
@@ -26,13 +27,16 @@ export class EditorBox implements OnInit, OnDestroy {
 	readonly broomIcon = faBroom;
 	readonly ropeIcon = faArrowsAlt;
 	readonly pickaxeIcon = faCopy;
+	readonly offsetIcon = faWrench;
 	readonly sawIcon = faArchway;
 	readonly shovelIcon = faGlobeAsia;
 	readonly hammerIcon = faHammer;
+	readonly customSignIcon = faScrewdriver;
 	readonly scrapIcon = faExchangeAlt;
 	readonly recolorIcon = faPalette;
 	readonly seasonIcon = faSnowflake;
-	readonly duplicateIcon = faClone;
+	readonly undoIcon = faUndo;
+	readonly redoIcon = faRedo;
 	readonly uploadIcon = faUpload;
 	readonly showFields: Array<{ field: keyof DebugFlags; label: string }> = [
 		{ field: 'id', label: 'id' },
@@ -43,10 +47,6 @@ export class EditorBox implements OnInit, OnDestroy {
 		{ field: 'trigger', label: 'trigger' },
 		{ field: 'itemTrigger', label: 'item trigger' },
 	];
-	duplicateEntities() {
-		const entities = this.editor.selectedEntities.map(e => e.id);
-		this.game.send(server => server.editorAction({ type: 'duplicate', entities }));
-	}
 	readonly checkIcon = faCheck;
 	readonly emptyIcon = emptyIcon;
 	readonly tiles = editorTiles.map(t => t.name);
@@ -54,12 +54,19 @@ export class EditorBox implements OnInit, OnDestroy {
 	readonly editorEntities: string[];
 	readonly entityPreviewActions = new Map<string, EntityButtonAction>();
 	@ViewChild('entityPickerModal', { static: true }) entityPickerModalTpl!: TemplateRef<any>;
+	@ViewChild('customSignModal', { static: true }) customSignModalTpl!: TemplateRef<any>;
 	@ViewChildren('entityItemButton') entityItemButtons?: QueryList<ElementRef<HTMLElement>>;
 	entityPickerModalRef?: BsModalRef;
 	entitySearch = '';
 	pendingEditorEntity = '';
+	customSignEntity?: Entity;
+	customSignModalRef?: BsModalRef;
+	customSignName = '';
+	customSignMessage = '';
 	private showEditor = false;
 	private scaleSendTimer: any = null;
+	private opacitySendTimer: any = null;
+	private spriteTintSendTimer: any = null;
 	private _originalBounds = new WeakMap<any, any>();
 	private _originalInteractBounds = new WeakMap<any, any>();
 	private _originalChatBounds = new WeakMap<any, any>();
@@ -75,9 +82,7 @@ export class EditorBox implements OnInit, OnDestroy {
 	) {
 		this.game.editor.type = this.storage.getItem('editor-entity') || 'rock';
 		this.showEditor = this.storage.getBoolean('show-editor');
-		if (this.showEditor) {
-			this.game.setKeyboardDisabled(true);
-		} else {
+		if (!this.showEditor) {
 			this.game.editor.useEditorHammer = false;
 		}
 		this.editorEntities = getEntityNames().slice().sort();
@@ -101,6 +106,7 @@ export class EditorBox implements OnInit, OnDestroy {
 	}
 	ngOnDestroy() {
 		(this.game as any).editorBox = null;
+		this.game.setKeyboardDisabled(false);
 		this._leftSubscription && this._leftSubscription.unsubscribe();
 	}
 	private closeEditor() {
@@ -112,10 +118,12 @@ export class EditorBox implements OnInit, OnDestroy {
 				this.game.editor.useEditorBroom = false;
 				this.game.editor.useEditorRope = false;
 				this.game.editor.useEditorPickaxe = false;
+				this.game.editor.useEditorOffset = false;
 				this.game.editor.useEditorSaw = false;
 				this.game.editor.useEditorScrap = false;
 				this.game.editor.useEditorRecolor = false;
 				this.game.editor.useEditorSeason = false;
+				this.game.editor.useEditorCustomSign = false;
 				this.game.editor.useEditorShovel = false;
 				this.game.editor.tile = -1;
 				this.game.editor.selectingEntities = false;
@@ -142,9 +150,11 @@ export class EditorBox implements OnInit, OnDestroy {
 	set editorEntity(value: string) {
 		this.game.editor.type = value;
 		this.game.editor.useEditorHammer = true;
+		this.game.editor.useEditorCustomSign = false;
 		this.game.editor.useEditorBroom = false;
 		this.game.editor.useEditorRope = false;
 		this.game.editor.useEditorPickaxe = false;
+		this.game.editor.useEditorOffset = false;
 		this.game.editor.useEditorSaw = false;
 		this.game.editor.useEditorScrap = false;
 		this.game.editor.useEditorRecolor = false;
@@ -153,6 +163,28 @@ export class EditorBox implements OnInit, OnDestroy {
 	}
 	get useEditorBroom() {
 		return this.game.editor.useEditorBroom;
+	}
+	get useEditorCustomSign() {
+		return this.game.editor.useEditorCustomSign;
+	}
+	set useEditorCustomSign(value: boolean) {
+		this.game.editor.useEditorCustomSign = value;
+		if (value) {
+			const signTypes = ['sign', 'sign-quest', 'sign-question', 'sign-donate', 'sign-debug'];
+			if (!signTypes.includes(this.game.editor.type)) this.game.editor.type = 'sign';
+			this.game.editor.useEditorHammer = false;
+			this.game.editor.useEditorBroom = false;
+			this.game.editor.useEditorRope = false;
+			this.game.editor.useEditorPickaxe = false;
+			this.game.editor.useEditorOffset = false;
+			this.game.editor.useEditorSaw = false;
+			this.game.editor.useEditorScrap = false;
+			this.game.editor.useEditorRecolor = false;
+			this.game.editor.useEditorSeason = false;
+			this.game.send(server => server.action(Action.SwitchToScrewdriverTool));
+		} else {
+			this.game.send(server => server.action(Action.Drop));
+		}
 	}
 	set useEditorBroom(value: boolean) {
 		this.game.editor.useEditorBroom = value;
@@ -201,6 +233,25 @@ export class EditorBox implements OnInit, OnDestroy {
 		this.game.editor.useEditorRecolor = false;
 		this.game.editor.useEditorSeason = false;
 			this.game.send(server => server.action(Action.SwitchToPickaxeTool));
+		} else {
+			this.game.send(server => server.action(Action.Drop));
+		}
+	}
+	get useEditorOffset() {
+		return this.game.editor.useEditorOffset;
+	}
+	set useEditorOffset(value: boolean) {
+		this.game.editor.useEditorOffset = value;
+		if (value) {
+			this.game.editor.useEditorHammer = false;
+			this.game.editor.useEditorBroom = false;
+			this.game.editor.useEditorRope = false;
+			this.game.editor.useEditorPickaxe = false;
+			this.game.editor.useEditorSaw = false;
+			this.game.editor.useEditorScrap = false;
+			this.game.editor.useEditorRecolor = false;
+			this.game.editor.useEditorSeason = false;
+			this.game.send(server => server.action(Action.SwitchToWrenchTool));
 		} else {
 			this.game.send(server => server.action(Action.Drop));
 		}
@@ -291,10 +342,7 @@ export class EditorBox implements OnInit, OnDestroy {
 			this.game.editor.useEditorSeason = false;
 			const editorTileIndex = this.getEditorTileIndex(this.game.editor.tile);
 			if (editorTileIndex >= 0 && editorTileIndex < editorTiles.length) {
-				const placeTileIndex = houseTiles.findIndex(tile => tile.type === this.game.editor.tile);
-				if (placeTileIndex >= 0) {
-					this.game.placeTile = placeTileIndex;
-				}
+				this.game.editor.tile = editorTiles[editorTileIndex].type;
 			} else {
 				this.game.editor.tile = TileType.Dirt;
 				const placeTileIndex = houseTiles.findIndex(tile => tile.type === TileType.Dirt);
@@ -311,9 +359,11 @@ export class EditorBox implements OnInit, OnDestroy {
 		set useEditorHammer(value: boolean) {
 			this.game.editor.useEditorHammer = value;
 			if (value) {
+				this.game.editor.useEditorCustomSign = false;
 				this.game.editor.useEditorBroom = false;
 				this.game.editor.useEditorRope = false;
 				this.game.editor.useEditorPickaxe = false;
+				this.game.editor.useEditorOffset = false;
 				this.game.editor.useEditorSaw = false;
 				this.game.editor.useEditorScrap = false;
 		this.game.editor.useEditorRecolor = false;
@@ -351,12 +401,6 @@ export class EditorBox implements OnInit, OnDestroy {
 		}
 		const tileType = this.getTileTypeFromEditorIndex(value);
 		this.game.editor.tile = tileType;
-		if (this.game.editor.useEditorShovel) {
-			const placeTileIndex = houseTiles.findIndex(t => t.type === tileType);
-			if (placeTileIndex >= 0) {
-				this.game.placeTile = placeTileIndex;
-			}
-		}
 	}
 	get hasEditor() {
 		return (this.model.isMod || this.model.isBuilder) && this.showEditor;
@@ -366,6 +410,15 @@ export class EditorBox implements OnInit, OnDestroy {
 	}
 	get singleEntity() {
 		return this.editor.selectedEntities.length === 1;
+	}
+	get isPonyEntity() {
+		return this.editor.selectedEntities.some(e => e.type === PONY_TYPE);
+	}
+	get allPonyEntities() {
+		return this.editor.selectedEntities.length > 0 && this.editor.selectedEntities.every(e => e.type === PONY_TYPE);
+	}
+	get singlePonyEntity() {
+		return this.singleEntity && this.editor.selectedEntities[0].type === PONY_TYPE;
 	}
 	get hasSelectedEntities() {
 		return this.editor.selectedEntities.length > 0;
@@ -407,6 +460,17 @@ export class EditorBox implements OnInit, OnDestroy {
 		const types = entities.map(e => e.type);
 		const names = uniq(types).map(type => this.getEntityName(type)).join(', ');
 		return types.length === 1 ? `${names} [${entities[0].id}]` : names;
+	}
+	get entityNameInput() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? entity.name || '' : '';
+	}
+	set entityNameInput(value: string) {
+		if (!this.singlePonyEntity) return;
+		const name = value.substring(0, 30);
+		const entity = this.editor.selectedEntities[0];
+		entity.name = name;
+		this.game.send(server => server.editorAction({ type: 'setname', entities: [entity.id], name }));
 	}
 	get entityMessageColor(): string {
 		const entity = this.editor.selectedEntities[0] as any;
@@ -638,6 +702,42 @@ export class EditorBox implements OnInit, OnDestroy {
 			}));
 		}, 100);
 	}
+	get entityOpacity() {
+		const entity = this.editor.selectedEntities[0];
+		return entity ? ((entity as any).entityOpacity !== undefined ? (entity as any).entityOpacity : 1) : 1;
+	}
+
+	set entityOpacity(value: number) {
+		this.editor.selectedEntities.forEach(e => (e as any).entityOpacity = value);
+		if (this.opacitySendTimer) clearTimeout(this.opacitySendTimer);
+		this.opacitySendTimer = setTimeout(() => {
+			this.game.send(server => server.editorAction({
+				type: 'settint',
+				entities: this.editor.selectedEntities.map(e => e.id),
+				entityOpacity: value,
+			}));
+		}, 100);
+	}
+
+	get entitySpriteTint() {
+		const entity = this.editor.selectedEntities[0];
+		const tint = entity ? ((entity as any).spriteTint || 0xffffffff) : 0xffffffff;
+		return '#' + ((tint >> 8) & 0xFFFFFF).toString(16).padStart(6, '0');
+	}
+
+	set entitySpriteTint(value: string) {
+		const hex = parseInt(value.replace('#', ''), 16);
+		const tint = ((hex & 0xFFFFFF) << 8) | 0xFF;
+		this.editor.selectedEntities.forEach(e => (e as any).spriteTint = tint);
+		if (this.spriteTintSendTimer) clearTimeout(this.spriteTintSendTimer);
+		this.spriteTintSendTimer = setTimeout(() => {
+			this.game.send(server => server.editorAction({
+				type: 'settint',
+				entities: this.editor.selectedEntities.map(e => e.id),
+				spriteTint: tint,
+			}));
+		}, 100);
+	}
 
 	// CUSTOM_IMAGES_DISABLED: onCustomImageUpload
 	// onCustomImageUpload(event: Event) {
@@ -668,6 +768,12 @@ export class EditorBox implements OnInit, OnDestroy {
 	editorClear() {
 		this.game.send(server => server.editorAction({ type: 'clear' }));
 	}
+	undoEditor() {
+		this.game.debugEditorUndo();
+	}
+	redoEditor() {
+		this.game.debugEditorRedo();
+	}
 	clearLocalStorage() {
 		this.storage.clear();
 	}
@@ -681,13 +787,14 @@ export class EditorBox implements OnInit, OnDestroy {
 		this.zone.run(() => {
 			this.showEditor = !this.showEditor;
 			this.game.editor.useEditorHammer = false;
-			this.game.setKeyboardDisabled(this.showEditor);
 
 			if (!this.showEditor) {
 				this.game.editor.useEditorHammer = false;
+				this.game.editor.useEditorCustomSign = false;
 				this.game.editor.useEditorBroom = false;
 				this.game.editor.useEditorRope = false;
 				this.game.editor.useEditorPickaxe = false;
+				this.game.editor.useEditorOffset = false;
 				this.game.editor.useEditorSaw = false;
 				this.game.editor.useEditorScrap = false;
 		this.game.editor.useEditorRecolor = false;
@@ -741,6 +848,48 @@ export class EditorBox implements OnInit, OnDestroy {
 	}
 	clearEntitySearch() {
 		this.onEntitySearchChange('');
+	}
+	openCustomSignEditor(id: number) {
+		if (this.customSignModalRef) {
+			this.closeCustomSignModal();
+		}
+		for (const region of this.game.map.regions) {
+			if (!region) continue;
+			const entity = region.entities.find(e => e.id === id);
+			if (entity) {
+				this.customSignEntity = entity;
+				this.customSignName = entity.name || '';
+				this.customSignMessage = ((entity.options as any) && (entity.options as any).customSignMessage) || '';
+				this.customSignModalRef = this.modalService.show(this.customSignModalTpl, { class: 'modal-md' });
+				const modalRef: any = this.customSignModalRef;
+				if (modalRef && modalRef.onHidden && modalRef.onHidden.subscribe) {
+					modalRef.onHidden.subscribe(() => {
+						if (this.customSignModalRef === modalRef) {
+							this.customSignModalRef = undefined;
+							this.customSignEntity = undefined;
+						}
+					});
+				}
+				return;
+			}
+		}
+	}
+	closeCustomSignModal() {
+		if (this.customSignModalRef) {
+			const modalRef = this.customSignModalRef;
+			this.customSignModalRef = undefined;
+			this.customSignEntity = undefined;
+			modalRef.hide();
+		}
+	}
+	saveCustomSign() {
+		if (!this.customSignEntity) return;
+		this.game.send(server => server.editorAction({
+			type: 'setCustomSign',
+			entity: this.customSignEntity!.id,
+			name: this.customSignName.substring(0, 60),
+			message: this.customSignMessage.substring(0, 500),
+		}));
 	}
 	getEntityPreviewAction(entity: string) {
 		return this.entityPreviewActions.get(entity);

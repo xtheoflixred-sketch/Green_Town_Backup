@@ -28,7 +28,7 @@
 	"assetsPath": "assets-source",
 	"season": "spring",
 	"holiday": "none",
-    "displayVersion": "## Season 1 — Path 5 | Exp. Stable",
+    "displayVersion": "Season 1 — Patch 9 | Exp. Only",
 	"servers": [
 		{
 			"id": "test",

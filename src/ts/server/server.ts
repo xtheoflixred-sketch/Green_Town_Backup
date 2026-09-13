@@ -337,7 +337,7 @@ if (args.login) {
 	app.use('/api', ...sessionMiddlewares(), api(
 		server, settings, { version, host: config.host, debug: DEVELOPMENT, local: !!args.local }, removedDocument, theWorld));
 	app.use('/api1', ...sessionMiddlewares(), api1(server, settings));
-	app.use('/api2', api2(settings, liveSettings, stats));
+	app.use('/api2', ...sessionMiddlewares(), api2(settings, liveSettings, stats, theWorld));
 
 	const loginApi = createInternalLoginApi(settings, liveSettings, stats, reloadSettings, removedDocument);
 	app.use('/api-internal-login', internal(config, server), wrapApi(server, loginApi));

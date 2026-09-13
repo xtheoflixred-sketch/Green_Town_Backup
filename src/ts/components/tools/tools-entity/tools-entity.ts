@@ -6,19 +6,20 @@ import { setPaletteManager, pickable, getRenderableBounds, createPalette } from 
 import { parseColor, withAlphaFloat } from '../../../common/color';
 import { PaletteManager, releasePalette } from '../../../graphics/paletteManager';
 import { PaletteSpriteBatch, Rect, PaletteRenderable, Dict, Entity, EntityPart, DrawOptions } from '../../../common/interfaces';
+import { defaultWorldState } from '../../../common/interfaces';
 import { SHADOW_COLOR, WHITE, BLACK, TRANSPARENT, RED, ORANGE, PURPLE } from '../../../common/colors';
 import { Key } from '../../../client/input/input';
 import { drawOutline } from '../../../graphics/graphicsUtils';
 import { drawCanvas, ContextSpriteBatch } from '../../../graphics/contextSpriteBatch';
 import { loadAndInitSpriteSheets } from '../../../client/spriteUtils';
 import { AgDragEvent } from '../../shared/directives/agDrag';
-import { faHome, faSave, faEraser, faTrash, faPlus, faCrosshairs } from '../../../client/icons';
+import { faHome, faSave, faEraser, faTrash, faPlus, faCrosshairs, faSearch, faCopy, faDownload, faInfoCircle } from '../../../client/icons';
 import { StorageService } from '../../services/storageService';
 import { mockPaletteManager, toPalette } from '../../../common/ponyInfo';
 import { OFFLINE_PONY } from '../../../common/constants';
 import { drawPony } from '../../../client/ponyDraw';
 import { defaultPonyState, defaultDrawPonyOptions } from '../../../client/ponyHelpers';
-import { createBaseEntity } from '../../../common/entities';
+import { createAnEntity, createBaseEntity, getEntityTypesAndNames } from '../../../common/entities';
 import { decompressPonyString } from '../../../common/compressPony';
 import { disableImageSmoothing } from '../../../client/canvasUtils';
 import { toScreenX, toScreenYWithZ } from '../../../common/positionUtils';
@@ -80,9 +81,15 @@ interface EntityData {
 	entities?: PartEntity[];
 }
 
+interface EntityTypeInfo {
+	type: number;
+	name: string;
+}
+
 @Component({
 	selector: 'tools-entity',
 	templateUrl: 'tools-entity.pug',
+	styleUrls: ['tools-entity.scss'],
 })
 export class ToolsEntity implements OnInit {
 	readonly homeIcon = faHome;
@@ -91,12 +98,22 @@ export class ToolsEntity implements OnInit {
 	readonly trashIcon = faTrash;
 	readonly crosshairsIcon = faCrosshairs;
 	readonly plusIcon = faPlus;
+	readonly searchIcon = faSearch;
+	readonly copyIcon = faCopy;
+	readonly downloadIcon = faDownload;
+	readonly infoIcon = faInfoCircle;
 	@ViewChild('canvas', { static: true }) canvas!: ElementRef;
 	scale = 2;
 	name = '';
 	drawCenter = true;
 	drawSelection = true;
 	drawHold = false;
+	drawGrid = true;
+	drawSprites = true;
+	drawCover = true;
+	drawColliders = true;
+	drawPickable = true;
+	drawAnchor = true;
 	sprites = Object.keys(sprites).filter(key => {
 		const s = (sprites as any)[key] as any;
 		return !!(s && s.color);
@@ -104,6 +121,11 @@ export class ToolsEntity implements OnInit {
 	selectedPart = -1;
 	entities: PartEntity[] = [];
 	parts: Part[] = [];
+	entityTypes: EntityTypeInfo[] = [];
+	entityFilter = '';
+	selectedEntityType = 0;
+	selectedRuntimeEntity: Entity | undefined;
+	entityJson = '';
 	pony = toPalette(decompressPonyString(OFFLINE_PONY), mockPaletteManager);
 	private startX = 0;
 	private startY = 0;
@@ -112,10 +134,68 @@ export class ToolsEntity implements OnInit {
 	ngOnInit() {
 		setPaletteManager(paletteManager);
 		loadAndInitSpriteSheets().then(() => this.changed());
+		this.entityTypes = getEntityTypesAndNames().filter(e => e.type !== 0) as EntityTypeInfo[];
 
 		const data = this.load();
 		this.parts = compact(data.parts || [this.createSpritePart('apple')]);
 		this.entities = compact(data.entities || []);
+		if (this.entityTypes.length) {
+			this.selectEntityType(this.entityTypes[0].type);
+		}
+	}
+	get filteredEntityTypes() {
+		const filter = this.entityFilter.toLowerCase().trim();
+		return filter ? this.entityTypes.filter(e => e.name.toLowerCase().indexOf(filter) !== -1) : this.entityTypes;
+	}
+	selectEntityType(type: number) {
+		this.selectedEntityType = type;
+		this.selectedRuntimeEntity = createAnEntity(type, 0, 0, 0, {}, mockPaletteManager, defaultWorldState);
+		this.entityJson = JSON.stringify(this.getEntityParameters(this.selectedRuntimeEntity), null, 2);
+	}
+	getEntityTypesAndNamesName(type: number) {
+		const entity = this.entityTypes.find(item => item.type === type);
+		return entity ? entity.name : 'Unknown entity';
+	}
+	getEntityParameters(entity: Entity) {
+		const result: any = {
+			type: entity.type,
+			name: getEntityTypesAndNames().find(e => e.type === entity.type)!.name,
+			flags: entity.flags,
+			bounds: entity.bounds,
+			coverBounds: entity.coverBounds,
+			colliders: entity.colliders,
+			collidersBounds: entity.collidersBounds,
+			pickable: entity.pickableX === undefined ? undefined : { x: entity.pickableX, y: entity.pickableY },
+			interactBounds: entity.interactBounds,
+			interactRange: entity.interactRange,
+			triggerBounds: entity.triggerBounds,
+			triggerTall: entity.triggerTall,
+			order: entity.order,
+		};
+		const drawEntity = entity as any;
+		if (drawEntity.drawDx !== undefined || drawEntity.drawDy !== undefined) {
+			result.drawAnchor = { x: drawEntity.drawDx, y: drawEntity.drawDy };
+		}
+		return result;
+	}
+	loadEntityGeometry() {
+		const entity = this.selectedRuntimeEntity;
+		if (!entity) return;
+		this.name = getEntityTypesAndNames().find(e => e.type === entity.type)!.name;
+		this.parts = [];
+		if (entity.bounds) this.parts.push({ type: 'cover', x: entity.bounds.x, y: entity.bounds.y, w: entity.bounds.w, h: entity.bounds.h });
+		if (entity.coverBounds) this.parts.push({ type: 'cover', x: entity.coverBounds.x, y: entity.coverBounds.y, w: entity.coverBounds.w, h: entity.coverBounds.h });
+		(entity.colliders || []).forEach(collider => this.parts.push({
+			type: 'collider', x: collider.x, y: collider.y, w: collider.w, h: collider.h,
+		}));
+		if (entity.pickableX !== undefined) this.parts.push({ type: 'pickable', x: entity.pickableX, y: entity.pickableY || 0 });
+		this.changed();
+	}
+	copyEntityJson() {
+		if (navigator.clipboard) navigator.clipboard.writeText(this.entityJson);
+	}
+	refreshEntityJson() {
+		if (this.selectedRuntimeEntity) this.entityJson = JSON.stringify(this.getEntityParameters(this.selectedRuntimeEntity), null, 2);
 	}
 	@HostListener('window:keydown', ['$event'])
 	keydown(e: KeyboardEvent) {
@@ -221,12 +301,28 @@ export class ToolsEntity implements OnInit {
 		const height = Math.ceil(canvas.height / scale);
 
 		const draw = (batch: ContextSpriteBatch) => {
+			if (this.drawGrid) {
+				for (let x = X % 16; x < width; x += 16) {
+					batch.drawRect(withAlphaFloat(BLACK, 0.06), x, 0, 1, height);
+				}
+				for (let y = Y % 16; y < height; y += 16) {
+					batch.drawRect(withAlphaFloat(BLACK, 0.06), 0, y, width, 1);
+				}
+			}
+
 			if (this.drawCenter) {
 				batch.drawRect(LINES, 0, Y, width, 1);
 				batch.drawRect(LINES, X, 0, 1, height);
 			}
 
-			this.parts.forEach(p => drawPart(batch, p, X, Y));
+			this.parts.forEach(p => {
+				if ((p.type === 'sprite' && this.drawSprites) ||
+					(p.type === 'cover' && this.drawCover) ||
+					(p.type === 'collider' && this.drawColliders) ||
+					(p.type === 'pickable' && this.drawPickable)) {
+					drawPart(batch, p, X, Y);
+				}
+			});
 
 			const part = this.parts[this.selectedPart] as Part | undefined;
 
@@ -238,6 +334,11 @@ export class ToolsEntity implements OnInit {
 					const sy = Y + bounds.y;
 					drawOutline(batch, SELECTION, sx - 1, sy - 1, bounds.w + 2, bounds.h + 2);
 				}
+			}
+
+			if (this.drawAnchor) {
+				batch.drawRect(COVER, X - 5, Y, 11, 1);
+				batch.drawRect(COVER, X, Y - 5, 1, 11);
 			}
 
 			if (this.drawCenter) {

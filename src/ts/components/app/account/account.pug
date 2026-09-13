@@ -27,7 +27,7 @@ h1(focusTitle) Account settings
 						.alert-message
 							| Changes saved
 			.form-group.text-right
-				button.btn.btn-default(type="submit" [disabled]="!canSubmit" style="min-width: 100px;")
+				button.btn.btn-default(type="button" (click)="submit()" [disabled]="!canSubmit" style="min-width: 100px;")
 					| {{saveButtonText}}
 
 
@@ -166,11 +166,61 @@ h1(focusTitle) Account settings
 
 			.clearfix.account-supporter-section(*ngIf="rolePrivileges.length")
 				.form-group
-					h3.mb-3(style="color: #fff;") Role privileges
-					div.account-info-block
-						p Your account roles provide these additional privileges:
-						ul
-							li(*ngFor="let privilege of rolePrivileges") {{privilege}}
+					.d-flex.align-items-center.justify-content-between.mb-2(style="gap: 12px; flex-wrap: wrap;")
+						h3.mb-0(style="color: #fff;") Role privileges
+						span.badge.badge-dark(style="font-size: 12px; padding: 7px 10px;") {{assignedRoleDetails.length}} assigned role{{assignedRoleDetails.length === 1 ? '' : 's'}}
+					p.text-muted.mt-2.mb-3 Each role is listed separately with its default tag, preview and available links.
+					.role-privilege-list
+						.account-role-block(*ngFor="let role of assignedRoleDetails" [style.border-left]="'4px solid ' + getRoleTagColor(role.id)" [style.background]="'linear-gradient(100deg, ' + getRoleTagColor(role.id) + '12, rgba(255,255,255,.035) 42%)'" style="display: flex; align-items: stretch; gap: 16px; padding: 15px 16px; border-radius: 8px; box-shadow: 0 5px 18px rgba(0,0,0,.14);")
+							.account-role-preview(*ngIf="rolePreviewInfo" style="display: flex; flex: 0 0 108px; width: 108px; min-height: 112px; align-items: center; justify-content: center; padding: 4px; background: rgba(0,0,0,.14); border-radius: 6px;")
+								character-preview(
+									[pony]="rolePreviewInfo"
+									[name]="''"
+									[tag]="getRolePreviewTag(role.id)"
+									[tagColor]="getRoleTagColor(getRolePreviewTag(role.id))"
+									[tagGradientStart]="getRoleGradient(getRolePreviewTag(role.id))?.start"
+									[tagGradientEnd]="getRoleGradient(getRolePreviewTag(role.id))?.end"
+									[tagGradientDirection]="getRoleGradient(getRolePreviewTag(role.id))?.direction || 'horizontal'"
+									[scale]="2"
+									[noBackground]="true"
+									[noShadow]="true"
+																[passive]="true"
+									[namePlateOffsetY]="8"
+									[tagOnlyNamePlateOffsetY]="8"
+								)
+							.account-role-content(style="min-width: 0; flex: 1;")
+								.d-flex.align-items-start.justify-content-between(style="gap: 10px; flex-wrap: wrap;")
+									div
+										span.badge.account-role-badge([ngClass]="'badge-' + role.id" [ngStyle]="getRoleTagStyle(role.id)" style="display: inline-flex; align-items: center; gap: 5px; padding: 7px 9px; border-radius: 5px;")
+											fa-icon(*ngIf="role.tag && role.tag.icon" [icon]="role.tag.icon" [fixedWidth]="true")
+											| {{role.name}}
+										span.d-block.small.text-muted.mt-1 &lt;{{role.id.toUpperCase()}}&gt; default role tag
+										span.d-block.small(style="color: #9fdcff;") Preview: &lt;{{getRolePreviewTag(role.id).toUpperCase()}}&gt;
+									span.badge.badge-secondary(style="padding: 5px 7px; font-size: 10px;") {{role.privileges.length}} privileges
+									span.badge.badge-secondary.ml-1(*ngIf="role.links.length" style="padding: 5px 7px; font-size: 10px;") {{role.links.length}} links
+								.divider(style="height: 1px; background: rgba(255,255,255,.1); margin: 11px 0 10px;")
+								div(*ngFor="let privilege of role.privileges" style="display: flex; align-items: flex-start; gap: 8px; margin: 5px 0; color: #d8d8d8; font-size: 13px; line-height: 1.35;")
+									span(style="flex: 0 0 7px; width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; background: currentColor; opacity: .75;")
+									span {{privilege}}
+								.role-link-list.mt-3(*ngIf="role.links.length" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,.08);")
+									strong.small.text-muted(style="margin-right: 2px;") Open
+									a.role-link(*ngFor="let link of role.links" [href]="link.href" style="display: inline-block; padding: 4px 7px; border: 1px solid rgba(126,214,255,.35); border-radius: 4px; color: #7ed6ff; text-decoration: none; font-size: 11px;")
+										| {{link.label}}
+
+			.clearfix.account-supporter-section
+				.form-group
+					h3.mb-3(style="color: #fff;")
+						fa-icon.mr-2([icon]="starIcon" [ngClass]="supporterClass")
+						| Redeem supporter code
+					p.text-muted Paste a one-time code from the server team to activate supporter access.
+					.input-group
+						input.form-control(type="text" [(ngModel)]="supporterCode" placeholder="SUP-XXXXXXXXXXXX" aria-label="Supporter code" maxlength="16")
+						.input-group-append
+						button.btn.btn-primary(type="button" (click)="redeemSupporterCode()" [disabled]="!supporterCode.trim()")
+							fa-icon.mr-1([icon]="starIcon" [fixedWidth]="true")
+							| Redeem
+					.alert.alert-danger.mt-2(*ngIf="supporterCodeError" role="alert") {{supporterCodeError}}
+					.alert.alert-success.mt-2(*ngIf="supporterCodeSuccess" role="alert") {{supporterCodeSuccess}}
 
 			.clearfix.account-supporter-section(*ngIf="showSupporterInfo")
 				.form-group

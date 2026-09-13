@@ -6,8 +6,8 @@ import {
 	Season,
 } from './interfaces';
 import { at, att, hasFlag, invalidEnum } from './utils';
-import { WHITE, BLACK, RED } from './colors';
-import { toScreenX, toWorldX, toWorldY, toScreenYWithZ } from './positionUtils';
+import { WHITE, BLACK } from './colors';
+import { toScreenX, toWorldX, toWorldY, toScreenY, toScreenYWithZ } from './positionUtils';
 import { rect, addRects, addRect } from './rect';
 import { SECOND, LIGHT_VOLUME_SCALE } from './constants';
 import { mockPaletteManager } from './ponyInfo';
@@ -322,11 +322,12 @@ export interface AnimatedMixinOptions {
 	lightSprite?: AnimatedRenderable1;
 	useGameTime?: boolean;
 	flipped?: boolean;
+	fadeIn?: { delay: number; duration: number };
 }
 
 export function mixAnimation(
 	anim: AnimatedRenderable, fps: number, dx: number, dy: number,
-	{ color = WHITE, repeat = true, animations, lightSprite, useGameTime, flipped = false }: AnimatedMixinOptions = {}
+	{ color = WHITE, repeat = true, animations, lightSprite, useGameTime, flipped = false, fadeIn }: AnimatedMixinOptions = {}
 ): MixinEntity {
 	const allFrameBounds = getBoundsForFrames(anim.frames, -dx, -dy);
 	const firstFrame = anim.frames[0];
@@ -365,6 +366,11 @@ export function mixAnimation(
 		};
 
 		base.bounds = bounds;
+		if (fadeIn) {
+			(base as any).fadeTime = 0;
+			(base as any).fadeDelay = Math.random() * fadeIn.delay;
+			base.entityOpacity = 0;
+		}
 		(base as any).spriteBounds = bounds;
 		(base as any).drawDx = 0;
 		(base as any).drawDy = 0;
@@ -375,6 +381,12 @@ export function mixAnimation(
 
 		base.update = function (delta: number) {
 			time += delta;
+			if (fadeIn) {
+				const fadeTime = ((this as any).fadeTime || 0) + delta;
+				(this as any).fadeTime = fadeTime;
+				this.entityOpacity = Math.min(1, Math.max(0,
+					(fadeTime - ((this as any).fadeDelay || 0)) / fadeIn.duration));
+			}
 
 			const anim = getAnimationFromEntityState(this.state);
 
@@ -408,8 +420,10 @@ export function mixAnimation(
 			const vanishLevel = (this as any).vanishLevel || 0;
 			const tint = (this as any).spriteTint;
 
-			const alpha = vanishLevel ? 0.5 :
-				(entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1);
+			const weatherOpacity = (this as any).weatherOpacity;
+			const alpha = (vanishLevel ? 0.5 :
+				(entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1)) *
+				(weatherOpacity !== undefined ? weatherOpacity : 1);
 
 			batch.save();
 			batch.translate(x, y);
@@ -480,16 +494,17 @@ export function mixDrawWindow(
 				const baseX = Math.round(toScreenX(this.x + (this.ox || 0)));
 				const baseY = Math.round(toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0)));
 				const x = baseX - dx;
-				const y = baseY - dy;
+				const y = baseY - dy + toScreenY((this as any).offsetY || 0);
 				const prevAlpha = batch.globalAlpha;
 				const entityOpacity = (this as any).entityOpacity;
 				const vanishLevel = (this as any).vanishLevel || 0;
-				const alpha = vanishLevel ? 0.5 : (entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1);
+				const weatherOpacity = (this as any).weatherOpacity;
+				const alpha = (vanishLevel ? 0.5 : (entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1)) *
+					(weatherOpacity !== undefined ? weatherOpacity : 1);
 				const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
 				const scaled = beginEntityScaleAtFeet(batch, baseX, baseY, scale);
 
 				batch.globalAlpha = prevAlpha * alpha;
-
 				if (sprite.shadow !== undefined) {
 					batch.drawSprite(sprite.shadow, options.shadowColor, defaultPalette, x, y);
 				}
@@ -530,7 +545,9 @@ export function mixDraw(sprite: PaletteRenderable, dx: number, dy: number, palet
 				const scale = (this as any).entityScale || 1;
 				const entityX = toScreenX(this.x + (this.ox || 0));
 				const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0));
-				const coverOpacity = 1 - 0.6 * (this.coverLifting || 0);
+				const coverOpacity = (this as any).coverOpacity !== undefined
+					? (this as any).coverOpacity
+					: 1 - 0.6 * (this.coverLifting || 0);
 				const tint = (this as any).spriteTint !== undefined ? (this as any).spriteTint : WHITE;
 				const prevAlpha = batch.globalAlpha;
 				const entityOpacity = (this as any).entityOpacity;
@@ -543,6 +560,7 @@ export function mixDraw(sprite: PaletteRenderable, dx: number, dy: number, palet
 
 				batch.save();
 				batch.translate(entityX, entityY);
+				batch.translate(0, toScreenY((this as any).offsetY || 0));
 
 				if (hasFlag(this.state, EntityState.FacingRight)) {
 					batch.scale(-1, 1);
@@ -675,6 +693,7 @@ export function mixDrawSeasonal(setup: MixDrawSeasonal): MixinEntity {
 
 				batch.save();
 				batch.translate(entityX, entityY);
+				batch.translate(0, toScreenY((this as any).offsetY || 0));
 
 				if (hasFlag(this.state, EntityState.FacingRight)) {
 					batch.scale(-1, 1);
@@ -898,43 +917,6 @@ export function mixLightSprite(sprite: Sprite, color: number, dx: number, dy: nu
 	};
 }
 
-export function mixDrawRain(): MixinEntity {
-	const sprite = sprites.rainfall.color; // 110x477
-	const bounds = rect(toScreenX(-4), -sprite.h, toScreenX(8), sprite.h);
-
-	return base => {
-		base.bounds = bounds;
-
-		if (SERVER && !TESTS)
-			return;
-
-		let time = 0;
-		const palette = createPalette(sprites.defaultPalette);
-		base.palettes = [palette];
-
-		// update(delta: number) {
-		// 	time += delta * 1000;
-
-		// 	if (time > 200) {
-		// 		time -= 200;
-		// 	}
-		// },
-
-		base.draw = function (batch: PaletteSpriteBatch) {
-			const x = toScreenX(this.x) + bounds.x;
-			const y = toScreenYWithZ(this.y, this.z) - sprite.h + Math.floor(time);
-			const prevAlpha = batch.globalAlpha;
-			const entityOpacity = (this as any).entityOpacity;
-			const vanishLevel = (this as any).vanishLevel || 0;
-			const alpha = vanishLevel ? 0.5 : (entityOpacity !== undefined && entityOpacity < 1 ? entityOpacity : 1);
-
-			batch.globalAlpha = prevAlpha * alpha;
-			batch.drawImage(sprite.type, RED, palette, sprite.x, sprite.y, sprite.w, sprite.h, x, y, sprite.w, sprite.h);
-			batch.globalAlpha = prevAlpha;
-		};
-	};
-}
-
 export function mixDrawShadow(sprite: PaletteRenderable, dx: number, dy: number, shadowColor?: number): MixinEntity {
 	const bounds = getRenderableBounds(sprite, dx, dy);
 	const colorBounds = getColorBounds(sprite, dx, dy);
@@ -951,7 +933,7 @@ export function mixDrawShadow(sprite: PaletteRenderable, dx: number, dy: number,
 				const entityX = toScreenX(this.x + (this.ox || 0));
 				const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0));
 				const x = entityX - dx;
-				const y = entityY - dy;
+				const y = entityY - dy + toScreenY((this as any).offsetY || 0);
 				const color = shadowColor === undefined ? options.shadowColor : shadowColor;
 				const prevAlpha = batch.globalAlpha;
 				const entityOpacity = (this as any).entityOpacity;
@@ -1008,7 +990,7 @@ export function mixDrawWall(
 			const palette = fullWalls ? fullPalette : halfPalette;
 			const scale = (this as any).entityScale || 1;
 			const entityX = toScreenX(this.x);
-			const entityY = toScreenYWithZ(this.y, this.z);
+			const entityY = toScreenYWithZ(this.y + (this.oy || 0), this.z + (this.oz || 0));
 			const x = entityX - dx;
 			const y = entityY - (fullWalls ? dy : dy2);
 			const prevAlpha = batch.globalAlpha;

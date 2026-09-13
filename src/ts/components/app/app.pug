@@ -1,6 +1,19 @@
 ng-template(#gameCharacterModal)
 	game-character-modal([modalRef]="gameCharacterModalRef" (play)="playAndSwapCharacter()")
 
+ng-template(#teleportModal)
+	teleport-modal((close)="closeTeleportModal()" (keydown)="$event.stopPropagation()")
+
+ng-template(#timeModal)
+	time-modal((close)="closeTimeModal()" (keydown)="$event.stopPropagation()")
+
+ng-template(#screenEntityModal)
+	screen-entity-modal(
+		[entity]="screenEntityModalEntity"
+		(cancel)="closeScreenEntityModal()"
+		(save)="saveScreenEntity($event)"
+		(playPause)="controlScreenEntity($event)")
+
 #app-game.app-game([hidden]="!playing" [class.ui-disabled]="account?.settings?.disableUI")
 	canvas#canvas.unselectable.pixelart
 	#image-overlay.unselectable
@@ -23,10 +36,17 @@ ng-template(#gameCharacterModal)
 	editor-box#editor(*hasFeature="'editor'; also playing && (isMod || isBuilder)")
 	party-list#party-list
 	settings-box#settings-box
+	button#mini-map-toggle.game-button(*ngIf="playing && !game.showMinimap" type="button" (click)="toggleMiniMap()" aria-label="Open minimap" title="Open minimap")
+		fa-icon([icon]="mapIcon" [fixedWidth]="true")
 	swap-box#swap-box
 	build-box#build-box
+	mini-map([game]="game" [playing]="playing")
 	button.inventory-toggle-btn(*ngIf="showActionBar" type="button" (click)="toggleInventory()" [attr.aria-expanded]="inventoryOpen" [attr.aria-label]="inventoryOpen ? 'Close inventory' : 'Open inventory'" title="Toggle inventory" [class.chat-log-open]="isChatLogOpen")
 		fa-icon([icon]="inventoryIcon")
+	button.teleport-toggle-btn.game-button(*ngIf="showActionBar && isMod" type="button" (click)="openTeleportModal()" aria-label="Teleport players" title="Teleport players")
+		fa-icon([icon]="teleportIcon" [fixedWidth]="true")
+	button.time-toggle-btn.game-button(*ngIf="showActionBar && isMod" type="button" (click)="openTimeModal()" aria-label="Change server time" title="Change server time")
+		fa-icon([icon]="timeIcon" [fixedWidth]="true")
 	notification-list#notifications([notifications]="notifications" [notificationsLength]="notifications.length")
 	chat-log#chat-log(#chatLogComp *ngIf="playing && !editingActions && !settingsModalRef" (toggleType)="chatBox.setChatType($event)" (nameClick)="chatLogNameClick(chatBox, $event)")
 	inventory-bar#inventory-bar(*ngIf="showActionBar" [opened]="inventoryOpen")

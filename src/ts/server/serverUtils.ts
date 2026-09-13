@@ -29,7 +29,7 @@ export function isServerOffline(server: InternalGameServerState) {
 }
 
 export function toAccountData(account: IAccount): AccountData {
-	const { _id, name, birthdate, birthyear, characterCount, roles, settings, flags } = account;
+	const { _id, name, birthdate, birthyear, characterCount, roles, roleTagOverrides, settings, flags } = account;
 
 	return {
 		id: _id.toString(),
@@ -42,7 +42,9 @@ export function toAccountData(account: IAccount): AccountData {
 		birthyear,
 		settings: cloneDeep(settings || {}),
 		supporter: supporterLevel(account) || undefined,
+		supporterExpiresAt: account.supporterExpiresAt && account.supporterExpiresAt.toISOString(),
 		roles: (roles && roles.length) ? [...roles] : undefined,
+		roleTagOverrides: roleTagOverrides ? { ...roleTagOverrides } : undefined,
 		flags: (hasFlag(flags, AccountFlags.DuplicatesNotification) ? AccountDataFlags.Duplicates : 0) |
 			(isPastSupporter(account) ? AccountDataFlags.PastSupporter : 0),
 		state: cloneDeep(account.state || {}),
@@ -55,7 +57,7 @@ export function toAccountData(account: IAccount): AccountData {
 	};
 }
 
-export const toPonyObjectFields = '_id name info desc site tag tagColor supportTag supportChat supportTagPriority lastUsed flags';
+export const toPonyObjectFields = '_id name info desc site tag tagColor tagTranslation tagGradientStart tagGradientEnd tagGradientDirection supportTag supportChat supportTagPriority lastUsed flags';
 
 export function toPonyObject(character: ICharacter): PonyObject;
 export function toPonyObject(character: ICharacter | undefined): PonyObject | null;
@@ -67,7 +69,12 @@ export function toPonyObject(character: ICharacter | undefined): PonyObject | nu
 		info: character.info || '',
 		site: character.site ? character.site.toString() : undefined,
 		tag: character.tag || undefined,
+		tagRole: character.tagRole || undefined,
 		tagColor: character.tagColor || undefined,
+		tagTranslation: character.tagTranslation || undefined,
+		tagGradientStart: character.tagGradientStart || undefined,
+		tagGradientEnd: character.tagGradientEnd || undefined,
+		tagGradientDirection: character.tagGradientDirection === 'vertical' ? 'vertical' : character.tagGradientDirection === 'horizontal' ? 'horizontal' : undefined,
 		supportTag: character.supportTag || undefined,
 		supportChat: character.supportChat || undefined,
 		supportTagPriority: character.supportTagPriority,

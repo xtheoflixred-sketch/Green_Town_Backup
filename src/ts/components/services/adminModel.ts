@@ -265,10 +265,18 @@ export class AdminModel {
 				if (data) {
 					pony.info = data.info;
 					pony.ponyInfo = decompressPonyString(data.info, false);
+					pony.tag = data.tag;
+					pony.tagColor = data.tagColor;
+					pony.supportTag = data.supportTag;
+					pony.supportChat = data.supportChat;
+					pony.supportTagPriority = data.supportTagPriority;
 					pony.lastUsed = data.lastUsed ? new Date(data.lastUsed) : undefined;
 					pony.creator = data.creator;
 				}
 			});
+	}
+	getPony(id: string) {
+		return this.checkError(this.server.getPony(id));
 	}
 	removePony(id: string) {
 		return this.checkError(this.server.removePony(id));
@@ -379,6 +387,18 @@ export class AdminModel {
 	}
 	setRole(accountId: string, role: string, set: boolean) {
 		return this.checkError(this.server.setRole(accountId, role, set));
+	}
+	setRoleTag(accountId: string, role: string, tag: string | null) {
+		return this.checkError(this.server.setRoleTag(accountId, role, tag));
+	}
+	generateSupporterCode(level: number, durationDays: number) {
+		return this.checkError(this.server.generateSupporterCode(level, durationDays));
+	}
+	setSupporter(accountId: string, level: number, durationDays: number) {
+		return this.checkError(this.server.setSupporter(accountId, level, durationDays));
+	}
+	clearSupporter(accountId: string) {
+		return this.checkError(this.server.clearSupporter(accountId));
 	}
 	setNote(accountId: string, note: string) {
 		const account = this.accounts.get(accountId);

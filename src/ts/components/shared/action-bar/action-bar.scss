@@ -17,6 +17,11 @@
 		overflow-x: scroll;
 		overflow-y: hidden;	
 		pointer-events: auto;
+		scrollbar-width: none;
+
+		&::-webkit-scrollbar {
+			display: none;
+		}
 	}
 	
 	&.is-blurred > .blur-me {
@@ -76,5 +81,39 @@ action-button, .action-settings {
 		margin-left: 10px;
 		margin-right: 10px;
 		margin-top: 15px;
+	}
+}
+
+action-button.action-dragging-placeholder {
+	opacity: 0.28;
+	filter: grayscale(0.7);
+	outline: 1px dashed rgba(255, 255, 255, 0.75);
+	outline-offset: 2px;
+}
+
+action-button.action-shift-left,
+action-button.action-shift-right {
+	transition: transform 160ms ease;
+}
+
+action-button.action-shift-left {
+	transform: translateX(-41px);
+}
+
+action-button.action-shift-right {
+	transform: translateX(41px);
+}
+
+.action-bar action-button.draggable-hover {
+	box-shadow: none;
+}
+
+@media screen and (max-width: 575px) {
+	action-button.action-shift-left {
+		transform: translateX(-49px);
+	}
+
+	action-button.action-shift-right {
+		transform: translateX(49px);
 	}
 }

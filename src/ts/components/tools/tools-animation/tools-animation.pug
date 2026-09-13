@@ -24,9 +24,12 @@ ng-template(#shareLinkPopover)
 				.form-group
 					label.ml-2 scale:
 					scale-picker.ml-1([(scale)]="scale")
-				//-.form-group
-					button.btn.ml-1(btnCheckbox [(ngModel)]="flip" (change)="update()" [btnHighlight]="flip")
+				.form-group
+					button.btn.ml-1([class.active]="flip" (click)="togglePreviewFlip()" title="Flip whole body")
 						fa-icon([icon]="rightIcon" [fixedWidth]="true")
+					button.btn.ml-1([class.active]="previewHeadTurned" (click)="togglePreviewHeadTurned()"
+						title="Turn head in preview")
+						fa-icon([icon]="horseHeadIcon" [fixedWidth]="true")
 				.form-group
 					label.ml-2 mode:
 					.btn-group.dropdown.ml-1(dropdown)
@@ -108,13 +111,15 @@ ng-template(#shareLinkPopover)
 							a.dropdown-item([class.active]="gifScale === 4" (click)="setGifScale(4)") GIF x4
 					.btn-group.ml-1(dropdown)
 						button.btn.btn-default((click)="mp4()" title="Save as MP4")
-							| WEBM (video) x{{ mp4Scale }}
+							| WEBM (video) x{{ mp4Scale }}, {{ videoLoops }} loop(s)
 						button.btn.btn-default.dropdown-toggle(dropdownToggle)
 						.dropdown-menu(*dropdownMenu)
 							a.dropdown-item([class.active]="mp4Scale === 1" (click)="setMp4Scale(1)") x1
 							a.dropdown-item([class.active]="mp4Scale === 2" (click)="setMp4Scale(2)") x2
 							a.dropdown-item([class.active]="mp4Scale === 3" (click)="setMp4Scale(3)") x3
 							a.dropdown-item([class.active]="mp4Scale === 4" (click)="setMp4Scale(4)") x4
+							a.dropdown-item(*ngFor="let loops of [1, 2, 3, 5, 10]" [class.active]="videoLoops === loops" (click)="setVideoLoops(loops)")
+								| {{ loops }} loop(s)
 
 			hr
 
@@ -163,6 +168,24 @@ ng-template(#shareLinkPopover)
 						button.btn.btn-default.btn-sm((click)="moveAllHead(0, 1)" title="All frames down")
 							fa-icon([icon]="doubleDownIcon" [fixedWidth]="true")
 
+			.form-inline(*ngIf="mode === 'head'")
+				.form-group
+					label nose offset:
+					tools-range.ml-2(
+						[(ngModel)]="activeFrame.noseX" (change)="update()" [min]="-20" [max]="20" [small]="true")
+					.btn-group.ml-1
+						button.btn.btn-default.btn-sm((click)="moveAllNose(-1, 0)" title="All frames left")
+							fa-icon([icon]="doubleLeftIcon" [fixedWidth]="true")
+						button.btn.btn-default.btn-sm((click)="moveAllNose(1, 0)" title="All frames right")
+							fa-icon([icon]="doubleRightIcon" [fixedWidth]="true")
+					tools-range.ml-2(
+						[(ngModel)]="activeFrame.noseY" (change)="update()" [min]="-20" [max]="20" [small]="true" [vertical]="true")
+					.btn-group.ml-1
+						button.btn.btn-default.btn-sm((click)="moveAllNose(0, -1)" title="All frames up")
+							fa-icon([icon]="doubleUpIcon" [fixedWidth]="true")
+						button.btn.btn-default.btn-sm((click)="moveAllNose(0, 1)" title="All frames down")
+							fa-icon([icon]="doubleDownIcon" [fixedWidth]="true")
+
 			.form-inline
 				.form-group(*ngIf="mode === 'body'")
 					label body offset:
@@ -179,6 +202,47 @@ ng-template(#shareLinkPopover)
 						button.btn.btn-default.btn-sm((click)="moveAllBody(0, -1)" title="All frames up")
 							fa-icon([icon]="doubleUpIcon" [fixedWidth]="true")
 						button.btn.btn-default.btn-sm((click)="moveAllBody(0, 1)" title="All frames down")
+							fa-icon([icon]="doubleDownIcon" [fixedWidth]="true")
+					button.btn.btn-default.btn-sm.ml-1.frame-head-turn(
+						[class.active]="activeFrame.headTurned"
+						(click)="toggleFrameHeadTurned()" title="Turn head on this frame")
+						fa-icon([icon]="rightIcon" [fixedWidth]="true")
+						span.ml-1 Turn head
+
+			.form-inline(*ngIf="mode === 'body'")
+				.form-group
+					label wing offset:
+					tools-range.ml-2(
+						[(ngModel)]="activeFrame.wingX" (change)="update()" [min]="-50" [max]="50" [small]="true")
+					.btn-group.ml-1
+						button.btn.btn-default.btn-sm((click)="moveAllWing(-1, 0)" title="All frames left")
+							fa-icon([icon]="doubleLeftIcon" [fixedWidth]="true")
+						button.btn.btn-default.btn-sm((click)="moveAllWing(1, 0)" title="All frames right")
+							fa-icon([icon]="doubleRightIcon" [fixedWidth]="true")
+					tools-range.ml-2(
+						[(ngModel)]="activeFrame.wingY" (change)="update()" [min]="-50" [max]="50" [small]="true" [vertical]="true")
+					.btn-group.ml-1
+						button.btn.btn-default.btn-sm((click)="moveAllWing(0, -1)" title="All frames up")
+							fa-icon([icon]="doubleUpIcon" [fixedWidth]="true")
+						button.btn.btn-default.btn-sm((click)="moveAllWing(0, 1)" title="All frames down")
+							fa-icon([icon]="doubleDownIcon" [fixedWidth]="true")
+
+			.form-inline(*ngIf="mode === 'body'")
+				.form-group
+					label tail offset:
+					tools-range.ml-2(
+						[(ngModel)]="activeFrame.tailX" (change)="update()" [min]="-50" [max]="50" [small]="true")
+					.btn-group.ml-1
+						button.btn.btn-default.btn-sm((click)="moveAllTail(-1, 0)" title="All frames left")
+							fa-icon([icon]="doubleLeftIcon" [fixedWidth]="true")
+						button.btn.btn-default.btn-sm((click)="moveAllTail(1, 0)" title="All frames right")
+							fa-icon([icon]="doubleRightIcon" [fixedWidth]="true")
+					tools-range.ml-2(
+						[(ngModel)]="activeFrame.tailY" (change)="update()" [min]="-50" [max]="50" [small]="true" [vertical]="true")
+					.btn-group.ml-1
+						button.btn.btn-default.btn-sm((click)="moveAllTail(0, -1)" title="All frames up")
+							fa-icon([icon]="doubleUpIcon" [fixedWidth]="true")
+						button.btn.btn-default.btn-sm((click)="moveAllTail(0, 1)" title="All frames down")
 							fa-icon([icon]="doubleDownIcon" [fixedWidth]="true")
 
 			.form-inline
@@ -212,6 +276,7 @@ ng-template(#shareLinkPopover)
 					tr: th Frame (duration)
 				tbody
 					tr: td Head offset (x/y)
+					tr: td Head turned
 					tr: td Body offset (x/y)
 					tr: td Shadow (x/size)
 					tr: td.frame-cell Front close Leg
@@ -238,6 +303,9 @@ ng-template(#shareLinkPopover)
 					tr
 						td(*ngFor="let f of bodyFrames; index as i" [class.active]="isActive(i)" (click)="selectFrame(i)")
 							| {{f.headX}} / {{f.headY}}
+					tr
+						td(*ngFor="let f of bodyFrames; index as i" [class.active]="isActive(i)" (click)="selectFrame(i)")
+							| {{f.headTurned ? 'turned' : 'normal'}}
 					tr
 						td(*ngFor="let f of bodyFrames; index as i" [class.active]="isActive(i)" (click)="selectFrame(i)")
 							| {{f.bodyX}} / {{f.bodyY}}

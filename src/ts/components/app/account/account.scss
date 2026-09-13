@@ -64,6 +64,64 @@
 	}
 }
 
+.role-privilege-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.account-role-block {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	min-height: 118px;
+	padding: 12px 14px;
+	background: rgba(255, 255, 255, 0.035);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 5px;
+}
+
+.account-role-preview {
+	flex: 0 0 96px;
+	width: 96px;
+	min-height: 90px;
+}
+
+.account-role-content {
+	min-width: 0;
+	flex: 1;
+}
+
+.account-role-badge {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.role-link-list {
+	font-size: 12px;
+}
+
+.role-link {
+	color: #7ed6ff;
+	text-decoration: underline;
+
+	&:hover {
+		color: #fff;
+	}
+}
+
+@media (max-width: 575px) {
+	.account-role-block {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.account-role-preview {
+		flex-basis: auto;
+		width: 100%;
+	}
+}
+
 .supporter-1 {
 	color: #f96955;
 }

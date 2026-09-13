@@ -1,0 +1,32 @@
+.modal-header
+	h4.modal-title Server time
+	button.close(type="button" aria-label="Close" (click)="onClose()")
+		span(aria-hidden="true") ×
+.modal-body
+	.alert.alert-danger(*ngIf="error") {{ error }}
+	.time-status.alert.alert-secondary(*ngIf="status")
+		strong {{ status.formattedTime }}
+		span.ml-2(*ngIf="status.isFrozen") Frozen
+		span.ml-2(*ngIf="!status.isFrozen") Running
+	.time-control
+		.custom-control.custom-switch.time-toggle
+			input#time-toggle.custom-control-input(type="checkbox" [checked]="!status?.isFrozen" (change)="sendAction($event.target.checked ? 'resume' : 'freeze')" [disabled]="loading" aria-label="Run server time")
+			label.custom-control-label(for="time-toggle" [attr.title]="status?.isFrozen ? 'Resume time' : 'Freeze time'")
+				fa-icon([icon]="status?.isFrozen ? playIcon : pauseIcon")
+		.time-input.input-group
+			input.form-control.time-part(type="text" inputmode="numeric" maxlength="2" [(ngModel)]="hourInput" [disabled]="loading" aria-label="Hours")
+			.input-group-text.time-separator :
+			input.form-control.time-part(type="text" inputmode="numeric" maxlength="2" [(ngModel)]="minuteInput" [disabled]="loading" aria-label="Minutes")
+			.input-group-append
+				button.btn.btn-primary(type="button" (click)="setTime('set')" [disabled]="loading") Set
+	.form-text.text-muted Set the time, then use the left button to pause or resume it.
+	.time-actions
+		button.btn.btn-outline-primary(type="button" (click)="setTime('freeze')" [disabled]="loading") Freeze at time
+		button.btn.btn-outline-secondary(type="button" (click)="sendAction('resume')" [disabled]="loading || !status?.isFrozen") Resume
+		.btn-group(dropdown)
+			button.btn.btn-outline-secondary.dropdown-toggle(type="button" dropdownToggle [disabled]="loading") Presets
+			.dropdown-menu(*dropdownMenu)
+				button.dropdown-item(type="button" (click)="sendAction('day')") Eternal day (12:00)
+				button.dropdown-item(type="button" (click)="sendAction('night')") Eternal night (00:00)
+	.modal-footer
+		button.btn.btn-secondary(type="button" (click)="onClose()") Close

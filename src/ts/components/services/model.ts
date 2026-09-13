@@ -6,14 +6,15 @@ import { BehaviorSubject, Subject } from 'rxjs';
 import {
 	AccountData, UpdateAccountData, AccountSettings, GameStatus, SocialSiteInfo, PonyObject, JoinResponse,
 	OAuthProvider, EntitiesEditorInfo, FriendData, PalettePonyInfo, HiddenPlayer
-} from '../../common/interfaces'; import { ChangelogResponse } from '../../common/changelogUtils'; import { createServerDefaultPony, syncLockedPonyInfo, mockPaletteManager } from '../../common/ponyInfo';
+} from '../../common/interfaces'; import { ChangelogResponse } from '../../common/changelogUtils'; import { syncLockedPonyInfo, mockPaletteManager } from '../../common/ponyInfo';
 import * as entities from '../../common/entities';
 import { removeById, observableToPromise, delay, computeFriendsCRC } from '../../common/utils';
-import { isMod, getSupporterInviteLimit, getCharacterLimit } from '../../common/accountUtils';
+import { isMod, isDev, getSupporterInviteLimit, getCharacterLimit } from '../../common/accountUtils';
 import {
 	NAME_ERROR, ACCESS_ERROR, CHARACTER_SAVING_ERROR, NOT_AUTHENTICATED_ERROR, OFFLINE_ERROR, PROTECTION_ERROR
 } from '../../common/errors';
-import { version, host, serverSettings, apiVersion } from '../../client/data';
+import { version, host, apiVersion } from '../../client/data';
+import { getConfiguredDefaultPony } from '../../client/defaultPonyClient';
 import {
 	toSocialSiteInfo, cleanName, validatePonyName, isStandalone, attachDebugMethod
 } from '../../client/clientUtils';
@@ -67,22 +68,14 @@ function getDefaultPony(ponies: PonyObject[]) {
 }
 
 export function createDefaultPonyObject(): PonyObject {
-	// If serverSettings.defaultPonyInfo exists, try to decode it; otherwise fallback
-	let ponyInfo = createServerDefaultPony();
-	try {
-		const info = serverSettings && serverSettings.defaultPonyInfo;
-		if (info) {
-			ponyInfo = decompressPonyString(info, true);
-		}
-	} catch (e) {
-		// silent fallback to server default
-		ponyInfo = createServerDefaultPony();
-	}
+	// Use configured default from serverSettings if available,
+	// otherwise fall back to built-in server default from constants
+	const ponyInfo = getConfiguredDefaultPony();
 
 	return {
 		id: '',
 		name: '',
-		info: '',
+		info: compressPonyString(ponyInfo),
 		ponyInfo,
 	};
 }
@@ -309,6 +302,9 @@ export class Model {
 	get isBuilder() {
 		return !!(this.account && this.account.roles && this.account.roles.indexOf('builder') >= 0);
 	}
+	get canViewDevChangelog() {
+		return this.isBuilder || this.isMod || !!(this.account && isDev(this.account));
+	}
 	get modCheck() {
 		return modStatus.check;
 	}
@@ -384,6 +380,10 @@ export class Model {
 		return this.post<AccountData>('/api/account-settings', { settings })
 			.then(a => merge(this.account, a));
 	}
+	redeemSupporterCode(code: string) {
+		return this.post<AccountData>('/api/redeem-supporter-code', { code })
+			.then(a => merge(this.account, a));
+	}
 	removeSite(siteId: string) {
 		return this.post('/api/remove-site', { siteId })
 			.then(() => {
@@ -431,14 +431,14 @@ export class Model {
 					pony.info = compressPonyString(pony.ponyInfo);
 				}
 
-				const { id, name, desc, site, tag, tagColor, supportTag, info, hideSupport, respawnAtSpawn } = pony as any;
+				const { id, name, desc, site, tag, tagColor, tagTranslation, tagGradientStart, tagGradientEnd, tagGradientDirection, supportTag, info, hideSupport, respawnAtSpawn } = pony as any;
 
 				if (!fast) {
 					this.pending = true;
 				}
 
 				return this.post<PonyObject | undefined>('/api/pony/save', {
-					pony: { id, name, desc, site, tag, tagColor, supportTag, info, hideSupport, respawnAtSpawn }
+					pony: { id, name, desc, site, tag, tagColor, tagTranslation, tagGradientStart, tagGradientEnd, tagGradientDirection, supportTag, info, hideSupport, respawnAtSpawn }
 				})
 			})
 			.catch((e: Error) => {

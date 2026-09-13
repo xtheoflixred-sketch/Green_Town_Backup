@@ -49,6 +49,10 @@ const MENO = 'IBZ0io+sSiA6ERH1Hh5QZKJrH7cftE9x9msm7NNdr0F113/Yolg+THpLj1zjtymXJt
 export class TelegramPony implements OnInit, OnDestroy {
 	@ViewChild('characterPreview', { static: true }) characterPreview!: CharacterPreview;
 	@Input() scale = 3;
+	@Input() tagColor?: string;
+	@Input() tagGradientStart?: string;
+	@Input() tagGradientEnd?: string;
+	@Input() tagGradientDirection: 'horizontal' | 'vertical' = 'horizontal';
 	pony = decompressPonyString(MENO);
 	state = defaultPonyState();
 	private expression?: Expression;

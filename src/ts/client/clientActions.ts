@@ -72,6 +72,7 @@ export class ClientActions implements SocketClient {
 		this.game.player = undefined;
 		this.game.setupMap();
 		updateMapState(this.game.map, defaultMapState, this.game.map.state);
+		this.game.onMapChanged.next();
 	}
 	@Method({ binary: [Bin.Obj] })
 	mapUpdate(state: MapState) {
@@ -94,6 +95,7 @@ export class ClientActions implements SocketClient {
 		const data = new Uint32Array(width * height);
 		(new Uint8Array(data.buffer)).set(buffer);
 		this.game.minimap = { width, height, data };
+		this.game.onMinimapUpdated.next();
 	}
 	@Method({ binary: [BinEntityId, Bin.Str, Bin.Str, Bin.Str, Bin.U16] })
 	myEntity(id: number, name: string, info: string, characterId: string, crc: number) {

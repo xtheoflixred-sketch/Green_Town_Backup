@@ -1,16 +1,17 @@
 import { noop, uniq, fromPairs } from 'lodash';
 import { AccountCounters, Dict } from '../../common/interfaces';
 import {
-	AccountUpdate, AccountState, FindAccountQuery, FindAccountResult, AdminCache, AdminCacheEntry,
+	AccountUpdate, AccountState, FindAccountQuery, FindAccountResult, AdminCache, AdminCacheEntry, ROLES,
 	Account as AccountInterface
 } from '../../common/adminInterfaces';
 import { checkIfNotAdmin } from '../accountUtils';
-import { updateAccount, findAccountSafe, IAccount, MongoUpdate, findAccount, Account } from '../db';
+import { updateAccount, findAccountSafe, IAccount, MongoUpdate, findAccount, Account, SupporterCode } from '../db';
 import { accountChanged } from '../internal';
 import { MINUTE } from '../../common/constants';
 import { fromNow, includes, arraysEqual } from '../../common/utils';
 import { isMuted, isShadowed, filterAccounts, emailName } from '../../common/adminUtils';
 import { AdminService } from '../services/adminService';
+import { randomBytes } from 'crypto';
 
 const banLogLimit = 10;
 
@@ -96,11 +97,44 @@ export async function updateAccountSafe(accountId: string, update: AccountUpdate
 }
 
 export async function setRole(accountId: string, role: string, set: boolean, isOwner: boolean) {
-	if (role === 'owner' || !isOwner) {
+	if (!isOwner) {
 		throw new Error('Not allowed');
 	} else {
 		await updateAccountAndNotify(accountId, set ? { $addToSet: { roles: [role] } } : { $pull: { roles: role } });
 	}
+}
+
+export async function setRoleTag(accountId: string, role: string, tag: string | null, isOwner: boolean) {
+	if (!isOwner) throw new Error('Not allowed');
+	if (!ROLES.includes(role) || (tag !== null && !ROLES.includes(tag))) throw new Error('Invalid role tag');
+	const update = tag === null
+		? { $set: { [`roleTagOverrides.${role}`]: null } }
+		: { $set: { [`roleTagOverrides.${role}`]: tag } };
+	await updateAccountAndNotify(accountId, update);
+}
+
+export async function generateSupporterCode(level: number, durationDays: number, creatorId: string) {
+	if (!Number.isInteger(level) || level < 1 || level > 4) throw new Error('Invalid supporter level');
+	if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 3650) throw new Error('Invalid supporter duration');
+	const code = `SUP-${randomBytes(6).toString('hex').toUpperCase()}`;
+	await SupporterCode.create({ code, level, durationDays, createdBy: creatorId });
+	return code;
+}
+
+export async function setSupporter(accountId: string, level: number, durationDays: number) {
+	if (!Number.isInteger(level) || level < 0 || level > 4) throw new Error('Invalid supporter level');
+	if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 3650) throw new Error('Invalid supporter duration');
+	const supporterExpiresAt = new Date(Date.now() + durationDays * 86400000);
+	await updateAccountAndNotify(accountId, { supporter: level, supporterExpiresAt });
+}
+
+export async function clearSupporter(accountId: string) {
+	const account = await findAccountSafe(accountId, 'supporter');
+	const supporterFlags = (account.supporter || 0) & ~0x7;
+	await updateAccountAndNotify(accountId, {
+		$set: { supporter: supporterFlags },
+		$unset: { supporterExpiresAt: 1 },
+	});
 }
 
 export function addEmail(accountId: string, email: string) {

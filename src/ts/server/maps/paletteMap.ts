@@ -4,7 +4,7 @@ import { TileType, MapType } from '../../common/interfaces';
 import { createServerMap } from '../serverMap';
 import { World, goToMap } from '../world';
 import { allEntities } from '../api/account';
-import { createSign } from '../controllerUtils';
+import { createSignWithText } from '../controllerUtils';
 import { ServerEntity } from '../serverInterfaces';
 import { setEntityName } from '../entityUtils';
 
@@ -16,10 +16,15 @@ export function createPaletteMap(world: World) {
 	map.spawnArea = rect(map.width / 2, map.height / 2, 0, 0);
 
 	function add(entity: ServerEntity) {
-		world.addEntity(entity, map);
+		return world.addEntity(entity, map);
 	}
 
-	add(createSign(map.width / 2, map.height / 2, 'Go back', (_, client) => goToMap(world, client, 'main', 'center')));
+	const exitX = map.width / 2;
+	const exitY = map.height / 2 - 3;
+	add(entities.trigger3x1(exitX, exitY)).trigger = (_entity: any, client: any) => goToMap(world, client, 'main');
+	add(createSignWithText(
+		exitX, exitY, 'Exit to main', 'Подойдите к этой табличке, чтобы вернуться на спавн.', entities.signDonate,
+	));
 
 	const pad = 5;
 	let x = pad;

@@ -46,9 +46,11 @@
 		align-items: center;
 		gap: 12px;
 
-		&::before {
-			content: '🎮';
-			font-size: 1.4rem;
+		.btn {
+			font-size: 0.8rem;
+			font-weight: 400;
+			color: inherit;
+			white-space: nowrap;
 		}
 	}
 

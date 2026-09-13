@@ -8,8 +8,8 @@ import { GameService } from '../services/gameService';
 import { Model, Friend } from '../services/model';
 import { version, host, contactEmail, discordLink, copyrightName, contactDiscord, telegramLink, tiktokLink } from '../../client/data';
 import { PonyTownGame } from '../../client/game';
-import { faPatreon, faDiscord, faEnvelope, faCog, faHome, faInfoCircle, faHorseHead, faQuestionCircle, faTiktok, faPaperPlane, faSuitcaseRolling, faSignInAlt } from '../../client/icons';
-import { OAuthProvider, Entity, FakeEntity, Pony, Action } from '../../common/interfaces';
+import { faPatreon, faDiscord, faEnvelope, faCog, faHome, faInfoCircle, faHorseHead, faQuestionCircle, faTiktok, faPaperPlane, faSuitcaseRolling, faSignInAlt, faMapMarkerAlt, faClock, faMap } from '../../client/icons';
+import { OAuthProvider, Entity, FakeEntity, Pony, Action, ScreenEntityOptions } from '../../common/interfaces';
 import { registerServiceWorker, isBrowserOutdated, checkIframeKey, initLoader } from '../../client/clientUtils';
 import { ErrorReporter } from '../services/errorReporter';
 import { SECOND, PONY_TYPE } from '../../common/constants';
@@ -60,6 +60,9 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	@ViewChild('changelogModal', { static: true }) changelogModal!: TemplateRef<any>;
 	@ViewChild('devChangelogModal', { static: true }) devChangelogModal!: TemplateRef<any>;
 	@ViewChild('settingsModal', { static: true }) settingsModal!: TemplateRef<any>;
+	@ViewChild('teleportModal', { static: true }) teleportModal!: TemplateRef<any>;
+	@ViewChild('timeModal', { static: true }) timeModal!: TemplateRef<any>;
+	@ViewChild('screenEntityModal', { static: true }) screenEntityModal!: TemplateRef<any>;
 	@ViewChild('gameCharacterModal', { static: true }) gameCharacterModal!: TemplateRef<any>;
 	@ViewChild('friendsBox', { static: false }) friendsBox?: FriendsBox;
 	@ViewChild('chatLogComp', { static: false }) chatLogComp?: ChatLog;
@@ -67,6 +70,10 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	changelogModalRef?: BsModalRef;
 	devChangelogModalRef?: BsModalRef;
 	settingsModalRef?: BsModalRef;
+	teleportModalRef?: BsModalRef;
+	timeModalRef?: BsModalRef;
+	screenEntityModalRef?: BsModalRef;
+	screenEntityModalEntity?: Entity;
 	gameCharacterModalRef?: BsModalRef;
 	readonly version = version;
 	readonly date = new Date();
@@ -82,6 +89,9 @@ export class App implements OnInit, OnDestroy, DoCheck {
 	readonly telegramIcon = faPaperPlane;
 	readonly tiktokIcon = faTiktok;
 	readonly inventoryIcon = faSuitcaseRolling;
+	readonly teleportIcon = faMapMarkerAlt;
+	readonly timeIcon = faClock;
+	readonly mapIcon = faMap;
 	readonly contactEmail = contactEmail;
 	readonly contactDiscord = contactDiscord;
 	readonly discordLink = discordLink;
@@ -145,6 +155,42 @@ export class App implements OnInit, OnDestroy, DoCheck {
 		return this.playing;
 	}
 
+	toggleMiniMap() {
+		this.game.debugToggleMinimap();
+	}
+
+	openTeleportModal() {
+		if (!this.isMod || this.teleportModalRef) return;
+		this.teleportModalRef = this.modalService.show(this.teleportModal, { class: 'modal-lg', ignoreBackdropClick: true });
+		const refAny: any = this.teleportModalRef as any;
+		if (refAny && refAny.onHidden && refAny.onHidden.subscribe) {
+			refAny.onHidden.subscribe(() => this.teleportModalRef = undefined);
+		}
+	}
+
+	closeTeleportModal() {
+		if (this.teleportModalRef) {
+			this.teleportModalRef.hide();
+			this.teleportModalRef = undefined;
+		}
+	}
+
+	openTimeModal() {
+		if (!this.isMod || this.timeModalRef) return;
+		this.timeModalRef = this.modalService.show(this.timeModal, { class: 'modal-lg time-modal-wide', ignoreBackdropClick: true });
+		const refAny: any = this.timeModalRef as any;
+		if (refAny && refAny.onHidden && refAny.onHidden.subscribe) {
+			refAny.onHidden.subscribe(() => this.timeModalRef = undefined);
+		}
+	}
+
+	closeTimeModal() {
+		if (this.timeModalRef) {
+			this.timeModalRef.hide();
+			this.timeModalRef = undefined;
+		}
+	}
+
 	get isChatLogOpen() {
 		return !!(this.chatLogComp && this.chatLogComp.open);
 	}
@@ -182,6 +228,7 @@ export class App implements OnInit, OnDestroy, DoCheck {
 		this.lastDocumentTitle = document.title;
 		this.lastPlayingState = this.playing;
 		this.updateDocumentTitle();
+		this.subscriptions.push(this.game.onScreenEntityClick.subscribe(entity => this.openScreenEntityModal(entity)));
 		// Проверяем, существует ли ga в глобальном объекте window
 		if (typeof (window as any)['ga'] !== 'undefined') {
 			this.subscriptions.push(this.router.events.subscribe(event => {
@@ -240,6 +287,27 @@ export class App implements OnInit, OnDestroy, DoCheck {
 		}));
 
 		document.addEventListener('mousedown', this.documentMouseDownCapture, true);
+	}
+
+	openScreenEntityModal(entity: Entity) {
+		if (this.screenEntityModalRef) return;
+		this.screenEntityModalEntity = entity;
+		this.screenEntityModalRef = this.modalService.show(this.screenEntityModal, { class: 'modal-lg' });
+	}
+
+	closeScreenEntityModal() {
+		if (this.screenEntityModalRef) this.screenEntityModalRef.hide();
+		this.screenEntityModalRef = undefined;
+		this.screenEntityModalEntity = undefined;
+	}
+
+	saveScreenEntity(options: ScreenEntityOptions) {
+		if (this.screenEntityModalEntity) this.game.updateScreenEntity(this.screenEntityModalEntity, options);
+		this.closeScreenEntityModal();
+	}
+
+	controlScreenEntity(command: 'play' | 'pause') {
+		if (this.screenEntityModalEntity) this.game.controlScreenEntity(this.screenEntityModalEntity, command);
 	}
 	ngDoCheck() {
 		this.syncBackgroundModeClass();

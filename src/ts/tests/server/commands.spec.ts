@@ -190,6 +190,14 @@ describe('commands', () => {
 		});
 	});
 
+	describe('entity management commands', () => {
+		it('registers loadentities and clearentities commands', () => {
+			const commands = createCommands({} as any);
+			const names = commands.reduce((result: string[], command) => result.concat(command.names), [] as string[]);
+			expect(names).to.include.members(['loadentities', 'clearentities']);
+		});
+	});
+
 	describe('individual commands', () => {
 		let client: IClient;
 		let context: CommandContext;

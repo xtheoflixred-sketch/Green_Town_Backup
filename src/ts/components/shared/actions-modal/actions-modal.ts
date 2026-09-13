@@ -3,21 +3,22 @@ import { Subscription } from 'rxjs';
 import {
 	createButtionActionActions, expressionButtonAction, createButtonCommandActions,
 	createDefaultButtonActions, actionExpressionDefaultPalette, entityButtonAction, serializeActions, deserializeActions,
-	createEmoteActions, createBodyActions, createBuildingActions
+	createEmoteActions, createBodyActions, createModActions, createBuildingActions
 } from '../../../client/buttonActions';
 import * as sprites from '../../../generated/sprites';
 import {
-	Eye, Muzzle, ColorExtraSet, ColorExtra, Iris, ExpressionExtra, PonyEye, ButtonAction, Action,
+	Eye, Muzzle, ColorExtraSet, ColorExtra, Iris, ExpressionExtra, PonyEye, ButtonAction, Action, PonyState,
 	ButtonActionSlot, EntityButtonAction
 } from '../../../common/interfaces';
 import { createExpression, readFileAsText } from '../../../client/clientUtils';
 import { ACTION_EXPRESSION_BG, ACTION_EXPRESSION_EYE_COLOR, fillToOutline } from '../../../common/colors';
-import { faLock, faApple, faLaughBeam, faComment, faCog, faCogs, faHorseHead, faHome } from '../../../client/icons';
+import { faLock, faApple, faLaughBeam, faComment, faCog, faCogs, faHorseHead, faHome, faRetweet } from '../../../client/icons';
 import { createEyeSprite } from '../../../client/spriteUtils';
-import { times, hasFlag } from '../../../common/utils';
+import { times, hasFlag, cloneDeep } from '../../../common/utils';
 import { PonyTownGame } from '../../../client/game';
 import { getEntityNames } from '../../services/model';
 import { ACTIONS_LIMIT } from '../../../common/constants';
+import { defaultPonyState } from '../../../client/ponyHelpers';
 
 function eyeSprite(e: PonyEye | undefined) {
 	return createEyeSprite(e, 0, sprites.defaultPalette);
@@ -37,6 +38,11 @@ export class ActionsModal implements OnInit, OnDestroy {
 	readonly chatIcon = faComment;
 	readonly optionsIcon = faCog;
 	readonly devIcon = faCogs;
+	readonly modIcon = faCogs;
+	readonly rotateIcon = faRetweet;
+	get isMod() {
+		return this.game.mod;
+	}
 	readonly dev = BETA;
 	readonly actionsLimit = ACTIONS_LIMIT;
 	@Output() close = new EventEmitter();
@@ -44,6 +50,7 @@ export class ActionsModal implements OnInit, OnDestroy {
 	actions = createButtionActionActions();
 	emotes = createEmoteActions();
 	bodyActions = createBodyActions();
+	modActions = createModActions();
 	buildingActions = createBuildingActions();
 	commands = createButtonCommandActions();
 	emoteAction = expressionButtonAction(createExpression(Eye.Neutral, Eye.Neutral, Muzzle.Smile));
@@ -77,8 +84,13 @@ export class ActionsModal implements OnInit, OnDestroy {
 	crying = false;
 	hearts = false;
 	activeTab = 'right-eye';
+	previewHeadTurned = false;
+	previewState: PonyState = defaultPonyState();
 	get actionsCount() {
 		return this.game.actions.filter(a => a.action !== undefined).length;
+	}
+	get previewPony() {
+		return this.game.player && this.game.player.palettePonyInfo;
 	}
 	private interval: any = 0;
 	private subscription?: Subscription;
@@ -150,14 +162,22 @@ export class ActionsModal implements OnInit, OnDestroy {
 
 		const expression = createExpression(this.eyeRight, this.eyeLeft, this.muzzle, this.irisRight, this.irisLeft, extra);
 		this.emoteAction = expressionButtonAction(expression);
+		this.previewState = { ...this.previewState, expression };
+	}
+	rotatePreview() {
+		this.previewHeadTurned = !this.previewHeadTurned;
+		this.previewState = { ...this.previewState, headTurned: this.previewHeadTurned };
 	}
 	resetToDefault() {
-		this.actionsToUndo.push(this.game.actions);
+		this.saveUndoSnapshot();
 		this.game.actions = [...createDefaultButtonActions(), { action: undefined }];
 	}
 	clearActionBar() {
-		this.actionsToUndo.push(this.game.actions);
+		this.saveUndoSnapshot();
 		this.game.actions = this.game.actions.map(() => ({ action: undefined }));
+	}
+	private saveUndoSnapshot() {
+		this.actionsToUndo.push(cloneDeep(this.game.actions));
 	}
 	undo() {
 		if (this.actionsToUndo.length) {

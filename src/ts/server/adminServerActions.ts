@@ -17,7 +17,7 @@ import {
 	nullToUndefined, findAccount, findFriendIds
 } from './db';
 import {
-	updateAccountSafe, setRole, addEmail, removeEmail, removeIgnore, updateAccountCounter, timeoutAccount,
+	updateAccountSafe, setRole, setRoleTag, generateSupporterCode, setSupporter, clearSupporter, addEmail, removeEmail, removeIgnore, updateAccountCounter, timeoutAccount,
 	addIgnores, setAccountState, findAccounts, getAccountsByEmails, getAccountsByOrigin,
 	removeAccount, setAccountAlert
 } from './api/admin-accounts';
@@ -406,6 +406,29 @@ export class AdminServerActions implements IAdminServerActions, SocketServer {
 	async setRole(accountId: string, role: string, set: boolean) {
 		await setRole(accountId, role, set, hasRole(this.account, 'owner'));
 		system(accountId, `${set ? 'Added' : 'Removed'} role (${role}) ${this.by()}`);
+	}
+	@Method({ promise: true })
+	async setRoleTag(accountId: string, role: string, tag: string | null) {
+		await setRoleTag(accountId, role, tag, hasRole(this.account, 'owner'));
+		system(accountId, `Updated role tag (${role} -> ${tag || 'disabled'}) ${this.by()}`);
+	}
+	@Method({ promise: true })
+	async generateSupporterCode(level: number, durationDays: number) {
+		if (!hasRole(this.account, 'admin') && !hasRole(this.account, 'owner')) throw new Error('Not allowed');
+		const code = await generateSupporterCode(level, durationDays, this.account._id.toString());
+		return code;
+	}
+	@Method({ promise: true })
+	async setSupporter(accountId: string, level: number, durationDays: number) {
+		if (!hasRole(this.account, 'admin') && !hasRole(this.account, 'owner')) throw new Error('Not allowed');
+		await setSupporter(accountId, level, durationDays);
+		system(accountId, `Set supporter level ${level} for ${durationDays} days ${this.by()}`);
+	}
+	@Method({ promise: true })
+	async clearSupporter(accountId: string) {
+		if (!hasRole(this.account, 'admin') && !hasRole(this.account, 'owner')) throw new Error('Not allowed');
+		await clearSupporter(accountId);
+		system(accountId, `Removed manual supporter tag ${this.by()}`);
 	}
 	@Method({ promise: true })
 	async updateAccount(accountId: string, update: AccountUpdate, message?: string) {

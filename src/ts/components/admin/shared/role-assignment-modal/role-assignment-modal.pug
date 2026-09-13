@@ -1,0 +1,83 @@
+ng-template(#template)
+	.modal-header.role-modal-header
+		.role-modal-title
+			.small.text-uppercase.text-muted Account permissions
+			h4.modal-title.mb-0
+				fa-icon.mr-2([icon]="roleIcon" [fixedWidth]="true")
+				| Roles & tags
+		.role-modal-account.text-muted.text-center(*ngIf="account")
+				| {{account.name}}
+				br
+				| {{assignedRoles.length}} active
+		button.close.role-modal-close(type="button" aria-label="Close" (click)="close()") ×
+
+	.modal-body.role-modal-body(*ngIf="account")
+		.alert.alert-info.role-modal-note(role="alert")
+			fa-icon.mr-2([icon]="infoIcon" [fixedWidth]="true")
+			span Only the server owner can change roles. Each selected role also grants its matching player tag.
+
+		.row
+			.col-md-7
+				.d-flex.align-items-center.justify-content-between.mb-2
+					h5.mb-0 Available roles
+					span.badge.badge-light {{assignedRoles.length}} / {{roles.length}}
+				.role-list(role="group" aria-label="Available roles")
+					.role-option(*ngFor="let role of roles" [class.is-active]="hasRole(role)" [class.is-disabled]="!canToggleRole()")
+						.custom-control.custom-checkbox
+							input.custom-control-input(
+								type="checkbox"
+								[id]="'role-' + role"
+								[checked]="hasRole(role)"
+								[disabled]="!canToggleRole()"
+								(change)="toggleRole(role, $event)"
+							)
+							label.custom-control-label([for]="'role-' + role")
+								span.role-option-icon
+									fa-icon([icon]="(getTag(role) && getTag(role).icon) || fallbackIcon" [fixedWidth]="true")
+								span.role-option-copy
+									strong {{role}}
+									small {{getTag(role)?.name || 'custom permission'}} · {{getRoleTagCount(role)}} tagged
+								span.badge.role-tag-badge(
+									*ngIf="getTag(role)"
+									[ngClass]="'badge-' + getTag(role).className"
+									[ngStyle]="getRoleTagStyle(role)"
+								)
+									| {{getTag(role).label}}
+									span.role-tag-markers(*ngIf="hasRoleChat(role) || hasCustomRoleTag(role)")
+										| (
+										fa-icon.role-tag-marker(*ngIf="hasRoleChat(role)" [icon]="chatIcon" [fixedWidth]="true" title="Has a dedicated chat")
+										fa-icon.role-tag-marker(*ngIf="hasCustomRoleTag(role)" [icon]="customTagIcon" [fixedWidth]="true" title="Custom tag color or gradient")
+										| )
+								select.form-control.form-control-sm.role-tag-routing(
+									[disabled]="!canToggleRole()"
+									[ngModel]="getRoleTagDestination(role) || '__disabled'"
+									(change)="setRoleTagDestination(role, $event)"
+									[title]="'Choose which tag this role displays; permissions stay with ' + role"
+								)
+									option([value]="role") {{getTag(role)?.label || role}} tag
+									option(value="__disabled") Disable tag
+									option(*ngFor="let targetRole of roles" [value]="targetRole" [disabled]="targetRole === role")
+										| {{getTag(targetRole)?.label || targetRole}} tag
+
+			.col-md-5.mt-3.mt-md-0
+				.tag-preview-panel
+					.d-flex.align-items-center.mb-2
+						fa-icon.mr-2([icon]="tagsIcon" [fixedWidth]="true")
+						h5.mb-0 Granted tags
+					.tag-cloud(*ngIf="assignedTags.length; else emptyTags")
+						span.badge.character-tag-badge.mr-1.mb-1(*ngFor="let tag of assignedTags" [ngClass]="'badge-' + tag.className" [ngStyle]="getRoleTagStyle(tag.id)")
+							fa-icon.mr-1(*ngIf="tag.icon" [icon]="tag.icon" [fixedWidth]="true")
+							| {{tag.label}}
+							span.role-tag-markers(*ngIf="hasRoleChat(tag.id) || hasCustomRoleTag(tag.id)")
+								| (
+								fa-icon.role-tag-marker(*ngIf="hasRoleChat(tag.id)" [icon]="chatIcon" [fixedWidth]="true" title="Has a dedicated chat")
+								fa-icon.role-tag-marker(*ngIf="hasCustomRoleTag(tag.id)" [icon]="customTagIcon" [fixedWidth]="true" title="Custom tag color or gradient")
+								| )
+					ng-template(#emptyTags)
+						.small.text-muted No role tags are currently active.
+					.tag-preview-footer.mt-3
+						fa-icon.mr-2([icon]="activeIcon" [fixedWidth]="true")
+						span Changes apply immediately to the player account.
+
+	.modal-footer
+		button.btn.btn-outline-secondary(type="button" (click)="close()") Done

@@ -7,10 +7,7 @@ import { stand } from '../../../client/ponyAnimations';
 import { faExclamationCircle, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import { faBullhorn } from '../../../client/icons';
 
-import { parseAccountAlert, AlertType } from '../../../common/utils';
-import { GlobalAlertsService } from '../../services/global-alerts.service';
-import { combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { AlertType } from '../../../common/utils';
 
 @Component({
 	selector: 'home',
@@ -26,25 +23,16 @@ export class Home {
 	showFullWarning = false;
 	showLoginWarning = false;
 	readonly warningIcon = faExclamationCircle;
-	globalAlertsEntries$ = combineLatest([
-		this.globalAlertsService.globalAlerts$,
-		this.model.accountChanged.pipe(map(() => parseAccountAlert(this.model.accountAlert)))
-	]).pipe(
-		map(([global, local]) => [...global, ...local])
-	);
 
 	constructor(
 		private gameService: GameService,
 		private model: Model,
-		private globalAlertsService: GlobalAlertsService,
 	) {}
 	get authError() {
 		return this.model.authError;
 	}
 
-	// accountAlertEntries устарел, используйте globalAlertsEntries$
-
-	       alertClass(type: AlertType) {
+	alertClass(type: AlertType) {
 		       switch (type) {
 			       case 'danger': return 'alert-danger';
 			       case 'info': return 'alert-info';
@@ -91,7 +79,19 @@ export class Home {
 	}
 	get previewTagColor() {
 		const pony = this.previewPony || this.pony;
-		return pony ? (pony as any).tagColor : undefined;
+		return pony ? ((pony as any).tagColor || (pony as any).tagGradientStart || undefined) : undefined;
+	}
+	get previewTagGradientStart() {
+		const pony = this.previewPony || this.pony;
+		return pony ? ((pony as any).tagGradientStart || undefined) : undefined;
+	}
+	get previewTagGradientEnd() {
+		const pony = this.previewPony || this.pony;
+		return pony ? ((pony as any).tagGradientEnd || undefined) : undefined;
+	}
+	get previewTagGradientDirection() {
+		const pony = this.previewPony || this.pony;
+		return pony ? (((pony as any).tagGradientDirection as 'horizontal' | 'vertical') || 'horizontal') : 'horizontal';
 	}
 	signIn(provider: OAuthProvider) {
 		this.model.signIn(provider);

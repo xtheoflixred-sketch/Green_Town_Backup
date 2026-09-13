@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { offline as createOffline, validAccount as createValidAccount, hash, wrap, limit } from '../requestUtils';
 import {
-	createUpdateAccount, createRemoveSite, createUpdateSettings, createGetAccountCharacters, removeHide, getHides, getFriends
+	createUpdateAccount, createRemoveSite, createUpdateSettings, createGetAccountCharacters, removeHide, getHides, getFriends, redeemSupporterCode
 } from '../api/account';
 import { findAccountSafe, findAuth, findAllCharacters, countAllVisibleAuths, IAccount } from '../db';
 import { system } from '../logger';
@@ -59,6 +59,8 @@ export default function (server: ServerConfig, settings: Settings, world?: World
 		syncShowAsOffline(world, account, previousSettings);
 		return result;
 	}));
+	app.post('/redeem-supporter-code', offline, hash, validAccount, limit(10, 60), wrap(server, req =>
+		redeemSupporterCode(req.user as IAccount, req.body.code)));
 	app.post('/remove-site', offline, hash, validAccount, limit(60, 60), wrap(server, req =>
 		removeSite(req.user as IAccount, req.body.siteId)));
 	app.post('/remove-hide', offline, hash, validAccount, limit(60, 60), wrap(server, req =>

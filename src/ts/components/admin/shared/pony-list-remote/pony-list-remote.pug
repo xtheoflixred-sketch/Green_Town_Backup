@@ -2,6 +2,11 @@ div([class.pony-list-expanded]="expanded" [class.pony-list-deletable]="deletable
 	span.text-muted(*ngIf="loading") ...
 	span.pony-list-item.mr-1(*ngFor="let p of ponies | slice:0:limitTo")
 		pony-info-remote(#info [ponyId]="p" [highlight]="highlight(info.pony)")
+		span(*ngIf="manageDetails")
+			a.ml-1.icon-button.cursor-pointer((click)="duplicate(p)" title="Duplicate character")
+				fa-icon.text-muted([icon]="duplicateIcon" [fixedWidth]="true")
+			a.ml-1.icon-button.cursor-pointer((click)="export(p)" title="Export character")
+				fa-icon.text-muted([icon]="exportIcon" [fixedWidth]="true")
 		a.ml-1.icon-button.cursor-pointer((click)="remove(p)" title="delete character")
 			fa-icon.text-muted([icon]="trashIcon" [fixedWidth]="true")
 		.btn-group.dropdown(dropdown *ngIf="duplicates")

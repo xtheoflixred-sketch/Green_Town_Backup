@@ -17,8 +17,7 @@ import { createPaletteMap } from './maps/paletteMap';
 import { createCaveMap } from './maps/caveMap';
 import { createCustomMap } from './maps/customMap';
 import { createTestMap } from './maps/testMap';
-import { createSign } from './controllerUtils';
-import { signQuestion } from '../common/entities';
+import { createSignWithText } from './controllerUtils';
 
 export function start(world: World, server: ServerConfig) {
 	const data = readFileSync(pathTo('src', 'ts', 'generated', 'pony.bin'));
@@ -33,16 +32,26 @@ export function start(world: World, server: ServerConfig) {
 
 	world.maps.push(createMainMap(world));
 	world.maps.push(createCaveMap(world));
+	const mainMap = world.getMainMap();
+	const entranceY = mainMap.spawnArea.y;
+	const signY = entranceY - 0.5;
+	const triggerY = signY;
+
+	function addMapEntrance(x: number, name: string, mapId: string, signType: any) {
+		const teleport = (_entity: any, client: any) => goToMap(world, client, mapId);
+		world.addEntity(entities.triggerHouseDoor(x, triggerY), mainMap).trigger = teleport;
+		world.addEntity(createSignWithText(
+			x, signY, name, `Подойдя к этой табличке, вы телепортируетесь на карту «${name}».`, signType,
+		), mainMap);
+	}
 
 	// custom map
 	if (DEVELOPMENT) { // remove `if` when you're ready to publish your map
-		// place sign that will teleport the player to your custom map
-		world.addEntity(createSign(
-			75, 69, 'Go to custom map', (_, client) => goToMap(world, client, 'custom'), signQuestion), world.getMainMap());
-
 		// add maps to the world
 		world.maps.push(createCustomMap(world));
 		world.maps.push(createTestMap(world));
+		addMapEntrance(mainMap.spawnArea.x + 1, 'Custom map', 'custom', entities.signQuest);
+		addMapEntrance(mainMap.spawnArea.x + 4, 'New main map', 'New main map', entities.signQuestion);
 	}
 
 	if (world.featureFlags.test) {
@@ -57,6 +66,7 @@ export function start(world: World, server: ServerConfig) {
 
 	if (BETA) {
 		world.maps.push(createPaletteMap(world));
+		addMapEntrance(mainMap.spawnArea.x + 7, 'Palette', 'palette', entities.signDonate);
 	}
 
 	if (BETA) {

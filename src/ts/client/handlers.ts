@@ -9,6 +9,7 @@ import {
 } from '../common/interfaces';
 import { bitmask, setFlag, findById, distance, hasFlag, distanceXY, invalidEnum, removeItem } from '../common/utils';
 import { isChatVisible } from '../common/camera';
+import { getTagGradient } from '../common/tags';
 import { createRegion, worldToRegionX, worldToRegionY } from '../common/region';
 import { createAnEntity, poof, poof2, getEntityType } from '../common/entities';
 import { getPonyState, setPonyState, isPonyFlying, addChatBubble, isHidden, getChatBubbleLimit, isFacingRight } from '../common/entityUtils';
@@ -61,6 +62,13 @@ function handleAddEntity(game: PonyTownGame, region: Region, update: DecodedUpda
 	entity.playerState = playerState || EntityPlayerState.None;
 
 	addEntityToMapRegion(game.map, region, entity);
+
+	const editorSelectionIndex = game.editor.selectedEntities.findIndex(selected => selected.id === id);
+	if (editorSelectionIndex >= 0) {
+		const previousEntity = game.editor.selectedEntities[editorSelectionIndex];
+		entity.draggingStart = previousEntity.draggingStart;
+		game.editor.selectedEntities[editorSelectionIndex] = entity;
+	}
 
 	if (isPony(entity)) {
 		if (id === game.playerId) {
@@ -694,20 +702,75 @@ function isChatInRange(entity: Entity, player: Entity | undefined, range: number
 	return player === undefined || isChatlogRangeUnlimited(range) || distance(entity, player) < range!;
 }
 
-function shouldShowChatMessageInChatlog(game: PonyTownGame, entity: Entity | FakeEntity, type: MessageType) {
+function shouldShowChatMessageInChatlog(game: PonyTownGame, entity: Entity | FakeEntity, type: MessageType): boolean {
 	if (entity.type !== PONY_TYPE)
 		return false;
-
 	if (entity.fake)
 		return true;
-
 	if (!isPublicMessage(type))
 		return true;
-
-	if (!isChatInRange(entity, game.player, game.settings.account.chatlogRange))
+	if (!isChatInRange(entity as Entity, game.player, game.settings.account.chatlogRange))
 		return false;
-
 	return true;
+}
+
+function getRoleChatColor(entity: Entity | FakeEntity, type: MessageType): string | undefined {
+	const messageColor = (entity as any).messageColor as string | undefined;
+	if (messageColor) return messageColor;
+
+	const tag = ((entity as any).tagRole || (entity as any).tag) as string | undefined;
+	const matchesTag = type === MessageType.Dev ? !!tag && (tag === 'dev' || tag.indexOf('dev:') === 0)
+		: type === MessageType.Admin ? tag === 'admin'
+			: type === MessageType.Mod ? tag === 'mod'
+				: type === MessageType.Owner ? tag === 'owner'
+					: type === MessageType.Builder ? tag === 'builder'
+						: type === MessageType.NPC ? tag === 'npc'
+								: type === MessageType.Supporter1 ? tag === 'sup1'
+									: type === MessageType.Supporter2 ? tag === 'sup2'
+										: type === MessageType.Supporter3 ? tag === 'sup3'
+											: type === MessageType.Supporter4 ? tag === 'sup4' : false;
+
+	return matchesTag ? (entity as any).tagColor : undefined;
+}
+
+function getChatColor(entity: Entity | FakeEntity, type: MessageType): string | undefined {
+	if (type === MessageType.Chat) {
+		return (entity as any).tagColor || (entity as any).tagGradientStart || getRoleChatColor(entity, type) || undefined;
+	}
+	return getRoleChatColor(entity, type);
+}
+
+function getRoleChatGradient(entity: Entity | FakeEntity, type: MessageType): { start: string; end: string; direction: 'horizontal' | 'vertical'; } | undefined {
+	if ((entity as any).messageColor) return undefined;
+	const tag = ((entity as any).tagRole || (entity as any).tag) as string | undefined;
+	const matchesTag = type === MessageType.Dev ? !!tag && (tag === 'dev' || tag.indexOf('dev:') === 0)
+		: type === MessageType.Admin ? tag === 'admin'
+			: type === MessageType.Mod ? tag === 'mod'
+				: type === MessageType.Owner ? tag === 'owner'
+					: type === MessageType.Builder ? tag === 'builder'
+						: type === MessageType.NPC ? tag === 'npc'
+							: type === MessageType.Supporter1 ? tag === 'sup1'
+								: type === MessageType.Supporter2 ? tag === 'sup2'
+									: type === MessageType.Supporter3 ? tag === 'sup3'
+										: type === MessageType.Supporter4 ? tag === 'sup4' : false;
+	const builtInGradient = getTagGradient(tag);
+	const start = (entity as any).tagGradientStart || (builtInGradient && builtInGradient.start);
+	const end = (entity as any).tagGradientEnd || (builtInGradient && builtInGradient.end);
+	const direction = (entity as any).tagGradientDirection || (builtInGradient && builtInGradient.direction) || 'horizontal';
+	return matchesTag && start && end ? { start, end, direction } : undefined;
+}
+
+function getChatGradient(entity: Entity | FakeEntity, type: MessageType): { start: string; end: string; direction: 'horizontal' | 'vertical'; } | undefined {
+	if ((entity as any).messageColor) return undefined;
+	if (type === MessageType.Chat) {
+		const tag = ((entity as any).tagRole || (entity as any).tag) as string | undefined;
+		const builtInGradient = getTagGradient(tag);
+		const start = (entity as any).tagGradientStart || (builtInGradient && builtInGradient.start);
+		const end = (entity as any).tagGradientEnd || (builtInGradient && builtInGradient.end);
+		const direction = (entity as any).tagGradientDirection || (builtInGradient && builtInGradient.direction) || 'horizontal';
+		return start && end ? { start, end, direction } : undefined;
+	}
+	return getRoleChatGradient(entity, type);
 }
 
 export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, message: string, type: MessageType) {
@@ -725,7 +788,7 @@ export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, messa
 
 		if (bubbleEntity && !bubbleEntity.fake && game.map.entitiesById.has(bubbleEntity.id)) {
 			const total = typingIndicatorDuration;
-			const customColor = (entity as any).messageColor;
+			const customColor = getChatColor(entity, type);
 			addChatBubble(game.map, bubbleEntity, {
 				message, type, total, timer: total, created: Date.now(),
 				color: customColor,
@@ -740,10 +803,14 @@ export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, messa
 
 		if (bubbleEntity && !bubbleEntity.fake && game.map.entitiesById.has(bubbleEntity.id)) {
 			const total = getSaysTime(message);
-			const customColor = type === MessageType.Chat ? (entity as any).messageColor : undefined;
+			const customColor = getChatColor(entity, type);
+			const gradient = getChatGradient(entity, type);
 			addChatBubble(game.map, bubbleEntity, {
 				message, type, total, timer: total, created: Date.now(),
 				color: customColor,
+				gradientStart: gradient && gradient.start,
+				gradientEnd: gradient && gradient.end,
+				gradientDirection: gradient && gradient.direction,
 			}, getChatBubbleLimit(game.settings.account.chatBubbleLimit));
 		}
 
@@ -754,8 +821,10 @@ export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, messa
 
 		if (shouldShowChatMessageInChatlog(game, entity, type)) {
 			const { id, name = '', crc } = entity;
-			const customColor = type === MessageType.Chat ? (entity as any).messageColor : undefined;
-			game.messageQueue.push({ id, crc, name, message, type, color: customColor });
+			const customColor = getChatColor(entity, type);
+			const gradient = getChatGradient(entity, type);
+			game.messageQueue.push({ id, crc, name, message, type, color: customColor,
+				gradient: gradient && `linear-gradient(${gradient.direction === 'vertical' ? 'to bottom' : 'to right'}, #${gradient.start}, #${gradient.end})` });
 		}
 	}
 }
@@ -832,6 +901,7 @@ function createEntityOrPony(
 
 		if (options && typeof options === 'object') {
 			(entity as any).options = options;
+			if ('offsetY' in options) (entity as any).offsetY = (options as any).offsetY;
 			if ('entityScale' in options) (entity as any).entityScale = (options as any).entityScale;
 			if ('entityOpacity' in options) (entity as any).entityOpacity = (options as any).entityOpacity;
 			if ('spriteTint' in options) (entity as any).spriteTint = (options as any).spriteTint;
@@ -878,6 +948,8 @@ function updateEntityOptionsInternal(entity: Entity, options: Partial<EntityOrPo
 	}
 
 	Object.assign(entity, converted);
+	entity.options = Object.assign(entity.options || {}, converted);
+	if ('offsetY' in options) entity.offsetY = (options as any).offsetY;
 	// Явно применяем серверные свойства света
 	if ('lightColor' in options) entity.lightColor = options.lightColor;
 	if ('lightSpriteColor' in options) entity.lightSpriteColor = options.lightSpriteColor;

@@ -31,6 +31,9 @@ declare const TESTS: boolean;
 
 declare module '*.json';
 declare module 'connect-mongo';
+declare module 'uuid' {
+	export function v4(options?: any): string;
+}
 
 declare module 'passport-google-oauth20' { export const Strategy: any; }
 declare module 'passport-twitter' { export const Strategy: any; }

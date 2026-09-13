@@ -37,18 +37,9 @@ export function createCustomMap(world: World) {
 		return world.addEntity(entity, map);
 	}
 
-	// place return sign 2 tiles north of center of the map
-	add(createSign(map.width / 2, map.height / 2 - 2, 'Go back', (_, client) => goToMap(world, client, 'main', 'center')));
-
-
-	// trigger entrance to TestMap at 10, 14
-	add(entities.trigger3x1(10, 14.5)).trigger = (_entity: any, client: any) => goToMap(world, client, 'TestMap');
-
-	// cave-cover decorations around the trigger entrance
-	add(entities.caveCover(9, 14));
-	add(entities.caveCover(9, 15));
-	add(entities.caveCover(10, 15));
-	add(entities.caveCover(10, 14));
+	// exit to the main map
+	add(entities.triggerHouseDoor(10, 14.5)).trigger = (_entity: any, client: any) => goToMap(world, client, 'main');
+	add(createSign(10, 15, 'click me to exit', (_, client) => goToMap(world, client, 'main'), entities.sign));
 
 	// place barrel at 5, 5 location
 	add(entities.barrel(5, 5));

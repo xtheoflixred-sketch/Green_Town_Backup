@@ -170,6 +170,12 @@ export function updatePony(pony: ServerEntity, account: IAccount, character: ICh
 	if (currentOptions && currentOptions.toy) {
 		options.toy = currentOptions.toy;
 	}
+	const roleTagOverrides = account.roleTagOverrides || {};
+	pony.tagColor = undefined;
+	pony.tagGradientStart = undefined;
+	pony.tagGradientEnd = undefined;
+	pony.tagGradientDirection = undefined;
+	pony.tagTranslation = undefined;
 
 	if (character.supportTag && character.supportTag !== 'hidden' && canUseTag(account, character.supportTag)) {
 		options.tag = character.supportTag;
@@ -178,10 +184,30 @@ export function updatePony(pony: ServerEntity, account: IAccount, character: ICh
 	} else if (level && !hasFlag(character.flags, CharacterFlags.HideSupport)) {
 		options.tag = `sup${level}`;
 	}
+	const sourceRole = options.tag;
+	if (sourceRole && Object.prototype.hasOwnProperty.call(roleTagOverrides, sourceRole)) {
+		options.tagRole = sourceRole;
+		options.tag = roleTagOverrides[sourceRole] || undefined;
+	}
 
-	if (character.tagColor) {
+	const isSupporterTag = !!options.tag && /^sup[1-4]$/.test(options.tag);
+	if (!isSupporterTag && character.tagColor && options.tag === character.tag) {
 		pony.tagColor = character.tagColor;
 		options.tagColor = character.tagColor;
+	}
+	if (!isSupporterTag && character.tagGradientStart && character.tagGradientEnd && options.tag === character.tag) {
+		pony.tagGradientStart = character.tagGradientStart;
+		pony.tagGradientEnd = character.tagGradientEnd;
+		pony.tagColor = character.tagGradientStart;
+		options.tagColor = character.tagGradientStart;
+		options.tagGradientStart = character.tagGradientStart;
+		options.tagGradientEnd = character.tagGradientEnd;
+		pony.tagGradientDirection = character.tagGradientDirection || undefined;
+		options.tagGradientDirection = character.tagGradientDirection || undefined;
+	}
+	if (character.tagTranslation && options.tag === character.tag) {
+		pony.tagTranslation = character.tagTranslation;
+		options.tagTranslation = character.tagTranslation;
 	}
 
 	pony.options = options;

@@ -10,7 +10,7 @@ import {
 } from '../common/utils';
 import { CharacterState, ServerConfig, AccountState, CharacterStateFlags, GameServerSettings } from '../common/adminInterfaces';
 import {
-	EntityState, Expression, PonyOptions, Action, ExpressionExtra, Eye, Muzzle, getMuzzleOpenness,
+	EntityState, Expression, PonyOptions, Action, ExpressionExtra, Eye, Muzzle, MessageType, MapFlags, getMuzzleOpenness,
 	isExpressionAction, EntityPlayerState, UpdateFlags, InteractAction, Rect, getAnimationFromEntityState
 } from '../common/interfaces';
 import { rareHoldTypes } from '../common/rareItems';
@@ -41,7 +41,6 @@ import { withBorder } from '../common/rect';
 import { isOnlineFriend } from './services/friends';
 import { grapePurple, grapeGreen, tools } from '../common/entities';
 import { saySystem, sayToOthers } from './chat';
-import { MessageType } from '../common/interfaces';
 
 export function isMutedOrShadowed(client: IClient) {
 	return client.shadowed || isMuted(client.account);
@@ -374,6 +373,12 @@ const fruitTypes = entities.fruits.map(f => f.type);
 export function interactWith(client: IClient, target: ServerEntity | undefined, x?: number, y?: number, world?: World): boolean {
 	if (target) {
 		const pony = client.pony;
+		const signTypes = [entities.sign.type, entities.signQuest.type, entities.signQuestion.type, entities.signDonate.type, entities.signDebug.type];
+		if (signTypes.indexOf(target.type) >= 0 && !target.interact) {
+			const message = target.options && (target.options as any).customSignMessage;
+			if (message) client.saysQueue.push([target.id, message, MessageType.System]);
+			return true;
+		}
 
 		if (target.itemTriggerBounds && world) {
 			return handleItemTriggerInteract(world, client.map, target, client, x, y);
@@ -936,6 +941,9 @@ export async function reloadFriends(client: IClient) {
 }
 
 export function execAction(client: IClient, action: Action, settings: GameServerSettings) {
+	const houseLocked = client.map.editingLocked && !!client.party && client.party.leader !== client;
+	const canUseBuilderTool = client.isMod || (!houseLocked && (hasFlag(client.map.flags, MapFlags.EditableEntities) ||
+		hasFlag(client.map.flags, MapFlags.EditableTiles) || hasFlag(client.map.flags, MapFlags.EditableWalls)));
 	switch (action) {
 		case Action.Boop:
 			boop(client, Date.now());
@@ -993,47 +1001,74 @@ export function execAction(client: IClient, action: Action, settings: GameServer
 			break;
 		case Action.SwitchTool:
 			client.editorBypassWalls = false;
-			switchTool(client, false);
+			if (!houseLocked) switchTool(client, false);
 			break;
 		case Action.SwitchToolRev:
 			client.editorBypassWalls = false;
-			switchTool(client, true);
+			if (!houseLocked) switchTool(client, true);
 			break;
 		case Action.SwitchToPlaceTool:
+			if (!canUseBuilderTool) break;
 			client.editorBypassWalls = false;
 			holdItem(client.pony, entities.hammer.type);
 			break;
 		case Action.SwitchToTileTool:
+			if (!canUseBuilderTool) break;
 			client.editorBypassWalls = false;
 			holdItem(client.pony, entities.shovel.type);
 			break;
 		case Action.SwitchToRopeTool:
+			if (!canUseBuilderTool) break;
 			client.editorBypassWalls = false;
 			holdItem(client.pony, entities.rope.type);
 			break;
 		case Action.SwitchToPickaxeTool:
+			if (!canUseBuilderTool) break;
 			client.editorBypassWalls = false;
 			holdItem(client.pony, entities.pickaxe.type);
 			break;
+		case Action.SwitchToWrenchTool:
+			if (!canUseBuilderTool) break;
+			client.editorBypassWalls = false;
+			holdItem(client.pony, entities.doubleEndedWrench.type);
+			break;
+		case Action.HoldBanHammer:
+			client.editorBypassWalls = false;
+			holdItem(client.pony, entities.banHammer.type);
+			break;
 		case Action.SwitchToSawTool:
+			if (!canUseBuilderTool) break;
 			client.editorBypassWalls = true;
 			holdItem(client.pony, entities.saw.type);
 			break;
 		case Action.SwitchToBroomTool:
+			if (!canUseBuilderTool) break;
 			client.editorBypassWalls = false;
 			holdItem(client.pony, entities.broom.type);
 			break;
 		case Action.SwitchToScrapTool:
+			if (!canUseBuilderTool) break;
 			client.editorBypassWalls = false;
 			holdItem(client.pony, entities.scrap.type);
 			break;
 		case Action.SwitchToRecolorTool:
+			if (!canUseBuilderTool) break;
 			client.editorBypassWalls = false;
 			holdItem(client.pony, entities.recolor.type);
 			break;
 		case Action.SwitchToSeasonTool:
+			if (!canUseBuilderTool) break;
 			client.editorBypassWalls = false;
 			holdItem(client.pony, entities.season.type);
+			break;
+		case Action.SwitchToScrewdriverTool:
+			if (!canUseBuilderTool) break;
+			client.editorBypassWalls = false;
+			holdItem(client.pony, entities.screwdriver.type);
+			break;
+		case Action.SwitchToWrenchTool:
+			client.editorBypassWalls = false;
+			holdItem(client.pony, entities.doubleEndedWrench.type);
 			break;
 		default:
 			if (isExpressionAction(action)) {

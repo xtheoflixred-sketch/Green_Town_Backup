@@ -1,0 +1,70 @@
+.modal-header
+	h4.modal-title {{ title }}
+
+.modal-body.imported-modal-body
+	.imported-modal-info
+		.imported-modal-summary([class.is-error]="hasError")
+			fa-icon([icon]="warningIcon" [fixedWidth]="true")
+			p {{ summaryText }}
+
+		p.imported-modal-error(*ngIf="hasError")
+			| {{ subtitle }}
+
+	.preview-card(*ngIf="previewCount")
+		.preview-grid.large-preview(
+			*ngIf="useLargePreview"
+			[ngClass]="previewClass"
+		)
+			.preview-item(*ngFor="let pony of displayPonies")
+				.character-preview-wrapper
+					character-preview.imported-modal-preview(
+						[pony]="pony.ponyInfo || pony"
+						[scale]="previewScale"
+						[name]="pony.name"
+						[tag]="getPonyTag(pony)"
+						[noBackground]="false"
+					)
+
+		.preview-grid.portrait-grid(
+			*ngIf="usePortraitGrid"
+			[ngClass]="previewClass"
+		)
+			.preview-item(*ngFor="let pony of displayPonies")
+				portrait-box(
+					[pony]="toPalette(pony)"
+					size="small"
+					[noBorder]="true"
+				)
+
+		.preview-grid.compact-grid(
+			*ngIf="useCompactGrid"
+			[ngClass]="previewClass"
+		)
+			.preview-item(*ngFor="let pony of displayPonies")
+				portrait-box(
+					[pony]="toPalette(pony)"
+					size="small"
+					[noBorder]="true"
+				)
+
+.modal-footer([class.justify-content-between]="!hasError", [class.justify-content-center]="hasError")
+	button.btn.btn-outline-secondary(
+		type="button"
+		(click)="closeModal()"
+	)
+		| {{ hasError ? 'Close' : 'Cancel' }}
+
+	div(*ngIf="!hasError")
+		button.btn.btn-outline-danger.mr-2(
+			type="button"
+			(click)="rejectImport()"
+		)
+			fa-icon([icon]="removeIcon" [fixedWidth]="true")
+			|  Remove
+
+		button.btn.btn-success(
+			type="button"
+			(click)="acceptImport()"
+		)
+			fa-icon([icon]="keepIcon" [fixedWidth]="true")
+			|  Keep imported character

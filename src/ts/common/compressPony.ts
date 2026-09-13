@@ -14,20 +14,21 @@ import {
 } from '../client/ponyUtils';
 import { CM_SIZE } from './constants';
 
-export const VERSION = 8; // previous: 7
+export const VERSION = 9; // previous: 8
 
 const VERSION_BITS = 6; // max 63
 const COLORS_LENGTH_BITS = 10; // max 1024
 const BOOLEAN_FIELDS_LENGTH_BITS = 5; // max 31
 const NUMBER_FIELDS_LENGTH_BITS = 4; // max 15
-const COLOR_FIELDS_LENGTH_BITS = 4; // max 15
+const COLOR_FIELDS_LENGTH_BITS = 5; // max 31
 const SET_FIELDS_LENGTH_BITS = 6; // max 63
 const CM_LENGTH_BITS = 5; // max 31
 const NUMBERS_BITS = 6; // max 63
 
 const SET_TYPE_BITS = 6; // max 63
 const SET_PATTERN_BITS = 4; // max 15
-const SET_COLORS_BITS = 3; // max 7
+const SET_COLORS_BITS = 5; // max 31
+const LEGACY_SET_COLORS_BITS = 3; // max 7
 
 interface FieldDefinition<T> {
 	name: keyof PonyInfo;
@@ -81,8 +82,13 @@ function empty<T>(set: SpriteSet<T> | undefined): boolean {
 	return !set || !set.type;
 }
 
-function emptyMarking<T>(set: SpriteSet<T> | undefined): boolean {
-	return !set || (toInt(set.type) === 0 && toInt(set.pattern) === 0);
+function emptyMarking<T>(set: SpriteSet<T> | undefined, baseFill?: T): boolean {
+	if (!set || toInt(set.type) !== 0 || toInt(set.pattern) !== 0) {
+		return !set;
+	}
+
+	const firstFill = set.fills && set.fills[0];
+	return firstFill === undefined || firstFill === baseFill;
 }
 
 function omitMane(info: PonyInfoNumber) {
@@ -103,7 +109,7 @@ function omitFrontHooves(info: PonyInfoNumber) {
 }
 
 function omitFrontLegs(info: PonyInfoNumber) {
-	return emptyMarking(info.frontLegs) && emptyMarking(info.backLegs);
+	return emptyMarking(info.frontLegs, info.coatFill) && emptyMarking(info.backLegs, info.coatFill);
 }
 
 function readTimes(read: ReadBits, count: number, bitsPerItem: number): number[] {
@@ -271,7 +277,10 @@ const booleanFields: FieldDefinition<boolean>[] = [
 	{ name: 'unlockBackHooves', omit: info => !!info.lockBackHooves },
 	{
 		name: 'lockBackLegs',
-		omit: info => emptyMarking(info.frontLegs) && emptyMarking(info.backLegs),
+		default: true,
+		omit: info => info.lockBackLegs !== false
+			&& emptyMarking(info.frontLegs, info.coatFill)
+			&& emptyMarking(info.backLegs, info.coatFill),
 	},
 	{ name: 'unlockBody' },
 	{ name: 'useExtraBody' },
@@ -312,6 +321,10 @@ const colorFields: FieldDefinition<number>[] = [
 	{ name: 'eyelashColorLeft', omit: info => !info.unlockEyelashColor },
 	{ name: 'magicColor', default: WHITE },
 	{ name: 'previewBackground', default: parseColorFast('90ee90') },
+	{ name: 'mouthColor', default: parseColorFast('721946') },
+	{ name: 'tongueColor', default: parseColorFast('f39f4b') },
+	{ name: 'teethColor', default: WHITE },
+	{ name: 'fangsColor', default: WHITE },
 ];
 
 const omittableFields: FieldDefinition<any>[] = [
@@ -324,6 +337,10 @@ const omittableFields: FieldDefinition<any>[] = [
 /* istanbul ignore next */
 if (DEVELOPMENT) {
 	(function () {
+		if (typeof createBasePony !== 'function') {
+			return;
+		}
+
 		function verifyFields(obj: any, lengthBits: number, defs: FieldDefinition<any>[], verify: (field: any) => boolean) {
 			const missing = Object.keys(obj)
 				.filter(key => verify(obj[key]))
@@ -353,8 +370,8 @@ if (DEVELOPMENT) {
 	})();
 }
 
-function trimRight<T>(items: T[]) {
-	const index = findLastIndex(items, x => !!x);
+function trimRight<T>(items: T[], defaults: T[] = []) {
+	const index = findLastIndex(items, (x, i) => x !== defaults[i]);
 	return (index !== (items.length - 1)) ? items.slice(0, index + 1) : items;
 }
 
@@ -481,11 +498,11 @@ function precompressFields<TDef extends FieldDefinition<TResult>, TValue, TResul
 ): TResult[] {
 	return trimRight(defs.map(def => {
 		if (def.dontSave || (def.omit && def.omit(data))) {
-			return defaultValue;
+			return def.default === undefined ? defaultValue : def.default as any;
 		} else {
 			return encode(data[def.name], def);
 		}
-	}));
+	}), defs.map(def => def.default === undefined ? defaultValue : def.default as any));
 }
 
 function postdecompressFields<TDef extends FieldDefinition<TValue>, TValue, TResult>(
@@ -494,7 +511,8 @@ function postdecompressFields<TDef extends FieldDefinition<TValue>, TValue, TRes
 	for (let i = 0; i < defs.length; i++) {
 		const def = defs[i];
 		const value = i >= values.length ? undefined : values[i];
-		result[def.name] = decode(value === undefined ? defaultValue : value, def);
+		const fallback = def.default === undefined ? defaultValue : def.default as any;
+		result[def.name] = decode(value === undefined ? fallback : value, def);
 	}
 }
 
@@ -561,7 +579,7 @@ export function createPostDecompressPony() {
 		'  var colors = data.colorFields;',
 		'  var sets = data.setFields;',
 		'  var result = {};',
-		...booleanFields.map((def, i) => `  result.${def.name} = bools.length > ${i} ? bools[${i}] : false;`),
+		...booleanFields.map((def, i) => `  result.${def.name} = bools.length > ${i} ? bools[${i}] : ${def.default === undefined ? 'false' : String(def.default)};`),
 		...numberFields.map((def, i) => `  result.${def.name} = numbers.length > ${i} ? numbers[${i}] : 0;`),
 		...colorFields.map((def, i) => `  result.${def.name} = colors.length > ${i} ? ` +
 			`getColor(dataColors, colors[${i}] - 1) || ${def.default || BLACK} : ${def.default || BLACK};`),
@@ -626,14 +644,14 @@ export function writeSet(
 }
 
 export function readSet(
-	read: ReadBits, typeBits: number, colorBits: number, customOutlines: boolean
+	read: ReadBits, typeBits: number, colorBits: number, customOutlines: boolean, setColorsBits = SET_COLORS_BITS
 ): PrecompressedSet | undefined {
 	const has = read(1);
 
 	if (has) {
 		const type = read(typeBits);
 		const pattern = read(SET_PATTERN_BITS);
-		const colors = read(SET_COLORS_BITS) + 1;
+		const colors = read(setColorsBits) + 1;
 		const fillLocks = read(colors);
 		const fills = readTimes(read, colors - countBits(fillLocks), colorBits);
 		const outlineLocks = customOutlines ? read(colors) : 0;
@@ -697,9 +715,10 @@ export function readPony(read: ReadBits): Precompressed {
 	const booleanFields = readFields(read, BOOLEAN_FIELDS_LENGTH_BITS, readBoolean);
 	const customOutlines = !!booleanFields[0];
 	const numberFields = readFields(read, NUMBER_FIELDS_LENGTH_BITS, readNumber);
-	const colorFields = readFields(read, COLOR_FIELDS_LENGTH_BITS, readColor);
+	const colorFields = readFields(read, version < 9 ? 4 : COLOR_FIELDS_LENGTH_BITS, readColor);
 	const setFields = readFields(read, version < 4 ? 5 : SET_FIELDS_LENGTH_BITS,
-		read => readSet(read, typeBits, colorBits, customOutlines));
+		read => readSet(read, typeBits, colorBits, customOutlines,
+			version < 9 ? LEGACY_SET_COLORS_BITS : SET_COLORS_BITS));
 	const cm = readFields(read, CM_LENGTH_BITS, readColor);
 	return { version, colors, booleanFields, numberFields, colorFields, setFields, cm };
 }

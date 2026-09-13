@@ -102,6 +102,7 @@ interface Instance {
 export class Audio {
 	private tracks: Track[] = [];
 	private volume = 0;
+	private ducked = false;
 	private loops = 0;
 	private playing = false;
 	private stopped: Instance[] = [];
@@ -155,11 +156,21 @@ export class Audio {
 
 		if (this.playing) {
 			if (this.instance) {
-				this.setInstanceVolume(this.instance, this.volume);
+                this.setInstanceVolume(this.instance, this.effectiveVolume);
 			} else if (this.volume) {
 				this.playRandomTrack();
 			}
 		}
+	}
+	setDucked(ducked: boolean) {
+		if (this.ducked === ducked) return;
+		this.ducked = ducked;
+		if (this.playing && this.instance) {
+			this.setInstanceVolume(this.instance, this.effectiveVolume);
+		}
+	}
+	private get effectiveVolume() {
+		return this.ducked ? 0 : this.volume;
 	}
 	play() {
 		try {
@@ -210,7 +221,7 @@ export class Audio {
 	}
 	touch() {
 		this.stopInstances();
-		this.setInstanceVolume(this.instance, this.volume);
+		this.setInstanceVolume(this.instance, this.effectiveVolume);
 	}
 	private switchToTrack(track: Track) {
 		if (this.instance && this.instance.track === track) {
@@ -248,12 +259,12 @@ export class Audio {
 	private playTrack(track: Track): Instance {
 		this.prepareTrack(track);
 		const id = track.howl!.play();
-		fadeIn(track, id, this.volume);
+		fadeIn(track, id, this.effectiveVolume);
 		return { id, track };
 	}
 	private resumeInstance({ track, id }: Instance) {
 		track.howl!.play(id);
-		fadeIn(track, id, this.volume);
+		fadeIn(track, id, this.effectiveVolume);
 	}
 	private stopInstance(instance: Instance | undefined) {
 		if (instance) {

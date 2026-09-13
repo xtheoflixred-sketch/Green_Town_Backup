@@ -412,7 +412,7 @@ export function supporterLevel(account: AccountBase<any>) {
 	const flags = account.supporter!;
 	const ignore = hasFlag(flags, SupporterFlags.IgnorePatreon);
 	const patreonSupporter = patreonSupporterLevel(account);
-	const flagsSupporter = flags & 0xf;
+	const flagsSupporter = account.supporterExpiresAt && account.supporterExpiresAt <= new Date() ? 0 : flags & 0xf;
 	return Math.max(ignore ? 0 : patreonSupporter, flagsSupporter);
 }
 

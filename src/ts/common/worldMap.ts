@@ -8,14 +8,14 @@ import {
 	getRegionTile, setRegionTile, setRegionTileDirty, getRegionElevation, setRegionElevation,
 	getRegionTileIndex, worldToRegionX, worldToRegionY, generateRegionCollider, invalidateRegionsCollider
 } from './region';
-import { weatherRain, splash } from './entities';
+import { cloud, rain, raindrop, splash, stormLight } from './entities';
 import { releaseEntity, isMoving, isHidden, isDrawable, isPonyFlying, getChatBubbles } from './entityUtils';
 import { updatePonyEntity, invalidatePalettesForPony, ensurePonyInfoDecoded, isPony, isPonyOnTheGround } from './pony';
 import { getTileHeight, updateTileIndices, isInWater } from '../client/tileUtils';
-import { toScreenX, toScreenY, toScreenYWithZ, rectToScreen, toWorldZ } from './positionUtils';
+import { toScreenX, toScreenY, toScreenYWithZ, rectToScreen, toWorldX, toWorldY, toWorldZ } from './positionUtils';
 import { hasDrawLight, hasLightSprite } from '../client/draw';
 import { PonyTownGame } from '../client/game';
-import { WATER_FPS, PONY_TYPE, REGION_SIZE } from './constants';
+import { WATER_FPS, PONY_TYPE, REGION_SIZE, tileElevation } from './constants';
 import { updatePosition, canCollideWith } from './collision';
 import { PaletteManager } from '../graphics/paletteManager';
 import { timeEnd, timeStart } from '../client/timing';
@@ -33,8 +33,9 @@ const defaultMapInfo: MapInfo = {
 };
 
 export function createWorldMap(info = defaultMapInfo, state: MapState = { ...defaultMapState }): WorldMap {
-	const { type, flags, regionsX, regionsY, defaultTile, editableArea } = info;
+	const { id, type, flags, regionsX, regionsY, defaultTile, editableArea } = info;
 	const map: WorldMap = {
+		id,
 		type,
 		flags,
 		tileTime: 0,
@@ -46,6 +47,7 @@ export function createWorldMap(info = defaultMapInfo, state: MapState = { ...def
 		entitiesTriggers: [],
 		entitiesLight: [],
 		entitiesLightSprite: [],
+		weatherClouds: [],
 		entitiesById: new Map<number, Entity>(),
 		poniesToDecode: [],
 		regionsX,
@@ -68,12 +70,14 @@ export function createWorldMap(info = defaultMapInfo, state: MapState = { ...def
 }
 
 function pickAny(entity: Entity, point: Point): boolean {
-	const bounds = entity.interactBounds || entity.bounds;
-	return !!bounds && contains(entity.x, entity.y, bounds, point);
+	const bounds = getAnyBounds(entity) || entity.interactBounds || entity.bounds;
+	return !!bounds && (contains(entity.x, entity.y, bounds, point) ||
+		contains(entity.x, entity.y + ((entity as any).offsetY || 0), bounds, point));
 }
 
 export function getAnyBounds(entity: Entity) {
 	return [
+		(entity as any).spriteBounds,
 		entity.interactBounds,
 		entity.bounds,
 		entity.lightBounds,
@@ -85,7 +89,14 @@ export function getAnyBounds(entity: Entity) {
 
 function pickAnyEvenLights(entity: Entity, point: Point): boolean {
 	const bounds = getAnyBounds(entity);
-	return !!bounds && contains(entity.x, entity.y, bounds, point);
+	return !!bounds && (contains(entity.x, entity.y, bounds, point) ||
+		contains(entity.x, entity.y + ((entity as any).offsetY || 0), bounds, point));
+}
+
+function pickSprite(entity: Entity, point: Point): boolean {
+	const bounds = (entity as any).spriteBounds || entity.bounds || entity.interactBounds;
+	return !!bounds && (contains(entity.x, entity.y, bounds, point) ||
+		contains(entity.x, entity.y + ((entity as any).offsetY || 0), bounds, point));
 }
 
 function pick(entity: Entity, point: Point, pickHidden: boolean, pickEditable: boolean): boolean {
@@ -106,7 +117,7 @@ function pickByBounds(entity: Entity, rect: Rect, pickHidden: boolean): boolean 
 	if ((entity.flags & EntityFlags.Interactive) === 0 || (isHidden(entity) && !pickHidden)) {
 		return false;
 	} else {
-		const bounds = entity.interactBounds || entity.bounds;
+		const bounds = (entity as any).spriteBounds || entity.interactBounds || entity.bounds;
 		return !!bounds && boundsIntersect(entity.x, entity.y, bounds, 0, 0, rect);
 	}
 }
@@ -117,6 +128,10 @@ function pickEntityByBounds(entity: Entity, rect: Rect, ignorePonies: boolean, p
 
 export function pickAnyEntities(map: WorldMap, point: Point) {
 	return map.entities.filter(e => pickAnyEvenLights(e, point)).reverse();
+}
+
+export function pickSpriteEntities(map: WorldMap, point: Point) {
+	return map.entities.filter(e => pickSprite(e, point)).reverse();
 }
 
 export function pickEntities(map: WorldMap, point: Point, ignorePonies: boolean, pickHidden: boolean, pickEditable = false) {
@@ -564,10 +579,65 @@ export function updateMap(map: WorldMap, delta: number) {
 }
 
 export function getMapHeightAt(map: WorldMap, x: number, y: number, gameTime: number) {
+	for (const entity of map.entities) {
+		const fixedBounds = (entity as any).boatSurfaceBounds2;
+		if (fixedBounds && contains(entity.x, entity.y, fixedBounds, { x, y }) && isWaterSurfaceAt(map, x, y)) {
+			return 0;
+		}
+		const bounds = (entity as any).boatSurfaceBounds;
+		if (bounds && contains(entity.x, entity.y, bounds, { x, y }) && isWaterSurfaceAt(map, x, y)) {
+			return (entity as any).boatSurfaceBobbing === false
+				? 5 / tileElevation
+				: getTileHeight(TileType.Boat, (12 << 8), x, y, gameTime, map.type) + (5 / tileElevation);
+		}
+	}
 	return getTileHeight(getTile(map, x, y), getTileIndex(map, x, y), x, y, gameTime, map.type);
 }
 
+function isWaterSurfaceAt(map: IMap<Region | undefined>, x: number, y: number) {
+	const tile = getTile(map, x, y);
+	if (tile === TileType.Boat) {
+		return true;
+	}
+	return tile === TileType.Water && isInWater(getTileIndex(map, x, y), x, y);
+}
+
+export function isBoatSurfaceAt(map: IMap<Region | undefined>, x: number, y: number) {
+	for (const region of map.regions) {
+		if (region) {
+			for (const entity of (region as Region).entities) {
+				const bounds = (entity as any).boatSurfaceBounds2;
+				if (bounds && contains(entity.x, entity.y, bounds, { x, y }) && isWaterSurfaceAt(map, x, y)) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+function getBoatSurfaceHeight(gameTime: number, map: WorldMap) {
+	return getTileHeight(TileType.Boat, (12 << 8), 0, 0, gameTime, map.type) + (5 / tileElevation);
+}
+
 export function isInWaterAt(map: IMap<Region | undefined>, x: number, y: number) {
+	if (isBoatSurfaceAt(map, x, y)) {
+		return false;
+	}
+	for (const region of map.regions) {
+		if (region) {
+			for (const entity of (region as Region).entities) {
+				const fixedBounds = (entity as any).boatSurfaceBounds2;
+				if (fixedBounds && contains(entity.x, entity.y, fixedBounds, { x, y }) && isWaterSurfaceAt(map, x, y)) {
+					return false;
+				}
+				const bounds = (entity as any).boatSurfaceBounds;
+				if (bounds && contains(entity.x, entity.y, bounds, { x, y }) && isWaterSurfaceAt(map, x, y)) {
+					return false;
+				}
+			}
+		}
+	}
 	return getTile(map, x, y) === TileType.Water && isInWater(getTileIndex(map, x, y), x, y);
 }
 
@@ -575,15 +645,29 @@ export function updateEntities(game: PonyTownGame, gameTime: number, delta: numb
 	TIMING && timeStart('updateEntities');
 
 	const map = game.map;
+	updateWeatherEffects(map, delta, game.camera, game.player);
 
 	for (const entity of map.entitiesMoving) {
 		updatePosition(entity, delta, map);
+	}
+	for (const entity of map.weatherClouds) {
+		updatePosition(entity, delta, map);
+		if (entity.x < -REGION_SIZE) {
+			entity.x = map.width + REGION_SIZE;
+		}
 	}
 
 	for (const entity of map.entities) {
 		const flags = entity.flags;
 
-		if ((flags & EntityFlags.Bobbing) !== 0) {
+		if ((entity as any).boatSurfaceBounds2 && isWaterSurfaceAt(map, entity.x, entity.y)) {
+			entity.z = 0;
+		} else if ((entity as any).boatSurfaceBounds && isWaterSurfaceAt(map, entity.x, entity.y) &&
+			(entity as any).boatSurfaceBobbing !== false) {
+			entity.z = getBoatSurfaceHeight(gameTime, map);
+		} else if ((entity as any).boatSurfaceBounds) {
+			entity.z = getMapHeightAt(map, entity.x, entity.y, gameTime);
+		} else if ((flags & EntityFlags.Bobbing) !== 0) {
 			const bobs = entity.bobs!;
 			const frame = (((gameTime / 1000) * entity.bobsFps!) | 0) % bobs.length;
 			entity.z = toWorldZ(bobs[frame]);
@@ -728,30 +812,279 @@ export function switchEntityRegion(map: WorldMap, entity: Entity, x: number, y: 
 
 export function updateMapState(map: WorldMap, prevState: MapState, newState: MapState) {
 	if (prevState.weather !== newState.weather) {
-		switch (newState.weather) {
-			case Weather.None:
-				removeWeatherEffects(map);
-				break;
-			case Weather.Rain:
-				addRainEffects(map);
-				break;
-		}
+		const weatherState = getWeatherEffectsState(map);
+		weatherState.target = newState.weather === Weather.None ? 0 : 1;
+		weatherState.initialized = true;
 	}
 }
 
-function removeWeatherEffects(map: WorldMap) {
-	const effects = map.entities.filter(e => e.id === 0 && e.type === weatherRain.type);
+interface WeatherEffectsState {
+	intensity: number;
+	target: number;
+	lightning?: Entity;
+	lightningTime: number;
+	lightningCooldown: number;
+	initialized: boolean;
+}
 
-	for (const entity of effects) {
+const WEATHER_FADE_TIME = 3;
+const MAX_RAIN_SPRITES = 306;
+const MAX_RAINDROP_EFFECTS = 250;
+const STORM_EFFECT_MULTIPLIER = 2;
+const RAIN_HORIZONTAL_PADDING = 32;
+const RAIN_VERTICAL_PADDING = 18;
+const CLOUD_FLOCK_SIZE = 4;
+const MAX_WEATHER_CLOUDS = 96;
+const STORM_MAX_WEATHER_CLOUDS = MAX_WEATHER_CLOUDS * STORM_EFFECT_MULTIPLIER;
+const WEATHER_CLOUD_SLOT_SIZE = CLOUD_FLOCK_SIZE + 1;
+const WEATHER_CLOUD_SLOT_COUNT = Math.ceil(STORM_MAX_WEATHER_CLOUDS / WEATHER_CLOUD_SLOT_SIZE);
+const WEATHER_CLOUD_SPAWN_DELAY = 0.45;
+const WEATHER_EFFECT_DELAY = 0.45;
+const STORM_LIGHTNING_DURATION = 0.16;
+const STORM_LIGHTNING_INTERVAL = 60;
+const STORM_LIGHTNING_MIN_DISTANCE = 24;
+const STORM_LIGHTNING_MAX_DISTANCE = 40;
+const weatherEffectsStates = new WeakMap<WorldMap, WeatherEffectsState>();
+
+export function getWeatherIntensity(map: WorldMap) {
+	return getWeatherEffectsState(map).intensity;
+}
+
+function getWeatherEffectsState(map: WorldMap) {
+	let state = weatherEffectsStates.get(map);
+	if (!state) {
+		state = {
+			intensity: map.state.weather === Weather.None ? 0 : 1,
+			target: map.state.weather === Weather.None ? 0 : 1,
+			lightningTime: 0,
+			lightningCooldown: 0,
+			initialized: false,
+		};
+		weatherEffectsStates.set(map, state);
+	}
+	return state;
+}
+
+function updateWeatherEffects(map: WorldMap, delta: number, camera: Camera, player?: Pony) {
+	const state = getWeatherEffectsState(map);
+	const step = delta / WEATHER_FADE_TIME;
+	if (!state.initialized) {
+		state.initialized = true;
+	}
+	state.intensity += (state.target - state.intensity) * Math.min(1, step);
+	if (Math.abs(state.target - state.intensity) < 0.01) {
+		state.intensity = state.target;
+	}
+	const isStorm = map.state.weather === Weather.Storm;
+	state.lightningTime -= delta;
+	state.lightningCooldown -= delta;
+	if (state.lightning && (!isStorm || state.lightningTime <= 0)) {
+		removeEntityDirectly(map, state.lightning);
+		state.lightning = undefined;
+	}
+
+	const effects = map.entities.filter(e => e.id === 0 &&
+		(e.type === rain.type || e.type === raindrop.type));
+	const weatherClouds = map.weatherClouds;
+	const rainEntities = effects.filter(entity => entity.type === rain.type);
+	const raindropEntities = effects.filter(entity => entity.type === raindrop.type);
+	const rainLimit = MAX_RAIN_SPRITES * (isStorm ? STORM_EFFECT_MULTIPLIER : 1);
+	const raindropLimit = MAX_RAINDROP_EFFECTS * (isStorm ? STORM_EFFECT_MULTIPLIER : 1);
+	const cloudLimit = MAX_WEATHER_CLOUDS * (isStorm ? STORM_EFFECT_MULTIPLIER : 1);
+	for (const entity of rainEntities.slice(rainLimit)) {
 		removeEntityDirectly(map, entity);
 	}
+	for (const entity of raindropEntities.slice(raindropLimit)) {
+		removeEntityDirectly(map, entity);
+	}
+	for (const entity of weatherClouds) {
+		const cloudKey = (entity as any).weatherCloudKey as string | undefined;
+		const slot = cloudKey ? parseInt(cloudKey.split(':')[0], 10) : cloudLimit;
+		if (state.intensity === 0 || slot >= Math.ceil(cloudLimit / WEATHER_CLOUD_SLOT_SIZE)) {
+			removeWeatherCloud(map, entity);
+		}
+	}
+	for (const entity of effects.concat(weatherClouds)) {
+		const isCloud = entity.type === cloud.type;
+		if (isCloud && (entity as any).entityOpacity === 0) {
+			(entity as any).weatherCloudDelay = Math.max(0, (entity as any).weatherCloudDelay - delta);
+			if ((entity as any).weatherCloudDelay <= 0) {
+				(entity as any).entityOpacity = 1;
+			}
+		}
+		if (isCloud) {
+			continue;
+		}
+		if (!isCloud && (entity as any).weatherOpacityTarget === undefined) {
+			const minOpacity = isCloud ? 0.25 :
+				(entity.type === raindrop.type ? 0.2 : 0.3);
+			const maxOpacity = isCloud ? 0.7 :
+				(entity.type === raindrop.type ? 0.85 : 1);
+			(entity as any).weatherOpacityTarget = minOpacity + Math.random() * (maxOpacity - minOpacity);
+		}
+		if (!isCloud && (entity as any).weatherOpacityDelay === undefined) {
+			(entity as any).weatherOpacityDelay = Math.random() * WEATHER_EFFECT_DELAY;
+			if ((entity as any).weatherOpacity === undefined) {
+				(entity as any).weatherOpacity = 0;
+			}
+		}
+		const delayed = !isCloud && (entity as any).weatherOpacityDelay > 0;
+		if (!isCloud && (entity as any).weatherOpacityDelay !== undefined) {
+			(entity as any).weatherOpacityDelay = Math.max(0, (entity as any).weatherOpacityDelay - delta);
+		}
+		const currentOpacity = (entity as any).weatherOpacity === undefined
+			? (delayed ? 0 : state.intensity)
+			: (entity as any).weatherOpacity;
+		const targetOpacity = delayed ? 0 : state.intensity * ((entity as any).weatherOpacityTarget || 1);
+		const fadeStep = Math.min(1, Math.max(0, delta) / 1.5);
+		(entity as any).weatherOpacity = Math.max(0, Math.min(1,
+			currentOpacity + (targetOpacity - currentOpacity) * fadeStep));
+		if (!isCloud && state.intensity === 0 && (entity as any).weatherOpacity <= 0.001) {
+			removeEntityDirectly(map, entity);
+		}
+	}
+
+	if (state.intensity === 0) {
+		return;
+	}
+
+	if (isStorm && state.intensity > 0.5 && !state.lightning && state.lightningCooldown <= 0) {
+		const centerX = player ? player.x : toWorldX(camera.x + camera.w / 2);
+		const centerY = player ? player.y : toWorldY(camera.actualY + camera.h / 2);
+		const distance = STORM_LIGHTNING_MIN_DISTANCE +
+			Math.random() * (STORM_LIGHTNING_MAX_DISTANCE - STORM_LIGHTNING_MIN_DISTANCE);
+		const angle = Math.random() * Math.PI * 2;
+		const lightning = stormLight(
+			Math.max(0, Math.min(map.width, centerX + Math.cos(angle) * distance)),
+			Math.max(0, Math.min(map.height, centerY + Math.sin(angle) * distance)),
+		);
+		state.lightning = lightning;
+		state.lightningTime = STORM_LIGHTNING_DURATION;
+		state.lightningCooldown = STORM_LIGHTNING_INTERVAL;
+		addWeatherEntity(map, lightning);
+	}
+
+	if (state.intensity === 1) {
+		addWeatherClouds(map, isStorm);
+	}
+
+	if (state.intensity > 0) {
+		addRainEffects(map, camera, isStorm);
+	}
 }
 
-function addRainEffects(map: WorldMap) {
+function addWeatherClouds(map: WorldMap, isStorm: boolean) {
+	const maxClouds = isStorm ? STORM_MAX_WEATHER_CLOUDS : MAX_WEATHER_CLOUDS;
+	const cloudSlots = Math.ceil(maxClouds / WEATHER_CLOUD_SLOT_SIZE);
+	const seedSlotCount = WEATHER_CLOUD_SLOT_COUNT;
+	const existingClouds = new Map<string, Entity>();
+	const oldClouds = map.entities.filter(entity => entity.id === 0 && entity.type === cloud.type);
+	for (const entity of oldClouds) {
+		removeEntityDirectly(map, entity);
+	}
+	const weatherClouds = map.weatherClouds;
+	for (const entity of weatherClouds) {
+		const cloudKey = (entity as any).weatherCloudKey as string | undefined;
+		if (!cloudKey) {
+			removeWeatherCloud(map, entity);
+		} else {
+			(entity as any).weatherCloudFadeOut = false;
+			existingClouds.set(cloudKey, entity);
+		}
+	}
+
+	for (let slot = 0; slot < cloudSlots; slot++) {
+		const slotSeed = weatherCloudRandom(map, 0, slot);
+		const slotX = Math.floor(slotSeed * Math.max(map.width, 1));
+		const slotY = Math.floor(weatherCloudRandom(map, 0, slot + seedSlotCount) * Math.max(map.height, 1));
+		const flockSize = CLOUD_FLOCK_SIZE + Math.floor(weatherCloudRandom(map, 0, slot + seedSlotCount * 2) * 3);
+		for (let i = 0; i < flockSize && i < WEATHER_CLOUD_SLOT_SIZE && existingClouds.size < maxClouds; i++) {
+			const cloudKey = `${slot}:${i}`;
+			if (existingClouds.has(cloudKey)) {
+				continue;
+			}
+			const x = slotX + weatherCloudRandom(map, 0, slot * WEATHER_CLOUD_SLOT_SIZE + i + 1) * REGION_SIZE;
+			const y = slotY + weatherCloudRandom(map, 0, slot * WEATHER_CLOUD_SLOT_SIZE + i + seedSlotCount + 1) * REGION_SIZE;
+			const entity = cloud(x, y);
+			entity.vx = -0.5 - weatherCloudRandom(map, 0, slot * WEATHER_CLOUD_SLOT_SIZE + i + seedSlotCount * 3) * 0.5;
+			(entity as any).weatherCloudKey = cloudKey;
+			(entity as any).entityOpacity = 0;
+			(entity as any).weatherCloudDelay = weatherCloudRandom(map, 0, slot * WEATHER_CLOUD_SLOT_SIZE + i + seedSlotCount * 5) * WEATHER_CLOUD_SPAWN_DELAY;
+			weatherClouds.push(entity);
+			existingClouds.set(cloudKey, entity);
+		}
+	}
+}
+
+function removeWeatherCloud(map: WorldMap, entity: Entity) {
+	removeItemFast(map.weatherClouds, entity);
+	releaseEntity(entity);
+}
+
+function weatherCloudRandom(map: WorldMap, weatherKey: number, index: number) {
+	let value = (map.width * 73856093) ^ (map.height * 19349663) ^ (weatherKey * 83492791) ^ (index * 2654435761);
+	value = Math.imul(value ^ (value >>> 16), 2246822519);
+	value = Math.imul(value ^ (value >>> 13), 3266489917);
+	return ((value ^ (value >>> 16)) >>> 0) / 0x100000000;
+}
+
+function addWeatherEntity(map: WorldMap, entity: Entity) {
+	if (getRegionGlobal(map, entity.x, entity.y)) {
+		addEntity(map, entity);
+	}
+}
+
+function addRainEffects(map: WorldMap, camera: Camera, isStorm: boolean) {
+	const minX = Math.max(0, toWorldX(camera.x) - RAIN_HORIZONTAL_PADDING);
+	const maxX = Math.min(map.width, toWorldX(camera.x + camera.w) + RAIN_HORIZONTAL_PADDING);
+	const minY = Math.max(0, toWorldY(camera.actualY) - RAIN_VERTICAL_PADDING);
+	const maxY = Math.min(map.height, toWorldY(camera.actualY + camera.h) + RAIN_VERTICAL_PADDING);
+	let rainEffects = 0;
+	let raindropEffects = 0;
+
 	forEachRegion(map, region => {
-		if (region.x === 3 && region.y === 4) { // TEMP: testing
-			const entity = weatherRain((region.x + 0.5) * REGION_SIZE, (region.y + 0.5) * REGION_SIZE);
-			addEntity(map, entity);
+		for (const entity of region.entities) {
+			if (entity.id !== 0 || (entity.type !== rain.type && entity.type !== raindrop.type)) {
+				continue;
+			}
+			if (entity.x < minX || entity.x > maxX || entity.y < minY || entity.y > maxY) {
+				removeEntityDirectly(map, entity);
+				continue;
+			}
+
+			if (entity.type === rain.type) {
+				rainEffects++;
+			} else {
+				raindropEffects++;
+			}
 		}
 	});
+
+	const rainLimit = MAX_RAIN_SPRITES * (isStorm ? STORM_EFFECT_MULTIPLIER : 1);
+	const raindropLimit = MAX_RAINDROP_EFFECTS * (isStorm ? STORM_EFFECT_MULTIPLIER : 1);
+	while (rainEffects < rainLimit) {
+		const rainEntity = rain(
+			minX + Math.random() * Math.max(maxX - minX, 0),
+			minY + Math.random() * Math.max(maxY - minY, 0),
+		);
+		(rainEntity as any).fadeTime = 100;
+		rainEntity.entityOpacity = 1;
+		(rainEntity as any).weatherOpacity = 0;
+		(rainEntity as any).weatherOpacityDelay = Math.random() * WEATHER_EFFECT_DELAY;
+		addWeatherEntity(map, rainEntity);
+		rainEffects++;
+	}
+
+	while (raindropEffects < raindropLimit) {
+		const raindropEntity = raindrop(
+			minX + Math.random() * Math.max(maxX - minX, 0),
+			minY + Math.random() * Math.max(maxY - minY, 0),
+		);
+		(raindropEntity as any).fadeTime = 100;
+		raindropEntity.entityOpacity = 1;
+		(raindropEntity as any).weatherOpacity = 0;
+		(raindropEntity as any).weatherOpacityDelay = Math.random() * WEATHER_EFFECT_DELAY;
+		addWeatherEntity(map, raindropEntity);
+		raindropEffects++;
+	}
 }

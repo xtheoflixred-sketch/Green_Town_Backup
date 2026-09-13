@@ -12,8 +12,8 @@ export class SaveActiveTab implements OnInit, OnDestroy {
 	constructor(@Host() private tabset: Tabset, private storage: StorageService) {
 	}
 	ngOnInit() {
-		// this.tabset.activeIndex = parseInt(this.storage.getItem(this.key) || '0', 10);
-		this.tabset.select(parseInt(this.storage.getItem(this.key) || '0', 10));
+		const savedIndex = parseInt(this.storage.getItem(this.key) || '0', 10);
+		this.tabset.select(Number.isFinite(savedIndex) ? savedIndex : 0);
 		this.subscription = this.tabset.activeIndexChange.subscribe((i: number) => {
 			this.storage.setItem(this.key, i.toString());
 		});

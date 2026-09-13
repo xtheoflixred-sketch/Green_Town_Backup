@@ -1,5 +1,6 @@
 import { Rect, Sprite, SpriteBatch, PaletteSpriteBatch, Palette, isPaletteSpriteBatch } from '../common/interfaces';
 import { WHITE } from '../common/colors';
+import { colorFromRGBA, getAlpha, getB, getG, getR } from '../common/color';
 import { stringToCodesTemp, codesBuffer } from '../common/stringUtils';
 import { createSprite } from '../client/spriteUtils';
 
@@ -126,6 +127,50 @@ export function drawOutlinedText(
 	options.skipEmotes = false;
 
 	drawChars(batch, codesBuffer, length, font, color, x, y, options);
+}
+
+export function drawGradientText(
+	batch: Batch, text: string, font: SpriteFont, startColor: number, endColor: number,
+	x: number, y: number, options = defaultOptions, direction: 'horizontal' | 'vertical' = 'horizontal',
+) {
+	const length = stringToCodesTemp(text);
+	const width = Math.max(1, measureChars(codesBuffer, length, font).w);
+	if (direction === 'vertical') {
+		const height = Math.max(1, font.letterHeight);
+		for (let row = 0; row < height; row++) {
+			const progress = row / height;
+			const color = colorFromRGBA(
+				getR(startColor) + (getR(endColor) - getR(startColor)) * progress,
+				getG(startColor) + (getG(endColor) - getG(startColor)) * progress,
+				getB(startColor) + (getB(endColor) - getB(startColor)) * progress,
+				getAlpha(startColor) + (getAlpha(endColor) - getAlpha(startColor)) * progress,
+			);
+			let currentX = Math.round(x) | 0;
+			let currentY = Math.round(y) | 0;
+			batch.crop(0, currentY + row, Number.MAX_SAFE_INTEGER, 1);
+			for (let i = 0; i < length; i++) {
+				if (codesBuffer[i] === 10) {
+					currentX = Math.round(x) | 0;
+					currentY += font.letterHeight + font.lineSpacing;
+				} else {
+					currentX += drawChar(batch, font, codesBuffer[i], color, currentX, currentY, options) + font.letterSpacing;
+				}
+			}
+		}
+		batch.clearCrop();
+		return;
+	}
+	let currentX = Math.round(x) | 0;
+	for (let i = 0; i < length; i++) {
+		const progress = Math.max(0, Math.min(1, (currentX - x) / width));
+		const color = colorFromRGBA(
+			getR(startColor) + (getR(endColor) - getR(startColor)) * progress,
+			getG(startColor) + (getG(endColor) - getG(startColor)) * progress,
+			getB(startColor) + (getB(endColor) - getB(startColor)) * progress,
+			getAlpha(startColor) + (getAlpha(endColor) - getAlpha(startColor)) * progress,
+		);
+		currentX += drawChar(batch, font, codesBuffer[i], color, currentX, y, options) + font.letterSpacing;
+	}
 }
 
 export function drawTextAligned(

@@ -1,10 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ACCOUNT_NAME_MAX_LENGTH, ACCOUNT_NAME_MIN_LENGTH, HIDES_PER_PAGE } from '../../../common/constants';
+import { ACCOUNT_NAME_MAX_LENGTH, ACCOUNT_NAME_MIN_LENGTH, HIDES_PER_PAGE, ROLE_PRIVILEGES, ROLE_DISPLAY_NAMES, ROLE_LINKS, ROLE_TAGS } from '../../../common/constants';
 import { UpdateAccountData, SocialSiteInfo, OAuthProvider, HiddenPlayer, PonyInfo } from '../../../common/interfaces';
+import { ROLES } from '../../../common/adminInterfaces';
 import {
 	toSocialSiteInfo, cleanName, supporterTitle, supporterClass, isSupporterOrPastSupporter, supporterRewards
 } from '../../../client/clientUtils';
 import { getRolePrivileges } from '../../../common/accountUtils';
+import { getTag, getTagGradient } from '../../../common/tags';
 import { oauthProviders } from '../../../client/data';
 import { Model } from '../../services/model';
 import { getProviderIcon } from '../../shared/sign-in-box/sign-in-box';
@@ -76,6 +78,9 @@ export class Account implements OnInit, OnDestroy {
 	removedAccount?: boolean;
 	accountError?: string;
 	accountSaved = false;
+	supporterCode = '';
+	supporterCodeError = '';
+	supporterCodeSuccess = '';
 	isNewAccount = false;
 	hides: HiddenPlayer[] | undefined = undefined;
 	page = 0;
@@ -204,8 +209,60 @@ export class Account implements OnInit, OnDestroy {
 	get supporterRewards() {
 		return supporterRewards(this.account) || [];
 	}
+	redeemSupporterCode() {
+		const code = this.supporterCode.trim();
+		if (!code) return;
+		this.supporterCodeError = '';
+		this.supporterCodeSuccess = '';
+		this.model.redeemSupporterCode(code)
+			.then(() => {
+				this.supporterCode = '';
+				this.supporterCodeSuccess = 'Supporter access activated';
+			})
+			.catch(error => this.supporterCodeError = error && error.message || 'Unable to redeem supporter code');
+	}
 	get rolePrivileges() {
 		return getRolePrivileges(this.account);
+	}
+	get assignedRoleDetails() {
+		const roles = this.account && this.account.roles || [];
+		return ROLES.filter(role => roles.includes(role)).map(role => ({
+			id: role,
+			name: ROLE_DISPLAY_NAMES[role] || role,
+			tag: getTag(role),
+			privileges: ROLE_PRIVILEGES[role] || [],
+			links: ROLE_LINKS[role] || [],
+		}));
+	}
+	get rolePreviewInfo(): PonyInfo | undefined {
+		return this.model.pony && this.model.pony.ponyInfo;
+	}
+	getRoleTagColor(role: string) {
+		const tag = getTag(role);
+		return tag ? `#${((tag.color >>> 8) & 0xffffff).toString(16).padStart(6, '0')}` : undefined;
+	}
+	getRoleTags(role: string) {
+		return ROLE_TAGS[role] || [];
+	}
+	getRolePreviewTag(role: string) {
+		const tags = this.getRoleTags(role);
+		return tags.length ? tags[0] : role;
+	}
+	getRoleGradient(role: string) {
+		return getTagGradient(role);
+	}
+	getRoleTagStyle(role: string) {
+		const gradient = getTagGradient(role);
+		if (gradient) {
+			return {
+				background: `linear-gradient(${gradient.direction === 'vertical' ? 'to bottom' : 'to right'}, #${gradient.start}, #${gradient.end})`,
+				color: '#fff',
+			};
+		}
+		return { 'background-color': this.getRoleTagColor(role) };
+	}
+	getRoleLinks(role: string) {
+		return ROLE_LINKS[role] || [];
 	}
 	get supporterPonyInfo(): PonyInfo | undefined {
 		return this.showSupporter ? this.model.pony.ponyInfo : undefined;
@@ -252,8 +309,8 @@ export class Account implements OnInit, OnDestroy {
 			this.resetAllMessages();
 			this.data.name = cleanName(this.data.name).substr(0, ACCOUNT_NAME_MAX_LENGTH);
 			this.model.updateAccount(this.data)
-				.catch((e: Error) => this.accountError = e.message)
-				.then(() => this.accountSaved = true);
+				.then(() => this.accountSaved = true)
+				.catch((e: Error) => this.accountError = e.message);
 			if (this.isNewAccount) {
 				this.router.navigate(['home']);
 			}

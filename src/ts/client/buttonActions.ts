@@ -1,17 +1,17 @@
 import { compact } from 'lodash';
 import {
 	Expression, ExpressionButtonAction, CommandButtonAction, ActionButtonAction, ItemButtonAction,
-	ColorShadow, Eye, Muzzle, Iris, ButtonActionSlot, ExpressionExtra, ButtonAction, ChatType, MessageType, BodyAnimation,
-	Action, isPartyChat, EntityButtonAction, defaultDrawOptions, HeadAnimationProperties
+	ColorShadow, Eye, Muzzle, Iris, ButtonActionSlot, ExpressionExtra, ButtonAction, ChatType, MessageType, BodyAnimation, EntityFlags,
+	Action, isPartyChat, EntityButtonAction, defaultDrawOptions, HeadAnimationProperties, EntityState, NoDraw, MapFlags
 } from '../common/interfaces';
 import * as sprites from '../generated/sprites';
 import { createExpression, getSaysTime } from './clientUtils';
 import { encodeExpression, decodeExpression } from '../common/encoders/expressionEncoder';
 import { PonyTownGame } from './game';
-import { boopAction, dance1Action, upAction, downAction, turnHeadAction, interact } from './playerActions';
+import { boopAction, dance1Action, upAction, downAction, turnHeadAction, interact, getInteractTarget } from './playerActions';
 import { ACTIONS_LIMIT, COMMAND_ACTION_TIME_DELAY } from '../common/constants';
 import { cloneDeep, hasFlag, toInt } from '../common/utils';
-import { boop, defaultHeadFrame, stand, sneeze, yawn, lie, sit, fly, laugh, kiss, excite, dance1 } from './ponyAnimations';
+import { boop, defaultHeadFrame, stand, sneeze, yawn, lie, sit, fly, laugh, kiss, excite, dance1, trot } from './ponyAnimations';
 import { createDefaultPony, syncLockedPonyInfo, toPalette, mockPaletteManager } from '../common/ponyInfo';
 import { isFacingRight } from '../common/entityUtils';
 import {
@@ -26,17 +26,34 @@ import { parseColor, toGrayscale, colorToHexRGB } from '../common/color';
 import { rect, addRects, centerPoint } from '../common/rect';
 import { drawTextAligned, HAlign, VAlign } from '../graphics/spriteFont';
 import { fontPal } from '../client/fonts';
-import { isPonyLying, isPonySitting, isPonyStanding, isPonyFlying } from '../common/entityUtils';
+import { isPonyLying, isPonySitting, isPonyStanding, isPonyFlying, canBoop } from '../common/entityUtils';
 import { canPonyFly } from '../common/pony';
-import { apple2, banana, createAnEntity, getEntityType } from '../common/entities';
+import { apple2, banana, gift2, createAnEntity, getEntityType, hammer, shovel } from '../common/entities';
 import { addChatBubble } from '../common/entityUtils';
 import { fakePaletteManager } from '../common/mixins';
 import { spriteSheetsLoaded } from './spriteUtils';
 import { getEntityTypesFromName } from '../components/services/model';
 import { toWorldY, toWorldX } from '../common/positionUtils';
+import { changeWallHeight, changeWallMaterial, setWallHeight } from './BuildingUtils';
+import { faUndo, faRedo, faHome, faDownload, faSave, faTimes, faSync } from './icons';
 
 const CANVAS_SIZE = 29;
 const ICON_SIZE = 16;
+
+const LARGE_ENTITY_PREVIEW_SCALE: { [name: string]: number; } = {
+	fullBoat: 0.9,
+	fullGreenBoat: 0.9,
+	fullBench: 0.95,
+	fullBenchHigh: 0.9,
+	fullBenchHighRight: 0.9,
+	tree: 0.9,
+	tree4: 0.95,
+	tree5: 0.9,
+	pine: 0.88,
+	pine3: 0.95,
+	pine4: 0.9,
+	pine5: 0.88,
+};
 
 const headX = -26;
 const headY = -30;
@@ -93,8 +110,8 @@ export function commandButtonAction(command: string, icon: string): CommandButto
 	return { type: 'command', command, title: command, icon };
 }
 
-export function actionButtonAction(action: string, title: string, sendAction = Action.None): ActionButtonAction {
-	return { type: 'action', action, title, sendAction };
+export function actionButtonAction(action: string, title: string, sendAction = Action.None, icon?: any, secondaryIcon?: any): ActionButtonAction {
+	return { type: 'action', action, title, sendAction, icon, secondaryIcon };
 }
 
 export function itemButtonAction(icon: ColorShadow, count?: number): ItemButtonAction {
@@ -130,6 +147,12 @@ const bodyActions = [
 	actionButtonAction('hold-left', 'Left'),
 	actionButtonAction('hold-down', 'Down'),
 	actionButtonAction('hold-up', 'Up'),
+	actionButtonAction('speed-up', 'Speed up'),
+	actionButtonAction('speed-down', 'Speed down'),
+	actionButtonAction('no-clip', 'No clip'),
+	actionButtonAction('players', 'Players'),
+	actionButtonAction('maps', 'Maps'),
+	actionButtonAction('map', 'Map info'),
 	actionButtonAction('interact', 'Interact'),
 	actionButtonAction('open', 'Open gift'),
 	actionButtonAction('open-own-profile', 'Open own profile'),
@@ -138,9 +161,31 @@ const bodyActions = [
 
 const buildingToolActions = [
 	actionButtonAction('switch-tool', 'Switch tool', Action.SwitchTool),
-	actionButtonAction('switch-entity', 'Switch item to place'),
-	actionButtonAction('switch-entity-rev', 'Switch item to place (reverse)'),
-	actionButtonAction('switch-tile', 'Switch tile to place'),
+	actionButtonAction('switch-entity', 'Next item to place'),
+	actionButtonAction('switch-entity-rev', 'Previous item to place'),
+	actionButtonAction('switch-tile', 'Next tile to place'),
+	actionButtonAction('tile-next', 'Next editor tile'),
+	actionButtonAction('tile-prev', 'Previous editor tile'),
+	actionButtonAction('wall-next', 'Next wall material'),
+	actionButtonAction('wall-prev', 'Previous wall material'),
+	actionButtonAction('wall-height', 'Toggle wall height'),
+	actionButtonAction('wall-high', 'Make wall high'),
+	actionButtonAction('editor-hammer', 'Editor hammer', Action.SwitchToPlaceTool),
+	actionButtonAction('editor-shovel', 'Editor shovel', Action.SwitchToTileTool),
+	actionButtonAction('editor-broom', 'Editor broom', Action.SwitchToBroomTool),
+	actionButtonAction('editor-rope', 'Editor rope', Action.SwitchToRopeTool),
+	actionButtonAction('editor-pickaxe', 'Editor pickaxe', Action.SwitchToPickaxeTool),
+	actionButtonAction('editor-wrench', 'Editor wrench', Action.SwitchToWrenchTool),
+	actionButtonAction('editor-saw', 'Editor saw', Action.SwitchToSawTool),
+	actionButtonAction('editor-scrap', 'Editor scrap', Action.SwitchToScrapTool),
+	actionButtonAction('editor-recolor', 'Editor recolor', Action.SwitchToRecolorTool),
+	actionButtonAction('editor-season', 'Editor season', Action.SwitchToSeasonTool),
+	actionButtonAction('editor-undo', 'Undo', Action.None, faUndo),
+	actionButtonAction('editor-redo', 'Redo', Action.None, faRedo),
+	actionButtonAction('house-save', 'Save house', Action.None, faHome, faSave),
+	actionButtonAction('house-load', 'Load house', Action.None, faHome, faDownload),
+	actionButtonAction('house-reset', 'Reset house', Action.None, faHome, faSync),
+	actionButtonAction('house-clear', 'Clear house', Action.None, faHome, faTimes),
 ];
 
 const actionActions = [...bodyActions, ...emoteActions, ...buildingToolActions];
@@ -175,7 +220,26 @@ export function createEmoteActions() {
 }
 
 export function createBodyActions() {
-	return [...bodyActions];
+	return bodyActions.filter(action => !isModAction(action.action));
+}
+
+export function createModActions() {
+	return [
+		...bodyActions.filter(action => isModAction(action.action)),
+		actionButtonAction('ban-hammer', 'Hold Ban Hammer', Action.HoldBanHammer),
+	];
+}
+
+function isModAction(action: string) {
+	return action.startsWith('hold-') || action.startsWith('speed-') ||
+		action === 'no-clip' || action === 'players' || action === 'maps' || action === 'map';
+}
+
+function isBuilderAction(action: string) {
+	return action === 'switch-tool' || action === 'switch-entity' || action === 'switch-entity-rev' ||
+		action === 'switch-tile' || action === 'tile-next' || action === 'tile-prev' ||
+		action === 'wall-next' || action === 'wall-prev' || action === 'wall-height' || action === 'wall-high' ||
+		action.startsWith('editor-') || action.startsWith('house-');
 }
 
 export function createBuildingActions() {
@@ -457,13 +521,35 @@ export function adjustHeldItemOffsetSilent(game: PonyTownGame, dx: number, dy: n
 }
 
 export function useAction(game: PonyTownGame, action: ButtonAction | undefined) {
-	if (action) {
+	if (action && isActionAvailable(game, action)) {
 		switch (action.type) {
 			case 'expression':
 				game.send(server => server.expression(encodeExpression(action.expression)));
 				break;
 			case 'action':
+				if (action.action === 'editor-undo') {
+					game.debugEditorUndo();
+					break;
+				}
+				if (action.action === 'editor-redo') {
+					game.debugEditorRedo();
+					break;
+				}
+				if (action.action.startsWith('house-')) {
+					const command = ({
+						'house-save': '/savehouse',
+						'house-load': '/loadhouse',
+						'house-reset': '/resethouse',
+						'house-clear': '/clearhouse',
+					} as any)[action.action];
+					game.send(server => server.say(0, command, ChatType.Say));
+					break;
+				}
 				if (action.sendAction) {
+					if (action.action.startsWith('editor-') || action.action.startsWith('tile-') || action.action.startsWith('wall-')) {
+						game.editor.undoAvailable = true;
+						game.editor.redoAvailable = false;
+					}
 					game.send(server => server.action(action.sendAction));
 				} else {
 					switch (action.action) {
@@ -500,10 +586,43 @@ export function useAction(game: PonyTownGame, action: ButtonAction | undefined) 
 							game.send(server => server.action(Action.SwitchToTileTool));
 							game.changePlaceTile(false);
 							break;
+						case 'tile-next':
+							game.changePlaceTile(false, (game as any).editorBox);
+							break;
+						case 'tile-prev':
+							game.changePlaceTile(true, (game as any).editorBox);
+							break;
+						case 'wall-next':
+							changeWallMaterial(game, false);
+							break;
+						case 'wall-prev':
+							changeWallMaterial(game, true);
+							break;
+						case 'wall-height':
+							changeWallHeight(game, false);
+							break;
+						case 'wall-high':
+							setWallHeight(game, true);
+							break;
 						case 'interact': {
 							interact(game, false);
 							break;
 						}
+						case 'speed-up':
+						case 'speed-down': {
+							game.send(server => server.actionParam(
+								action.action === 'speed-up' ? Action.SpeedUp : Action.SpeedDown, undefined));
+							break;
+						}
+						case 'no-clip':
+							game.send(server => server.action(Action.NoClip));
+							break;
+						case 'players':
+						case 'maps':
+						case 'map':
+							game.send(server => server.actionParam(
+								({ players: Action.Players, maps: Action.Maps, map: Action.MapInfo } as any)[action.action], undefined));
+							break;
 						case 'zoom-out': {
 							game.zoomOut();
 							break;
@@ -560,12 +679,79 @@ export function useAction(game: PonyTownGame, action: ButtonAction | undefined) 
 	}
 }
 
+export function isActionAvailable(game: PonyTownGame, action: ButtonAction | undefined) {
+	if (!action || action.type !== 'action') {
+		return true;
+	}
+
+	const player = game.player;
+	if (isBuilderAction(action.action)) {
+		if (!player) return false;
+		if (action.action.startsWith('house-')) {
+			return (game.map as any).id === 'house';
+		}
+		if (action.action === 'editor-undo' || action.action === 'editor-redo') {
+			const canEdit = game.mod || hasFlag(game.map.flags, MapFlags.EditableTiles) || hasFlag(game.map.flags, MapFlags.EditableWalls);
+			return canEdit && (action.action === 'editor-undo' ? game.editor.undoAvailable : game.editor.redoAvailable);
+		}
+		if (game.mod) return true;
+		const flags = game.map.flags;
+		if (action.action === 'tile-next' || action.action === 'tile-prev' || action.action === 'editor-shovel') {
+			return hasFlag(flags, MapFlags.EditableTiles);
+		}
+		if (action.action === 'wall-next' || action.action === 'wall-prev' || action.action === 'wall-height' || action.action === 'wall-high' || action.action === 'editor-saw') {
+			return hasFlag(flags, MapFlags.EditableWalls);
+		}
+		if (action.action === 'editor-undo' || action.action === 'editor-redo') {
+			return hasFlag(flags, MapFlags.EditableTiles) || hasFlag(flags, MapFlags.EditableWalls);
+		}
+		return hasFlag(flags, MapFlags.EditableEntities);
+	}
+	switch (action.action) {
+		case 'zoom-in':
+			return game.scale < game.getZoomBounds().max - 1e-6;
+		case 'zoom-out':
+			return game.scale > game.getZoomBounds().min + 1e-6;
+		case 'dance-1':
+			return !!player && canBoop(player);
+		case 'interact':
+			return !!player && (!!getInteractTarget(game) || player.hold === hammer.type || player.hold === shovel.type ||
+				!!player.ponyState.holding && hasFlag(player.ponyState.holding.flags, EntityFlags.Usable));
+		case 'hold-right':
+		case 'hold-left':
+		case 'hold-down':
+		case 'hold-up':
+			return !!player && game.mod;
+		case 'speed-up':
+			return !!player && game.mod && Math.max(1, Math.min(7, Math.round(player.speedMultiplier || 1))) < 7;
+		case 'speed-down':
+			return !!player && game.mod && Math.max(1, Math.min(7, Math.round(player.speedMultiplier || 1))) > 1;
+		case 'no-clip':
+			return !!player && game.mod;
+		case 'players':
+		case 'maps':
+		case 'map':
+			return !!player && game.mod;
+		case 'drop-toy':
+			return !!player;
+		case 'drop':
+			return !!player && !!player.ponyState.holding;
+		case 'open':
+			return !!player && !!player.ponyState.holding && hasFlag(player.ponyState.holding.flags, EntityFlags.Usable);
+		default:
+			return true;
+	}
+}
+
 function shouldRedrawAction(action: ButtonAction | undefined, state: any, game: PonyTownGame) {
 	if (action !== state.action) {
 		return true;
 	} else if (action) {
 		switch (action.type) {
 			case 'action': {
+				if (state.disabled !== !isActionAvailable(game, action)) {
+					return true;
+				}
 				switch (action.action) {
 					case 'up':
 						return state.draw !== getUpDrawFunc(game);
@@ -575,8 +761,10 @@ function shouldRedrawAction(action: ButtonAction | undefined, state: any, game: 
 						return state.previewPony !== game.player
 							|| state.previewInfo !== (game.player && game.player.info)
 							|| state.previewPalette !== (game.player && game.player.palettePonyInfo);
-					// case 'turn-head':
-					// 	return state.right !== (game.player && isHeadFacingRight(game.player));
+					case 'turn-head': {
+						const headTurned = !!game.player && hasFlag(game.player.state, EntityState.HeadTurned);
+						return state.headTurned !== headTurned;
+					}
 					default:
 						return false;
 				}
@@ -611,6 +799,10 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 
 	if (!context)
 		return;
+	if (action && action.type === 'action' && action.icon) {
+		state.disabled = !isActionAvailable(game, action);
+		return;
+	}
 
 	state.action = action;
 
@@ -675,6 +867,8 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 			}
 			case 'action': {
 				let buffer: HTMLCanvasElement;
+				const disabled = !isActionAvailable(game, action);
+				state.disabled = disabled;
 
 				if (action.action === 'up' || action.action === 'down') {
 					state.draw = action.action === 'up' ? getUpDrawFunc(game) : getDownDrawFunc(game);
@@ -693,7 +887,10 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 						drawPony(batch, previewPony, ponyState, 15, 40, defaultDrawPonyOptions());
 					});
 				} else {
-					buffer = drawCanvasCached(`action:${action.action}`, batch => {
+					const cacheKey = action.action === 'turn-head'
+						? `action:${action.action}:${!!game.player && hasFlag(game.player.state, EntityState.HeadTurned)}`
+						: `action:${action.action}`;
+					buffer = drawCanvasCached(cacheKey, batch => {
 						switch (action.action) {
 							case 'boop': {
 								const state = { ...createState(), animation: headlessBoop, animationFrame: 0 };
@@ -706,14 +903,24 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 								break;
 							}
 							case 'turn-head': {
-								// state.right = game.player && isHeadFacingRight(game.player);
-								const ponyState = { ...createState(), animation: stand };
+								const headTurned = !!game.player && hasFlag(game.player.state, EntityState.HeadTurned);
+								const ponyState = { ...createState(), animation: stand, headTurned };
 								drawPony(batch, actionPony, ponyState, 15, 40, defaultDrawPonyOptions());
-
-								// if (!state.right) {
-								// 	context.translate(context.canvas.width, 0);
-								// 	context.scale(-1, 1);
-								// }
+								break;
+							}
+							case 'no-clip': {
+								const ponyState = { ...createState(), animation: stand };
+								batch.globalAlpha = 0.5;
+								drawPony(batch, actionPony, ponyState, 15, 40, defaultDrawPonyOptions());
+								batch.globalAlpha = 1;
+								break;
+							}
+							case 'players':
+							case 'maps':
+							case 'map': {
+								const icon = action.action === 'players' ? 'P' : action.action === 'maps' ? 'M' : 'I';
+								const bounds = rect(0, 0, 15, 15);
+								drawTextAligned(batch, icon, fontPal, BLACK, bounds, HAlign.Center, VAlign.Middle, { palette });
 								break;
 							}
 							case 'sneeze': {
@@ -753,26 +960,37 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 								batch.drawSprite(arrow, BLACK, defaultPalette, 1, 3);
 								break;
 							}
+							case 'speed-up':
+							case 'speed-down': {
+								const options = { ...defaultDrawPonyOptions(), no: ~NoDraw.AllLegs };
+								const state = { ...createState(), animation: trot, animationFrame: 1 };
+								drawPony(batch, actionPony, state, 3, 15, options);
+								batch.drawSprite(
+									action.action === 'speed-up' ? sprites.arrow_up : sprites.arrow_down,
+									BLACK, defaultPalette, 11, 1);
+								break;
+							}
 					case 'zoom-out': {
 						batch.drawRect(BLACK, 4, 7, 8, 2);
 						break;
 					}
 					case 'zoom-in': {
-						batch.drawRect(BLACK, 4, 7, 8, 2);
-						batch.drawRect(BLACK, 7, 4, 2, 8);
+						batch.drawRect(BLACK, 3, 7, 8, 2);
+						batch.drawRect(BLACK, 6, 4, 2, 8);
 						break;
 					}
-					case 'interact': {
-								const state = { ...createState(), holding: fakePaletteManager(() => apple2(0, 0)) };
-								drawPony(batch, actionPony, state, 20, 40, defaultDrawPonyOptions());
-								batch.drawSprite(sprites.arrow_up, BLACK, defaultPalette, 1, 3);
+							case 'interact':
+							case 'open': {
+								const state = { ...createState(), animation: boop, animationFrame: 7, headTurned: true };
+												const isGiftPreview = action.action === 'open';
+												const previewItem = isGiftPreview ? gift2(0, 0) : apple2(0, 0);
+												previewItem.x = toWorldX(isGiftPreview ? 8 : 5);
+												previewItem.y = toWorldY(isGiftPreview ? 12 : 10);
+												previewItem.draw && previewItem.draw(batch, { ...defaultDrawOptions, shadowColor: TRANSPARENT });
+								drawPony(batch, actionPony, state, 28, 36, defaultDrawPonyOptions());
 								break;
 							}
-							case 'open': {
-								const palette = mockPaletteManager.addArray(sprites.gift_1.palettes![0]);
-								batch.drawSprite(sprites.gift_1.color, WHITE, palette, 2, 2);
-								break;
-							} case 'drop-toy': {
+							case 'drop-toy': {
 								const state = { ...createState() };
 								const options = { ...defaultDrawPonyOptions(), toy: 17 };
 								drawPony(batch, actionPony, state, 18, 52, options);
@@ -820,6 +1038,7 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 							case 'switch-entity': {
 								const palette = mockPaletteManager.addArray(sprites.hammer.palettes![0]);
 								batch.drawSprite(sprites.hammer.color, WHITE, palette, 2, 2);
+								batch.drawSprite(sprites.arrow_right, BLACK, defaultPalette, 10, 1);
 								break;
 							}
 							case 'switch-entity-rev': {
@@ -829,8 +1048,63 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 								break;
 							}
 							case 'switch-tile': {
+								const palette = mockPaletteManager.addArray(sprites.shovel.palettes![0]);
+								batch.drawSprite(sprites.shovel.color, WHITE, palette, 2, 2);
+								batch.drawSprite(sprites.arrow_right, BLACK, defaultPalette, 1, 1);
+								break;
+							}
+							case 'editor-shovel': {
+								const palette = mockPaletteManager.addArray(sprites.shovel.palettes![0]);
+								batch.drawSprite(sprites.shovel.color, WHITE, palette, 2, 2);
+								break;
+							}
+							case 'ban-hammer': {
+								const palette = mockPaletteManager.addArray(sprites.ban_hammer.palettes![0]);
+								batch.drawSprite(sprites.ban_hammer.color, WHITE, palette, 2, 2);
+								break;
+							}
+							case 'editor-hammer':
+							{
 								const palette = mockPaletteManager.addArray(sprites.hammer.palettes![0]);
 								batch.drawSprite(sprites.hammer.color, WHITE, palette, 2, 2);
+								break;
+							}
+							case 'editor-broom':
+							case 'editor-rope':
+							case 'editor-pickaxe':
+							case 'editor-wrench':
+							case 'editor-saw':
+							case 'editor-scrap':
+							case 'editor-recolor':
+							case 'editor-season':
+							case 'wall-next':
+							case 'wall-prev':
+							case 'wall-height':
+							case 'wall-high':
+							case 'tile-next':
+							case 'tile-prev': {
+									const isWallAction = action.action === 'wall-next' || action.action === 'wall-prev' ||
+										action.action === 'wall-height' || action.action === 'wall-high';
+									const tool = isWallAction ? sprites.saw : action.action === 'editor-broom' ? sprites.broom :
+									action.action === 'editor-pickaxe' ? sprites.pickaxe :
+									action.action === 'editor-wrench' ? sprites.double_ended_wrench :
+									action.action === 'editor-saw' ? sprites.saw :
+										action.action === 'editor-scrap' ? sprites.scrap :
+										action.action === 'editor-recolor' ? sprites.brush :
+										action.action === 'editor-season' ? sprites.forest_axe :
+									action.action === 'editor-rope' ? sprites.rope_rack : sprites.shovel;
+								const palette = mockPaletteManager.addArray(tool.palettes![0]);
+								batch.drawSprite(tool.color, WHITE, palette, 2, 2);
+								if (action.action === 'tile-next' || action.action === 'tile-prev' ||
+									action.action === 'wall-next' || action.action === 'wall-prev' ||
+									action.action === 'wall-height' || action.action === 'wall-high') {
+									const arrow = action.action === 'tile-prev' || action.action === 'wall-prev'
+										? sprites.arrow_left
+										: action.action === 'wall-height' || action.action === 'wall-high'
+											? sprites.arrow_up
+											: sprites.arrow_right;
+									batch.drawSprite(arrow, isWallAction ? WHITE : BLACK, defaultPalette, 1, 1);
+								}
 								break;
 							}
 							default:
@@ -839,9 +1113,13 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 					});
 				}
 
-				context.fillStyle = ACTION_ACTION_BG;
+				const actionBackground = game.mod && isBuilderAction(action.action) ? '#c399ff' : ACTION_ACTION_BG;
+				context.fillStyle = disabled ? `#${colorToHexRGB(ACTION_ACTION_BG_DISABLED)}` : actionBackground;
 				context.fillRect(0, 0, canvas.width, canvas.height);
 				context.scale(scale, scale);
+				if (disabled) {
+					context.filter = 'grayscale(1)';
+				}
 				context.drawImage(buffer, 0, 0);
 				break;
 			}
@@ -886,6 +1164,13 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 					const center = centerPoint(bounds);
 					const offsetX = previewSize / 2 - center.x;
 					const offsetY = previewSize / 2 - center.y;
+					const fitScale = Math.min(1, (previewSize - 1) / Math.max(bounds.w, bounds.h));
+					const individualScale = LARGE_ENTITY_PREVIEW_SCALE[action.entity] || 1;
+					const previewScale = fitScale * individualScale;
+					batch.save();
+					batch.translate(previewSize / 2, previewSize / 2);
+					batch.scale(previewScale, previewScale);
+					batch.translate(-previewSize / 2, -previewSize / 2);
 
 					for (const entity of entities) {
 						if (entity.draw) {
@@ -894,6 +1179,7 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 							entity.draw(batch, { ...defaultDrawOptions, shadowColor: TRANSPARENT });
 						}
 					}
+					batch.restore();
 				});
 
 				context.scale(scale, scale);

@@ -1,3 +1,16 @@
+role-assignment-modal
+supporter-assignment-modal
+
+ng-template(#importedCharacterModal)
+	imported-modal(
+		[ponies]="importedPonies"
+		[account]="account"
+		[errorMessage]="importError"
+		(close)="closeImportedCharacterModal()"
+		(keep)="confirmImportCharacter()"
+		(remove)="closeImportedCharacterModal()"
+	)
+
 div(*ngIf="account")
 	.row
 		.col-md-12
@@ -104,11 +117,21 @@ div(*ngIf="account")
 			.mb-2
 				account-status(#accountStatus [account]="account" [verbose]="true")
 
-			h5 Roles
-			.mb-2
-				.btn-group.btn-group-sm
-					button.btn(*ngFor="let r of roles" [btnHighlight]="hasRole(r)" (click)="toggleRole(r)" [disabled]="!canToggleRole(r)")
-						| {{r}}
+			.role-management-summary.mb-3
+				.d-flex.align-items-center.justify-content-between.flex-wrap
+					div
+						h5.mb-1 Roles & tags
+						.small.text-muted Configure player permissions and their visible tags.
+					button.btn.btn-sm.btn-primary.ml-2((click)="openRoleAssignmentModal()" [disabled]="!account")
+						fa-icon.mr-1([icon]="partyIcon" [fixedWidth]="true")
+						| Manage roles
+					button.btn.btn-sm.btn-default.ml-2((click)="openSupporterAssignmentModal()" [disabled]="!account")
+						fa-icon.mr-1([icon]="starIcon" [fixedWidth]="true")
+						| Supporter
+				.role-management-current.mt-2(*ngIf="account?.roles?.length; else noRoles")
+					span.badge.badge-roles.badge-none.mr-1(*ngFor="let r of account.roles") {{r}}
+				ng-template(#noRoles)
+					.small.text-muted No additional roles assigned.
 				button.btn.btn-sm.btn-danger.ml-1((click)="remove()" [disabled]="!canRemove" title="Delete account")
 					fa-icon([icon]="trashIcon" [fixedWidth]="true")
 
@@ -463,6 +486,8 @@ div(*ngIf="account")
 					button.btn.btn-xs.btn-default.dropdown-toggle(dropdownToggle)
 						fa-icon([icon]="cogIcon" [fixedWidth]="true")
 					.dropdown-menu.dropdown-menu-right(*dropdownMenu)
+						button.dropdown-item((click)="importPony()")
+							| Import character by ID
 						a.dropdown-item((click)="getPoniesCreators()")
 							| Fetch creator info
 						a.dropdown-item((click)="restoringPonies = true")
@@ -480,7 +505,7 @@ div(*ngIf="account")
 				hr
 			.mb-2
 				pony-list-remote(
-					[accountId]="id" [expanded]="true" [deletable]="true" [highlight]="highlighCharacter" [duplicates]="duplicates")
+					[accountId]="id" [expanded]="true" [deletable]="true" [manageDetails]="true" [highlight]="highlighCharacter" [duplicates]="duplicates")
 
 	.row
 		.col-md-12

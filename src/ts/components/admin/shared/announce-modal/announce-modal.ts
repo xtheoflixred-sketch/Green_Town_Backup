@@ -1,6 +1,5 @@
 import { Component, ViewChild, TemplateRef } from '@angular/core';
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
-import { AdminModel } from '../../../services/adminModel';
 import {
 faBullhorn,
 faHorseHead,
@@ -78,7 +77,6 @@ readonly alertTypes = [
 
 constructor(
     private modalService: BsModalService,
-    private model: AdminModel
 ) {
 }
 
@@ -107,7 +105,7 @@ cancel() {
 }
 
 canSend() {
-    return !!this.message.trim();
+    return false;
 }
 
 alertClass() {
@@ -191,23 +189,9 @@ getDefaultAlertType(type: AnnounceType): AlertType {
 }
 
 send() {
-    const message = this.message.trim();
-
-    if (!message) {
-        return;
-    }
-
-    /*
-     * Keep the existing backend API intact:
-     * model.announce() currently expects:
-     *   'admin' | 'announcement'
-     *
-     * alertType is currently used by the client-side preview.
-     */
-    this.model
-        .announce(message, this.announceType)
-        .then(() => this.cancel())
-        .catch(() => undefined);
+    // The announcement modal is intentionally kept visible but disabled.
+    // No message is sent to any server route or global broadcast.
+    return;
 }
 
 }

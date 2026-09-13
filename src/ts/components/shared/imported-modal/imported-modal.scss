@@ -1,0 +1,145 @@
+:host {
+	display: block;
+	width: 100%;
+	max-width: 760px;
+}
+
+.modal-header {
+	padding: 16px 20px 10px;
+	border-bottom: 1px solid rgba(255, 255, 255, .08);
+
+	.modal-title {
+		margin: 0;
+		font-size: 1.35rem;
+		font-weight: 600;
+		text-align: center;
+		width: 100%;
+	}
+}
+
+.imported-modal-body {
+	width: 100%;
+	padding: 18px 20px;
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+.imported-modal-info {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	margin-bottom: 18px;
+}
+
+.imported-modal-summary {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 14px;
+	border: 1px solid rgba(255, 196, 0, .45);
+	border-radius: 6px;
+	background: rgba(255, 196, 0, .08);
+
+	fa-icon {
+		flex-shrink: 0;
+		font-size: 1.4rem;
+		color: #f8c24d;
+	}
+
+	p {
+		margin: 0;
+		line-height: 1.45;
+		font-size: .92rem;
+		color: rgba(255,255,255,.85);
+	}
+}
+
+.imported-modal-summary.is-error {
+	border-color: rgba(220, 53, 69, .55);
+	background: rgba(220, 53, 69, .08);
+
+	fa-icon {
+		color: #dc3545;
+	}
+}
+
+.imported-modal-error {
+	margin: 0;
+	line-height: 1.45;
+	font-size: .92rem;
+	color: #ffb4b4;
+}
+
+.preview-card {
+	width: 100%;
+	padding: 16px;
+	background: rgba(255,255,255,.03);
+	border: 1px solid rgba(255,255,255,.08);
+	border-radius: 6px;
+	box-shadow:
+		inset 0 1px 0 rgba(255,255,255,.03),
+		0 4px 12px rgba(0,0,0,.22);
+}
+
+.preview-grid {
+	display: grid;
+	width: 100%;
+	align-items: start;
+	justify-items: center;
+	gap: 18px;
+}
+
+.large-preview.preview-single {
+	grid-template-columns: 1fr;
+}
+
+.large-preview.preview-double {
+	grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
+
+.large-preview.preview-triple {
+	grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+
+.large-preview {
+	.preview-item {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.character-preview-wrapper {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 250px;
+		overflow: hidden;
+	}
+}
+
+.imported-modal-preview {
+	display: block;
+	width: 100%;
+	height: 100%;
+	max-width: 100%;
+	filter: drop-shadow(0 8px 18px rgba(0,0,0,.45));
+}
+
+.portrait-grid,
+.compact-grid {
+	grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+}
+
+.portrait-grid portrait-box,
+.compact-grid portrait-box {
+	display: flex;
+	justify-content: center;
+	width: 100%;
+}
+
+.modal-footer {
+	align-items: center;
+}

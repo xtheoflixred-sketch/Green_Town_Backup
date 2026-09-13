@@ -209,7 +209,9 @@ export class PonyBox implements AfterViewChecked {
 	}
 	get specialTag() {
 		const pony = this.pony;
-		return getTag(pony && pony.tag, pony && (pony as any).tagColor);
+		const tag = getTag(pony && pony.tag, pony && (pony as any).tagColor);
+		const translation = pony && (pony as any).tagTranslation;
+		return tag && translation ? { ...tag, name: translation } : tag;
 	}
 	get specialClass() {
 		const tag = this.specialTag;
@@ -217,6 +219,9 @@ export class PonyBox implements AfterViewChecked {
 	}
 	get specialTagBgColor() {
 		const pony = this.pony as any;
+		if (pony && pony.tagGradientStart && pony.tagGradientEnd) {
+			return `linear-gradient(${pony.tagGradientDirection === 'vertical' ? 'to bottom' : 'to right'}, #${pony.tagGradientStart}, #${pony.tagGradientEnd})`;
+		}
 		const customColor = pony && pony.tagColor;
 		if (!customColor) return undefined;
 		return `#${customColor}`;

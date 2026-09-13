@@ -6,6 +6,7 @@ import {
 export const ITEM_LIMIT = 1000;
 
 export const ROLES = ['owner', 'admin', 'mod', 'dev', 'wcode', 'builder', 'npc'];
+export type RoleTagOverride = string | null;
 
 export const SERVER_LABELS: { [key: string]: string; } = {
 	'dev': 'badge-test',
@@ -404,6 +405,7 @@ export interface AccountBase<ID> extends TimestampsBase, BannedMuted {
 	birthyear?: number;
 	emails?: string[];
 	roles: string[];
+	roleTagOverrides?: { [role: string]: RoleTagOverride };
 	origins: OriginInfoBase[];
 	settings?: AccountSettings;
 	note: string;
@@ -422,6 +424,7 @@ export interface AccountBase<ID> extends TimestampsBase, BannedMuted {
 	characterCount: number;
 	patreon?: PatreonFlags;
 	supporter?: SupporterFlags;
+	supporterExpiresAt?: Date;
 	supporterLog?: LogEntry[];
 	supporterTotal?: number;
 	supporterDeclinedSince?: Date;
@@ -472,7 +475,12 @@ export interface CharacterBase<ID> extends TimestampsBase {
 	account: ID;
 	site?: ID;
 	tag?: string;
+	tagRole?: string;
 	tagColor?: string; // Custom color override for the tag (hex format)
+	tagGradientStart?: string;
+	tagGradientEnd?: string;
+	tagGradientDirection?: 'horizontal' | 'vertical';
+	tagTranslation?: string;
 	supportTag?: string;
 	supportChat?: PonySupportChatType;
 	supportTagPriority?: boolean;
@@ -633,6 +641,7 @@ export interface AccountUpdate extends BannedMuted {
 	note?: string;
 	flags?: number;
 	supporter?: number;
+	supporterExpiresAt?: Date | undefined;
 }
 
 export interface BaseValues {
@@ -956,6 +965,10 @@ export interface IAdminServerActions {
 	setName(accountId: string, name: string): Promise<void>;
 	setAge(accountId: string, age: number): Promise<void>;
 	setRole(accountId: string, role: string, set: boolean): Promise<void>;
+	setRoleTag(accountId: string, role: string, tag: RoleTagOverride): Promise<void>;
+	generateSupporterCode(level: number, durationDays: number): Promise<string>;
+	setSupporter(accountId: string, level: number, durationDays: number): Promise<void>;
+	clearSupporter(accountId: string): Promise<void>;
 	updateAccount(accountId: string, update: AccountUpdate, message?: string): Promise<void>;
 	timeoutAccount(accountId: string, timeout: number): Promise<void>;
 	updateAccountCounter(accountId: string, name: keyof AccountCounters, value: number): Promise<void>;

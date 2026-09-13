@@ -1,0 +1,47 @@
+.modal-header
+	h4.modal-title Teleport players
+	button.close(type="button" aria-label="Close" (click)="onClose()")
+		span(aria-hidden="true") ×
+.modal-body
+	.input-group.mb-3
+		input.form-control(type="search" placeholder="Search name, account or ID" [(ngModel)]="search" (input)="updatePlayers()")
+		.input-group-append
+			label.input-group-text.select-all-label(for="teleport-select-all")
+				input#teleport-select-all(type="checkbox" [checked]="selectAll" (change)="setSelectAll($event.target.checked)")
+				| Select all
+	.alert.alert-danger(*ngIf="error") {{ error }}
+	.teleport-hint.text-muted Choose a target by clicking a player. Use the checkboxes to select players to move.
+	.text-center.text-muted.p-4(*ngIf="loading") Loading players...
+	.list-group(*ngIf="!loading")
+		button.list-group-item.list-group-item-action.player-row(
+			*ngFor="let player of filteredPlayers"
+			[type]="'button'"
+			[class.active]="targetId === player.id"
+			(click)="setTarget(player.id)")
+			portrait-box.player-portrait([pony]="getPony(player)" size="small" [noBorder]="true")
+			.player-details
+				.player-name {{ player.name || 'Unnamed' }}
+				.player-account {{ player.accountName }}
+				.player-id ID: {{ player.id }}
+			.player-actions.ml-auto((click)="$event.stopPropagation()")
+				.custom-control.custom-checkbox
+					input.custom-control-input(type="checkbox" [checked]="isSelected(player.id)" [id]="'teleport-' + player.id" (change)="select(player.id)")
+					label.custom-control-label([for]="'teleport-' + player.id")
+	.text-center.text-muted.p-4(*ngIf="!loading && !filteredPlayers.length") No players found
+	.modal-footer
+		button.btn.btn-outline-secondary(type="button" (click)="onClose()") Cancel
+		.btn-group(dropdown)
+			button.btn.btn-primary(type="button" [disabled]="!canTeleportTo" (click)="teleport('self')") Teleport To
+			button.btn.btn-primary.dropdown-toggle.dropdown-toggle-split(type="button" dropdownToggle [disabled]="!canTeleportTo" aria-label="More Teleport To actions")
+				fa-icon([icon]="ellipsisIcon" [fixedWidth]="true")
+			.dropdown-menu.dropdown-menu-right(*dropdownMenu)
+				button.dropdown-item(type="button" (click)="teleport('players-to-target')" [disabled]="!selectedIds.length && !selectAll") Move selected players to target
+				button.dropdown-item(type="button" (click)="teleport('group')" [disabled]="!selectedIds.length && !selectAll") Move me and selected players to target
+				button.dropdown-item(type="button" (click)="teleport('players-to-target', [], targetId, true)") Move everyone to target
+		.btn-group(dropdown)
+			button.btn.btn-primary(type="button" [disabled]="!canTeleportHere" (click)="teleport('bring', targetId ? [targetId] : selectedIds, undefined, false)") Teleport Here
+			button.btn.btn-primary.dropdown-toggle.dropdown-toggle-split(type="button" dropdownToggle [disabled]="!canTeleportHere" aria-label="More Teleport Here actions")
+				fa-icon([icon]="ellipsisIcon" [fixedWidth]="true")
+			.dropdown-menu.dropdown-menu-right(*dropdownMenu)
+				button.dropdown-item(type="button" (click)="teleport('bring')" [disabled]="!selectedIds.length && !selectAll") Bring selected players here
+				button.dropdown-item(type="button" (click)="teleport('bring', [], undefined, true)") Bring everyone here

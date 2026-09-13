@@ -1,5 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
 import { remove, uniq } from 'lodash';
 import {
 	Account, Event, Auth, ROLES, Character, MergeInfo, MergeAccountData, SupporterInvite, accountFlags,
@@ -8,14 +9,17 @@ import {
 import { compareByName, createSupporterChanges, SupporterChange, getTranslationUrl, getAge } from '../../../common/adminUtils';
 import { hasRole } from '../../../common/accountUtils';
 import { AdminModel } from '../../services/adminModel';
+import { Model } from '../../services/model';
 import {
 	faCog, faSync, faLanguage, faTrash, faGlobe, faTerminal, faSpinner,
 	faIdBadge, faEnvelope, faFont, faCompressArrowsAlt, faComment, faSignOutAlt, faUsers, faCheckCircle,
-	faDatabase, faCopy, faCalendar, faExclamationCircle,
+	faDatabase, faCopy, faCalendar, faExclamationCircle, faStar,
 } from '../../../client/icons';
 import { flagsToString, includes, flatten, removeItem, formatPlaytime } from '../../../common/utils';
 import { Subscription } from '../../../common/interfaces';
 import { showTextInNewTab } from '../../../client/htmlUtils';
+import { RoleAssignmentModal } from '../shared/role-assignment-modal/role-assignment-modal';
+import { SupporterAssignmentModal } from '../shared/supporter-assignment-modal/supporter-assignment-modal';
 
 const defaultLimit = 15;
 const defaultDuplicatesLimit = 10;
@@ -27,6 +31,9 @@ const year = (new Date()).getFullYear();
 	styleUrls: ['admin-account-details.scss'],
 })
 export class AdminAccountDetails implements OnInit, OnDestroy {
+	@ViewChild(RoleAssignmentModal, { static: true }) roleAssignmentModal!: RoleAssignmentModal;
+	@ViewChild(SupporterAssignmentModal, { static: true }) supporterAssignmentModal!: SupporterAssignmentModal;
+	@ViewChild('importedCharacterModal', { static: true }) importedCharacterModalTpl!: TemplateRef<any>;
 	readonly cogIcon = faCog;
 	readonly syncIcon = faSync;
 	readonly langIcon = faLanguage;
@@ -41,6 +48,7 @@ export class AdminAccountDetails implements OnInit, OnDestroy {
 	readonly mergeIcon = faCompressArrowsAlt;
 	readonly commentIcon = faComment;
 	readonly partyIcon = faUsers;
+	readonly starIcon = faStar;
 	readonly checkIcon = faCheckCircle;
 	readonly consoleIcon = faTerminal;
 	readonly spinnerIcon = faSpinner;
@@ -72,6 +80,9 @@ export class AdminAccountDetails implements OnInit, OnDestroy {
 	emailLimit = defaultLimit;
 	loadingDuplicates = false;
 	accountObject?: Account;
+	importedPonies: Character[] = [];
+	importError?: string;
+	importedCharacterModalRef?: BsModalRef;
 	clearingSessions = false;
 	authData?: string;
 	authDataAccount?: string;
@@ -91,7 +102,13 @@ export class AdminAccountDetails implements OnInit, OnDestroy {
 	private authsSubscription?: Subscription;
 	private accountSubscription?: Subscription;
 	private originsSubscription?: Subscription;
-	constructor(private route: ActivatedRoute, private model: AdminModel) {
+	constructor(
+		private route: ActivatedRoute,
+		private model: AdminModel,
+		private appModel: Model,
+		private router: Router,
+		private modalService: BsModalService,
+	) {
 	}
 	get canRemove() {
 		return hasRole(this.model.account, 'owner');
@@ -299,6 +316,68 @@ export class AdminAccountDetails implements OnInit, OnDestroy {
 		if (this.id) {
 			this.model.setRole(this.id, role, !this.hasRole(role));
 		}
+	}
+	openRoleAssignmentModal() {
+		if (this.account && this.id) {
+			this.roleAssignmentModal.open(this.account, this.id);
+		}
+	}
+	openSupporterAssignmentModal() {
+		if (this.account && this.id) this.supporterAssignmentModal.open(this.account, this.id);
+	}
+	importPony() {
+		if (!this.id) return;
+		const sourceId = prompt('Enter the ID(s) of the character(s) to import (comma separated):');
+		if (!sourceId) return;
+
+		const ids = sourceId.split(',').map(id => id.trim()).filter(Boolean);
+		if (!ids.length) return;
+
+		Promise.all(ids.map(id => this.model.getPony(id)))
+			.then(ponies => {
+				const validPonies = ponies.filter((pony): pony is Character => !!pony && !!pony.info);
+				const missingIds = ids.filter((_, index) => !ponies[index] || !ponies[index]!.info);
+
+				this.importedPonies = validPonies;
+				this.importError = missingIds.length ?
+					`Some characters could not be imported: ${missingIds.join(', ')}.` :
+					undefined;
+
+				this.importedCharacterModalRef = this.modalService.show(this.importedCharacterModalTpl, { class: 'modal-md' });
+			});
+	}
+
+	closeImportedCharacterModal() {
+		this.importedCharacterModalRef && this.importedCharacterModalRef.hide();
+		this.importedCharacterModalRef = undefined;
+		this.importedPonies = [];
+		this.importError = undefined;
+	}
+
+	confirmImportCharacter() {
+		if (!this.id || !this.importedPonies.length) {
+			this.closeImportedCharacterModal();
+			return;
+		}
+
+		Promise.all(this.importedPonies.map(pony => {
+			const info = pony.info || '';
+			return this.model.createPony(this.id!, `${pony.name} copy`, info);
+		}))
+			.then(() => {
+				const firstImportedPony = this.importedPonies[0];
+				if (firstImportedPony && firstImportedPony.info) {
+					this.appModel.selectPony({
+						id: firstImportedPony._id,
+						name: firstImportedPony.name,
+						info: firstImportedPony.info,
+					});
+					this.router.navigate(['/character']);
+				}
+			})
+			.then(() => this.update())
+			.then(() => this.closeImportedCharacterModal())
+			.catch(() => this.closeImportedCharacterModal());
 	}
 	hasFlag(flag: number) {
 		return !!(this.account && (this.account.flags & flag));

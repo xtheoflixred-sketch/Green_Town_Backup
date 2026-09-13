@@ -1,10 +1,14 @@
 button.action-button(
 	(click)="click()" (mousedown)="onPointerDown($event)" (touchstart)="onPointerDown($event)"
-	[class.active]="active" [class.no-shadow]="!shadow" [class.rare-item]="rare"
+	[class.active]="active" [class.no-shadow]="!shadow" [class.rare-item]="rare" [class.disabled]="!isAvailable"
+	[disabled]="!isAvailable" [class.icon-action]="action && action.type === 'action' && action.icon"
+	[class.mod-action]="isModStyled"
 	[tooltip]="tooltipText || (action && action.title || '')"
 	[placement]="tooltipPlacement"
 	[containerClass]="tooltipClass"
 	container="body")
+	fa-icon.main-action-icon(*ngIf="action && action.type === 'action' && action.icon" [icon]="action.icon")
+	fa-icon.secondary-action-icon(*ngIf="action && action.type === 'action' && action.secondaryIcon" [icon]="action.secondaryIcon")
 	canvas(#canvas width="29" height="29")
 	.shortcut {{shortcut}}
 	.count(*ngIf="action && action.type === 'item'") {{action.count}}

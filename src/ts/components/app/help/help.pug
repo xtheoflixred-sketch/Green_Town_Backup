@@ -215,10 +215,14 @@
 			ul.spaced-list(*ngIf="isOwner")
 				li <code>/update</code> - prepare server for update
 				li <code>/shutdown</code> - shutdown the server
-				li <code>/loadmap &lt;name&gt;</code> - load a saved map from store
-				li <code>/savemap &lt;name&gt;</code> - save current map as JSON
+				li <code>/loadtiles &lt;name&gt;</code> - load saved tiles from store
+				li <code>/savetiles &lt;name&gt;</code> - save current tiles as JSON
 				li <code>/savemapbin &lt;name&gt;</code> - save map as binary variant
-				li <code>/saveentities &lt;name&gt;</code> - dump current entities
+				li <code>/saveplacedentities &lt;name&gt;</code> - save only newly placed entities
+				li <code>/saveentities &lt;name&gt;</code> - alias of saveplacedentities
+				li <code>/loadentities &lt;name&gt;</code> - load saved entities into current map
+				li <code>/clearentities</code> - remove all entities from the current map
+				li <code>/resetentities</code> - reset entities on the current map
 				li <code>/savehides</code> - export hide data
 				li <code>/test</code> - developer debug command
 				li <code>/spamchat</code> - toggle spam messages (BETA)

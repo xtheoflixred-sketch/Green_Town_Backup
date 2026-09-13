@@ -1,0 +1,112 @@
+ng-template(#template)
+	.modal-header.supporter-modal-header
+		.supporter-modal-title
+			.small.text-uppercase.text-muted Supporter management
+			h4.modal-title.mb-0
+				fa-icon.mr-2([icon]="starIcon" [fixedWidth]="true")
+				| Supporter access
+		.supporter-modal-account.text-muted.text-center(*ngIf="account")
+			strong.d-block.text-light {{account.name}}
+			span.badge.badge-secondary.mt-1
+				fa-icon.mr-1([icon]="currentLevel ? currentIcon : disabledIcon" [fixedWidth]="true")
+				| Current tier: {{currentLevel || 'none'}}
+		button.close.supporter-modal-close(type="button" aria-label="Close" (click)="close()") ×
+
+	.modal-body.supporter-modal-body(#scrollBody *ngIf="account")
+		.alert.alert-info.supporter-modal-note.d-flex.align-items-start(role="alert")
+			fa-icon.mr-2([icon]="infoIcon" [fixedWidth]="true")
+			span Select a reward tier to generate a single-use code. The player activates it in Account settings.
+
+		.card.border-0.bg-dark.shadow-sm
+			.card-body.p-3
+				.d-flex.align-items-center.justify-content-between.mb-3
+					strong.text-light
+						fa-icon.mr-2([icon]="starIcon" [fixedWidth]="true")
+						| Choose supporter state
+					span.badge.badge-info {{tierOptions.length}} states
+				.level-grid
+					button.level-card.btn.btn-outline-secondary(type="button" *ngFor="let option of tierOptions" [class.is-selected]="selectedLevel === option.level" [class.is-special]="option.level <= 0" (click)="selectLevel(option.level)")
+					span.level-stars(*ngIf="option.level > 0" [ngClass]="'supporter-' + option.level")
+						fa-icon(*ngFor="let star of [1, 2, 3, 4].slice(0, option.level)" [icon]="starIcon" [fixedWidth]="true")
+					span.level-special-icon(*ngIf="option.level === 0")
+						fa-icon([icon]="disabledIcon" [fixedWidth]="true")
+					span.level-special-icon(*ngIf="option.level === -1")
+						fa-icon([icon]="infoIcon" [fixedWidth]="true")
+					strong.d-block {{option.label}}
+					span.small {{option.description}}
+					span.small.text-muted {{option.benefits.length}} benefits
+
+		.card.mt-3.shadow-sm(*ngIf="selectedTag; else specialTier")
+			.card-body
+				.d-flex.align-items-center.mb-2
+					fa-icon.mr-2.text-warning([icon]="benefitsIcon" [fixedWidth]="true")
+					strong.text-light Tier {{selectedLevel}} preview and benefits
+				.d-flex.align-items-center
+				div.supporter-tag-preview.pixelart([ngClass]="'badge-' + selectedTag.className" style="width: 150px; height: 44px; overflow: hidden; display: flex; align-items: center; justify-content: center;")
+					character-preview(
+						[tag]="selectedTag.id"
+						[tagGradientStart]="selectedGradient?.start"
+						[tagGradientEnd]="selectedGradient?.end"
+						[tagGradientDirection]="selectedGradient?.direction || 'horizontal'"
+						[scale]="1.5"
+						[noBackground]="true"
+						[namePlateOffsetY]="8"
+						[tagOnlyNamePlateOffsetY]="8"
+					)
+				div.ml-3
+					strong Supporter Tier {{selectedLevel}}
+					.small.text-muted In-game tag and supporter chat color
+				ul.supporter-benefits.mt-3
+					li(*ngFor="let reward of selectedBenefits")
+						fa-icon.mr-2.text-success([icon]="checkIcon" [fixedWidth]="true")
+						| {{reward}}
+		ng-template(#specialTier)
+			.card.mt-3.border-secondary.shadow-sm
+				.card-body
+					.d-flex.align-items-center
+						fa-icon.mr-2.text-muted([icon]="disabledIcon" [fixedWidth]="true")
+						div
+							strong {{selectedOption.label}}
+							.small.text-muted.d-block {{selectedOption.description}}. No active supporter tag is applied.
+				ul.supporter-benefits.mt-3(*ngIf="selectedBenefits.length")
+					li(*ngFor="let reward of selectedBenefits")
+						fa-icon.mr-2.text-success([icon]="checkIcon" [fixedWidth]="true")
+						| {{reward}}
+
+		.card.mt-3.border-0.bg-light
+			.card-body.p-3
+				.form-group.mb-0
+					label.sr-only(for="supporter-duration") Supporter duration in days
+					.input-group.input-group-sm
+						.input-group-prepend
+							span.input-group-text(title="Supporter duration in days")
+								fa-icon([icon]="calendarIcon" [fixedWidth]="true" aria-hidden="true")
+						input#supporter-duration.form-control(type="number" min="1" max="3650" [(ngModel)]="durationDays" aria-label="Supporter duration in days")
+						.input-group-append
+							span.input-group-text days
+
+		.alert.alert-success.mt-3.mb-0.shadow-sm(*ngIf="generatedCode" role="status")
+			.d-flex.align-items-center
+				fa-icon.mr-2([icon]="checkIcon" [fixedWidth]="true" aria-hidden="true")
+				strong Code generated
+				button.btn.btn-sm.btn-outline-success.ml-auto(type="button" (click)="copyCode()" title="Copy code" [attr.aria-label]="copiedCode ? 'Code copied' : 'Copy generated code'")
+					fa-icon.mr-1([icon]="copiedCode ? checkIcon : copyIcon" [fixedWidth]="true")
+					| {{copiedCode ? 'Copied' : 'Copy'}}
+			.input-group.input-group-sm.mt-2
+				input.form-control(type="text" [value]="generatedCode" readonly aria-label="Generated supporter code" (click)="selectGeneratedCode($event)")
+				.input-group-append
+					span.input-group-text one-time
+			.small.text-muted.mt-2 This code is shown once. Send it securely to the player.
+
+	.modal-footer.d-flex.justify-content-between.flex-wrap
+		button.btn.btn-outline-danger(type="button" (click)="revokeSupporter()" [disabled]="!canGenerate || !currentLevel")
+			fa-icon.mr-1([icon]="starIcon" [fixedWidth]="true")
+			| Revoke supporter tag
+		.btn-group
+			button.btn.btn-success(type="button" (click)="grantSupporter()" [disabled]="!canGenerate || !canGrantSelectedLevel")
+				fa-icon.mr-1([icon]="starIcon" [fixedWidth]="true")
+				| Grant manually
+			button.btn.btn-primary(type="button" (click)="generateCode()" [disabled]="!canGenerate || !canGrantSelectedLevel")
+				fa-icon.mr-1([icon]="generating ? infoIcon : keyIcon" [fixedWidth]="true")
+				| {{generating ? 'Generating...' : 'Generate code'}}
+			button.btn.btn-outline-secondary(type="button" (click)="close()") Done

@@ -20,11 +20,11 @@ import { formatDuration, invalidEnum } from '../../common/utils';
 import { timingEntries, setTimingEnabled } from '../timing';
 import { toPairs, groupBy } from 'lodash';
 import { getSizeOfMap } from '../serverMap';
-import { createServerDefaultPony } from '../../common/ponyInfo';
-import { compressPonyString } from '../../common/compressPony';
 import { settings as globalSettings } from '../settings';
 import { teleportTo } from '../playerUtils';
 import { getWorldPerfStats } from '../worldPerfStats';
+import { createServerDefaultPony } from '../../common/ponyInfo';
+import { compressPonyString } from '../../common/compressPony';
 
 export const createAccountChanged =
 	(world: World, tokens: TokenService, findAccount: FindAccountSafe) =>
@@ -114,8 +114,8 @@ export const createJoin =
 				throw new UserError('Server is restricted');
 			}
 
-			// If character has no pony info, use server setting default if provided,
-			// otherwise create a server default pony from constants
+			// If character has no pony info, use the server setting default if provided,
+			// otherwise always fall back to the canonical server default pony generated from the constants.
 			if (!character.info) {
 				character.info = globalSettings && (globalSettings as any).defaultPonyInfo ? (globalSettings as any).defaultPonyInfo : compressPonyString(createServerDefaultPony());
 			}
@@ -258,24 +258,10 @@ export const createShutdownServer =
 		};
 
 
-import { v4 as uuidv4 } from 'uuid';
-import { AlertEntry } from '../../common/utils';
-
 export const createAnnounce =
-       (world: World) =>
-       async (message: string, type: 'admin' | 'announcement') => {
-	       if (type === 'announcement') {
-		       const entry: AlertEntry = {
-			       type: 'announcement',
-			       message,
-			       createdAt: Date.now(),
-			       id: uuidv4(),
-		       } as any;
-		       world.globalAlerts.push(entry);
-		       // TODO: trigger alert sync/broadcast to all clients here
-	       } else {
-		       // legacy admin message (optional: could also be alert)
-	       }
+       (_world: World) =>
+       async (_message: string, _type: 'admin' | 'announcement') => {
+	       // Global announcement UI is intentionally disabled and kept in place without functional behavior.
        };
 
 /* istanbul ignore next */

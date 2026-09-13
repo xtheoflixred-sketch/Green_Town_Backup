@@ -147,46 +147,44 @@ export function blushColor(coat: number): number {
 
 export function getTileColor(tile: TileType, season: Season) {
 	switch (tile) {
+		case TileType.None:
+			return 0x00000000;
 		case TileType.Dirt:
+			if (season === Season.Autumn) return 0xedd29eff;
+			if (season === Season.Winter) return 0xd9c2a1ff;
+			return 0xf5d99bff;
 		case TileType.ElevatedDirt:
-			if (season === Season.Autumn) {
-				return 0xedd29eff;
-			} else if (season === Season.Winter) {
-				return 0xd9c2a1ff;
-			} else {
-				return 0xf5d99bff;
-			}
+			if (season === Season.Autumn) return 0xd8aa7dff;
+			if (season === Season.Winter) return 0xc0af9eff;
+			return 0xe4ba7bff;
+		case TileType.Grass:
+			if (season === Season.Autumn) return 0xddcf71ff;
+			if (season === Season.Winter) return 0xe1ebf8ff;
+			return 0x7cc991ff;
 		case TileType.Water:
 		case TileType.WalkableWater:
 		case TileType.Boat:
 			return 0x6dbdecff;
-		case TileType.Grass:
-			if (season === Season.Autumn) {
-				return 0xddcf71ff;
-			} else if (season === Season.Winter) {
-				return 0xe1ebf8ff;
-			} else {
-				return 0x7cc991ff;
-			}
+		case TileType.Wood:
+			return 0xd7ac7eff;
 		case TileType.Ice:
 		case TileType.WalkableIce:
 			return 0xc1dcecff;
 		case TileType.SnowOnIce:
 			return 0xe4eefbff;
-		case TileType.Wood:
-			return 0xd7ac7eff;
 		case TileType.Stone:
 			return 0x9da6abff;
 		case TileType.Stone2:
 			return 0xa0a691ff;
-		case TileType.None:
 		case TileType.WallH:
 		case TileType.WallV:
-		case TileType.WallMaterialWood:
-		case TileType.WallMaterialStone:
 		case TileType.WallHTall:
 		case TileType.WallVTall:
-			return BLACK;
+			return 0x1b1d22ff;
+		case TileType.WallMaterialWood:
+			return 0x8f6843ff;
+		case TileType.WallMaterialStone:
+			return 0x5e6369ff;
 		default:
 			invalidEnum(tile);
 			return BLACK;

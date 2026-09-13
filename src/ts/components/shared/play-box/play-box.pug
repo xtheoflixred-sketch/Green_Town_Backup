@@ -14,12 +14,6 @@
 				| Your account has been flagged for creating multiple accounts.
 				| Creating more accounts may result in a permanent ban.
 
-.form-group(*ngFor="let entry of globalAlertsEntries$ | async")
-	.alert([ngClass]="alertClass(entry.type)" role="alert")
-		fa-icon.alert-icon([icon]="alertIcon(entry.type)" size="2x" [fixedWidth]="true")
-		.alert-content
-			.alert-message {{entry.message}}
-
 .form-group(*ngIf="leftMessage")
 	.alert([ngClass]="leftAlertClass" role="alert")
 		fa-icon.alert-icon([icon]="alertIcon(leftAlertClass === 'alert-info' ? 'info' : 'warning')" size="2x" [fixedWidth]="true")
@@ -49,26 +43,45 @@
 
 .form-group.dropdown(dropdown)
 	.btn-group.d-flex
-		button.btn.btn-lg.btn-success.text-ellipsis.flex-grow-1(
-			#playButton (click)="joining ? cancel() : play()" [disabled]="!canPlay && !joining")
-			div(*ngIf="joining")
-				fa-icon.mr-1([icon]="spinnerIcon" [spin]="true")
-				| Cancel
-			div(*ngIf="!joining && server")
-				| #[strong {{label || 'Play'}}] on #[span([emojiText]="server.name")]
-			.text-faded(*ngIf="!joining && !server")
-				| select server to play
+		button.btn.btn-lg.btn-success.text-ellipsis.flex-grow-1.play-action(
+			#playButton (click)="play()" [disabled]="!canPlay || joining")
+			.play-state-viewport
+				.play-state-stack
+					div.play-selected-content(*ngIf="!joining && server")
+						.server-markers.server-markers-selected
+							.flag(*ngFor="let f of server.countryFlags" [ngClass]="'flag-' + f")
+							fa-icon.server-marker(*ngFor="let marker of getServerFlags(server)" [ngClass]="marker.className" [icon]="marker.icon" [fixedWidth]="true")
+						.play-server-label
+							strong {{label || 'Play'}}
+							span.mx-1 on
+							span([emojiText]="server.name")
+					div.play-hover-content
+						fa-icon.mr-2([icon]="playIcon")
+						| Play
+					div.play-empty-content(*ngIf="!joining && !server")
+						fa-icon.mr-2([icon]="playIcon")
+						| Play
+					div.play-loading-content(*ngIf="joining")
+						fa-icon.mr-2([icon]="spinnerIcon" [spin]="true")
+						span Loading...
+			.play-progress-inline(*ngIf="joining")
+					fa-icon.play-progress-icon([icon]="loadingIcons[loadingIconIndex]" [fixedWidth]="true")
+					.progress
+						.progress-bar([style.width.%]="loadingProgress" role="progressbar" [attr.aria-valuenow]="loadingProgress" aria-valuemin="0" aria-valuemax="100")
+		button.btn.btn-outline-light.btn-lg.play-cancel(*ngIf="joining" type="button" (click)="cancel()")
+			| Cancel
 		button.btn.btn-lg.btn-success.flex-grow-0.dropdown-toggle(
 			dropdownToggle aria-label="select server" [disabled]="joining" style="position: relative")
-
 	.dropdown-menu.w-100(*dropdownMenu style="overflow: hidden")
 		button.dropdown-item(*ngFor="let s of servers" (click)="server = s; playButton.focus()")
 			div
 				.float-right(style="position: relative;")
 					.text-unsafe(*ngIf="s.offline") #[span.sr-only server] offline
 					.text-muted(*ngIf="!s.offline") online #[span.sr-only players] ({{s.online}})
-				.flag.mr-2(*ngFor="let f of s.countryFlags" [ngClass]="'flag-' + f")
-				fa-icon.text-muted.mr-2(*ngIf="!hasFlag(s)" [icon]="getIcon(s)" size="lg")
+				.server-markers
+					.flag(*ngFor="let f of s.countryFlags" [ngClass]="'flag-' + f")
+					fa-icon.server-marker(*ngFor="let marker of getServerFlags(s)" [ngClass]="marker.className" [icon]="marker.icon" [fixedWidth]="true")
+					fa-icon.server-marker.text-muted(*ngIf="!hasFlag(s) && !getServerFlags(s).length" [icon]="getIcon(s)" size="lg" [fixedWidth]="true")
 				strong([emojiText]="s.name")
 			.text-muted.text-wrap {{s.desc}}
 
@@ -89,6 +102,15 @@
 			.alert-message
 				| Here you can try experimental and unfinished features that we're working on.
 				| Keep in mind everything is subject to change.
+
+.form-group(*ngIf="isDevOrTestServer")
+	.alert.alert-warning(role="alert")
+		fa-icon.alert-icon([icon]="warningIcon" size="2x" [fixedWidth]="true")
+		.alert-content
+			.alert-title Development/Test Server
+			.alert-message
+				| This server is intended for development and testing. Features may be unfinished,
+				| unstable, or changed without notice.
 
 .form-group(*ngIf="server?.offline")
 	.alert.alert-info(role="alert")

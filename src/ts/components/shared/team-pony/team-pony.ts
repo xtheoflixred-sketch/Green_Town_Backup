@@ -44,6 +44,9 @@ export class TeamPony implements OnInit, OnDestroy, OnChanges {
 	@Input() noShadow = true;
 	@Input() topOffset = -20;
 	@Input() tagColor?: string;
+	@Input() tagGradientStart?: string;
+	@Input() tagGradientEnd?: string;
+	@Input() tagGradientDirection: 'horizontal' | 'vertical' = 'horizontal';
 	ponyData = decompressPonyString(SUPPORTER_PONY);
 	state = defaultPonyState();
 

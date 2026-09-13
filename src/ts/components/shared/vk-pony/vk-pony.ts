@@ -49,6 +49,10 @@ const MENO = 'DBWIzP8imd08//D19fVazSjcwf1GhLNEiMxENSovLy/NsIdJQDnGqYBiSztWQTM6Ly
 export class VkPony implements OnInit, OnDestroy {
 	@ViewChild('characterPreview', { static: true }) characterPreview!: CharacterPreview;
 	@Input() scale = 3;
+	@Input() tagColor?: string;
+	@Input() tagGradientStart?: string;
+	@Input() tagGradientEnd?: string;
+	@Input() tagGradientDirection: 'horizontal' | 'vertical' = 'horizontal';
 	pony = decompressPonyString(MENO);
 	state = defaultPonyState();
 	private expression?: Expression;

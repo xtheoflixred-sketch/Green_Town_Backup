@@ -30,6 +30,7 @@ export const enum Holiday {
 export const enum Weather {
 	None,
 	Rain,
+	Storm,
 }
 
 export const enum MapType {
@@ -431,7 +432,12 @@ export interface Says {
 	timer?: number;
 	total?: number;
 	color?: string;
+	gradientStart?: string;
+	gradientEnd?: string;
+	gradientDirection?: TagGradientDirection;
 }
+
+export type TagGradientDirection = 'horizontal' | 'vertical';
 
 export const typingIndicatorMessage = '...';
 export const typingIndicatorDuration = 1000;
@@ -507,7 +513,11 @@ export interface EntityPart {
 	ox?: number;
 	oy?: number;
 	oz?: number;
+	offsetY?: number;
 	bounds?: Rect;
+	boatSurfaceBounds?: Rect;
+	boatSurfaceBobbing?: boolean;
+	boatSurfaceBounds2?: Rect;
 	draw?(batch: PaletteSpriteBatch, options: DrawOptions): void;
 
 	// light
@@ -885,7 +895,9 @@ export interface AccountData extends AccountDataExtra {
 	settings: AccountSettings;
 	characterCount: number;
 	supporter?: number;
+	supporterExpiresAt?: string;
 	roles?: string[] | undefined;
+	roleTagOverrides?: { [role: string]: string | null };
 	check?: any;
 	flags: AccountDataFlags;
 	state?: any;
@@ -935,6 +947,11 @@ export interface PonyOptions {
 	expr?: number; // TODO: move to dedicated field
 	tag?: string; // TODO: move to flags ?
 	tagColor?: string;
+	tagRole?: string;
+	tagTranslation?: string;
+	tagGradientStart?: string;
+	tagGradientEnd?: string;
+	tagGradientDirection?: TagGradientDirection;
 	extra?: boolean; // TODO: move to flags ?
 	hold?: number;
 	toy?: number;
@@ -1059,6 +1076,7 @@ export interface WorldState {
 	timeFrozen?: boolean;
 	timeSpeed?: number;
 	frozenHour?: number;
+	timeMode?: 'running' | 'frozen' | 'day' | 'night';
 }
 
 export interface MapState {
@@ -1142,6 +1160,7 @@ export function isValidModTile(tile: TileType): boolean {
 }
 
 export interface MapInfo {
+	id?: string;
 	type: MapType;
 	flags: MapFlags;
 	regionsX: number;
@@ -1151,6 +1170,7 @@ export interface MapInfo {
 }
 
 export interface WorldMap extends IMap<Region | undefined> {
+	id?: string;
 	type: MapType;
 	flags: MapFlags;
 	tileTime: number;
@@ -1162,6 +1182,7 @@ export interface WorldMap extends IMap<Region | undefined> {
 	entitiesTriggers: Entity[];
 	entitiesLight: Entity[];
 	entitiesLightSprite: Entity[];
+	weatherClouds: Entity[];
 	entitiesById: Map<number, Entity>;
 	poniesToDecode: Pony[];
 	width: number;
@@ -1213,6 +1234,7 @@ export interface ChatMessage {
 	message: string;
 	type: MessageType;
 	color?: string;
+	gradient?: string;
 }
 
 export interface CommonButtonAction {
@@ -1237,6 +1259,8 @@ export interface ActionButtonAction {
 	title: string;
 	action: string;
 	sendAction: Action;
+	icon?: any;
+	secondaryIcon?: any;
 }
 
 export interface ItemButtonAction {
@@ -1300,12 +1324,21 @@ export const enum Action {
 	SwitchToScrapTool,
 	SwitchToRecolorTool,
 	SwitchToSeasonTool,
+	SwitchToScrewdriverTool,
 	Excite,
 	ModalState,
 	Dance1,
 	EditingCharacter,
 	Typing,
 	AdjustHeldItemOffset,
+	SpeedUp,
+	SpeedDown,
+	NoClip,
+	Players,
+	Maps,
+	MapInfo,
+	SwitchToWrenchTool,
+	HoldBanHammer,
 }
 
 export const enum InfoFlags {
@@ -1399,8 +1432,13 @@ export interface EditorSeasonAction {
 	entities: number[];
 }
 
+export interface EditorOffsetAction {
+	type: 'offset';
+	entities: { id: number; offsetY: number; }[];
+}
+
 export interface EditorOtherAction {
-	type: 'undo' | 'clear' | 'list';
+	type: 'undo' | 'redo' | 'clear' | 'list';
 }
 
 export interface EditorTileAction {
@@ -1437,10 +1475,19 @@ export interface EditorSetNameAction {
 export interface EditorSetTintAction {
 	type: 'settint';
 	entities: number[];
+	spriteTint?: number;
 	customImageScale?: number;
 	customImageOpacity?: number;
 	customImageZOrder?: 'above' | 'below';
 	entityScale?: number;
+	entityOpacity?: number;
+}
+
+export interface EditorSetCustomSignAction {
+	type: 'setCustomSign';
+	entity: number;
+	name?: string;
+	message?: string;
 }
 
 export interface EditorHoldEntityAction {
@@ -1462,13 +1509,15 @@ export type EditorAction =
 	EditorMirrorAction |
 	EditorRecolorAction |
 	EditorSeasonAction |
+	EditorOffsetAction |
 	EditorOtherAction |
 	EditorTileAction |
 	EditorPartyAction |
 	EditorSetCustomImageAction |
 	EditorSetNameAction |
 	EditorSetTintAction |
-	EditorHoldEntityAction;
+	EditorHoldEntityAction |
+	EditorSetCustomSignAction;
 
 export const enum SelectFlags {
 	None = 0,
@@ -1514,6 +1563,11 @@ export interface PonyObject {
 	info: string;
 	tag?: string;
 	tagColor?: string; // Custom color for the tag (hex format like 'ff0000')
+	tagRole?: string;
+	tagTranslation?: string;
+	tagGradientStart?: string;
+	tagGradientEnd?: string;
+	tagGradientDirection?: TagGradientDirection;
 	supportTag?: string;
 	supportChat?: PonySupportChatType;
 	supportTagPriority?: boolean;
@@ -1629,6 +1683,10 @@ export interface PonyInfoBase<T, SET> {
 
 	fangs: number | undefined;
 	muzzle: number | undefined;
+	mouthColor?: T;
+	tongueColor?: T;
+	teethColor?: T;
+	fangsColor?: T;
 	freckles: number | undefined; // TODO: remove
 	frecklesColor: T | undefined; // TODO: remove
 	magicColor: T | undefined;
@@ -1677,6 +1735,14 @@ export interface PalettePonyInfo extends PonyInfoBase<Palette, PaletteSpriteSet>
 	backLegs: PaletteSpriteSet | undefined;
 	frontLegs: PaletteSpriteSet | undefined;
 	magicColorValue: number;
+	mouthColorValue: number;
+	tongueColorValue: number;
+	teethColorValue: number;
+	fangsColorValue: number;
+	mouthColorPalette: Palette;
+	tongueColorPalette: Palette;
+	teethColorPalette: Palette;
+	fangsColorPalette: Palette;
 }
 
 export interface PonyInfo extends PonyInfoBase<string, SpriteSet<string>> {
@@ -1730,6 +1796,10 @@ export interface BodyAnimationFrame {
 	bodyY: number;
 	headX: number;
 	headY: number;
+	wingX: number;
+	wingY: number;
+	tailX: number;
+	tailY: number;
 	frontLegX: number;
 	frontLegY: number;
 	frontFarLegX: number;
@@ -1738,6 +1808,7 @@ export interface BodyAnimationFrame {
 	backLegY: number;
 	backFarLegX: number;
 	backFarLegY: number;
+	headTurned?: boolean;
 }
 
 export interface BodyShadow {
@@ -1757,6 +1828,8 @@ export interface BodyAnimation {
 export interface HeadAnimationFrame {
 	headX: number;
 	headY: number;
+	noseX: number;
+	noseY: number;
 	left: Eye;
 	right: Eye;
 	mouth: Muzzle;
@@ -1790,6 +1863,7 @@ export interface PonyState {
 	headAnimation: HeadAnimation | undefined;
 	headAnimationFrame: number;
 	headTurned: boolean;
+	headTurnedOverride?: boolean;
 	headTilt: number;
 	headTurn: number;
 	blinkFrame: number;
@@ -2158,6 +2232,7 @@ export interface EntityVisualOptions {
 	selected?: boolean;
 	coverLifting?: number;
 	seasonOverride?: number;
+	offsetY?: number;
 }
 
 export interface SpiderEntityOptions {
@@ -2186,6 +2261,17 @@ export interface EntityDescriptor {
 }
 
 export type EntityOptions = PonyEntityOptions | SpiderEntityOptions | SignEntityOptions | EntityVisualOptions | {};
+
+export interface ScreenEntityOptions {
+	url: string;
+	kind: 'youtube' | 'video';
+	width: number;
+	height: number;
+	muted: boolean;
+	controls: boolean;
+	zOrder?: 'above' | 'below';
+}
+
 export type EntityOrPonyOptions = Partial<PonyOptions> & EntityOptions;
 
 export interface EntityWorldState {
@@ -2227,6 +2313,7 @@ export interface CommonPalettes {
 	defaultPalette: Palette;
 	mainFont: FontPalettes;
 	smallFont: FontPalettes;
+	gradientFontPalette: Palette;
 }
 
 export interface EngineInfo {

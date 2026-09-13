@@ -1,4 +1,4 @@
-import { CharacterTag, FontPalettes } from './interfaces';
+import { CharacterTag, FontPalettes, TagGradientDirection, MessageType } from './interfaces';
 import { hasRole, AccountSupporter } from './accountUtils';
 import { MOD_COLOR, ADMIN_COLOR, DEV_COLOR, PATREON_COLOR, ANNOUNCEMENT_COLOR, WHITE, OWNER_COLOR, WCODE_COLOR, LIGHT_GRAY } from './colors';
 import { parseColorFast } from './color';
@@ -39,6 +39,43 @@ const tags: { [key: string]: CharacterTag; } = {
 	'hidden': { ...placeholder, name: 'hidden', className: 'hidden', color: ANNOUNCEMENT_COLOR, icon: faEyeSlash },
 };
 
+const russianTagTranslations: { [key: string]: string } = {
+	owner: 'владелец сервера',
+	admin: 'администратор',
+	dev: 'разработчик',
+	'dev:prog': 'программист',
+	'dev:animate': 'аниматор',
+	'dev:art': 'художник',
+	'dev:design': 'дизайнер',
+	'dev:music': 'музыкант',
+	mod: 'модератор',
+	wcode: 'вайб-кодер',
+	builder: 'строитель карт',
+	npc: 'НПС',
+	sup1: 'поддержавший',
+	sup2: 'поддержавший',
+	sup3: 'поддержавший',
+	sup4: 'поддержавший',
+	hidden: 'скрыт',
+};
+
+export interface TagGradient {
+	start: string;
+	end: string;
+	direction?: TagGradientDirection;
+}
+
+const tagGradients: { [key: string]: TagGradient } = {
+	owner: { start: 'ff9999', end: 'cc0000' },
+	admin: { start: 'ff0000', end: 'cc0000' },
+	wcode: { start: 'ff4242', end: 'cc0000' },
+	builder: { start: '8a8a8a', end: '5a5a5a' },
+	npc: { start: 'f0e68c', end: 'b8ab2a' },
+	sup2: { start: 'ffcd99', end: 'c77305' },
+	sup3: { start: 'fffda4', end: 'fdbb0b' },
+	sup4: { start: 'b8f2c8', end: '196f3d' },
+};
+
 Object.keys(tags).forEach(id => {
 	const tag = tags[id];
 	tag.id = id;
@@ -47,6 +84,14 @@ Object.keys(tags).forEach(id => {
 });
 
 export const emptyTag: CharacterTag = { id: '', name: 'no tag', label: '', className: '', tagClass: '', color: 0, icon: faBan };
+
+export function getTagTranslation(id: string | undefined): string | undefined {
+	return id ? russianTagTranslations[id] : undefined;
+}
+
+export function getTagGradient(id: string | undefined): TagGradient | undefined {
+	return id ? tagGradients[id] : undefined;
+}
 
 export function getAllTags() {
 	return Object.keys(tags).map(key => tags[key]);
@@ -60,6 +105,37 @@ export function getTag(id: string | undefined, customColor?: string | number): C
 	// Apply custom color override while preserving all other tag properties
 	const color = typeof customColor === 'string' ? parseColorFast(customColor) : customColor;
 	return { ...tag, color };
+}
+
+export function getChatColorOverride(entity: {
+	messageColor?: string;
+	tag?: string;
+	tagRole?: string;
+	tagColor?: string;
+	tagGradientStart?: string;
+} | undefined, type: MessageType): string | undefined {
+	if (!entity) return undefined;
+	if (entity.messageColor) return entity.messageColor;
+	if (type === MessageType.Chat) {
+		return entity.tagColor || entity.tagGradientStart || undefined;
+	}
+	return undefined;
+}
+
+export function getChatGradientOverride(entity: { messageColor?: string; tag?: string; tagRole?: string; tagGradientStart?: string; tagGradientEnd?: string; tagGradientDirection?: TagGradientDirection; } | undefined, type: MessageType): TagGradient | undefined {
+	if (!entity) return undefined;
+	if (entity.messageColor) return undefined;
+
+	if (type !== MessageType.Chat) return undefined;
+
+	const tagId = entity.tagRole || entity.tag;
+	const builtInGradient = getTagGradient(tagId);
+	const start = entity.tagGradientStart || (builtInGradient && builtInGradient.start);
+	const end = entity.tagGradientEnd || (builtInGradient && builtInGradient.end);
+	const direction = entity.tagGradientDirection || (builtInGradient && builtInGradient.direction) || 'horizontal';
+
+	if (!start || !end) return undefined;
+	return { start, end, direction };
 }
 
 export function getTagTooltipById(id: string | undefined): string | undefined {
@@ -78,6 +154,7 @@ export function getTagTooltip(tag: CharacterTag | undefined): string | undefined
 
 export function getTagPalette(tag: CharacterTag, palettes: FontPalettes) {
 	switch (tag.id) {
+		case 'sup1': return palettes.supporter1;
 		case 'sup2': return palettes.supporter2;
 		case 'sup3': return palettes.supporter3;
 		case 'sup4': return palettes.supporter4;

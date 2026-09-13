@@ -119,6 +119,9 @@ export class CharacterList implements OnInit {
 		return getTag(pony.tag, pony.tagColor);
 	}
 	getCharacterTagBgColor(pony: PonyObject): string | undefined {
+		if (pony.tagGradientStart && pony.tagGradientEnd) {
+			return `linear-gradient(${pony.tagGradientDirection === 'vertical' ? 'to bottom' : 'to right'}, #${pony.tagGradientStart}, #${pony.tagGradientEnd})`;
+		}
 		const customColor = pony.tagColor;
 		if (!customColor) return undefined;
 		return `#${customColor}`;

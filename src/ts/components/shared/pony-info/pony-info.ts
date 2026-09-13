@@ -11,6 +11,9 @@ export class PonyPreview {
 	@Input() name?: string;
 	@Input() tag?: string;
 	@Input() tagColor?: string;
+	@Input() tagGradientStart?: string;
+	@Input() tagGradientEnd?: string;
+	@Input() tagGradientDirection: 'horizontal' | 'vertical' = 'horizontal';
 	@Input() passive = true;
 	@Input() scale = 1;
 	@Input() noBackground = false;

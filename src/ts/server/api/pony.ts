@@ -92,7 +92,12 @@ export const createSavePony =
 				character.desc = typeof data.desc === 'string' ? data.desc.substr(0, PLAYER_DESC_MAX_LENGTH) : '';
 				character.name = data.name;
 				character.tag = data.tag;
-				character.tagColor = typeof data.tagColor === 'string' ? data.tagColor : undefined;				character.supportTag = data.supportTag;
+				character.tagColor = typeof data.tagColor === 'string' ? data.tagColor : undefined;
+				character.tagTranslation = typeof data.tagTranslation === 'string' ? data.tagTranslation.substr(0, 40) : undefined;
+				character.tagGradientStart = typeof data.tagGradientStart === 'string' ? data.tagGradientStart.substr(0, 6) : undefined;
+				character.tagGradientEnd = typeof data.tagGradientEnd === 'string' ? data.tagGradientEnd.substr(0, 6) : undefined;
+				character.tagGradientDirection = data.tagGradientDirection === 'vertical' ? 'vertical' : data.tagGradientDirection === 'horizontal' ? 'horizontal' : undefined;
+				character.supportTag = data.supportTag;
 				character.supportChat = typeof data.supportChat === 'string' && ['say', 'party', 'supporter', 'supporter1', 'supporter2', 'supporter3', 'supporter4', 'think', 'partyThink', 'whisper', 'mod', 'admin', 'owner', 'builder', 'npc'].includes(data.supportChat) ? data.supportChat as PonySupportChatType : undefined;
 				character.supportTagPriority = data.supportTagPriority === false ? false : data.supportTagPriority === true ? true : undefined;
 				character.site = auth ? auth._id : null;

@@ -8,14 +8,17 @@ export function createBodyFrame([
 	frontLeg = 0, frontFarLeg = 0, backLeg = 0, backFarLeg = 0,
 	bodyX = 0, bodyY = 0, headX = 0, headY = 0,
 	frontLegX = 0, frontLegY = 0, frontFarLegX = 0, frontFarLegY = 0,
-	backLegX = 0, backLegY = 0, backFarLegX = 0, backFarLegY = 0
+	backLegX = 0, backLegY = 0, backFarLegX = 0, backFarLegY = 0,
+	wingX = 0, wingY = 0, tailX = 0, tailY = 0, headTurned = 0
 ]: number[]): Readonly<BodyAnimationFrame> {
 	return {
 		body, head, wing, tail,
 		frontLeg, frontFarLeg, backLeg, backFarLeg,
 		bodyX, bodyY, headX, headY,
+		wingX, wingY, tailX, tailY,
 		frontLegX, frontLegY, frontFarLegX, frontFarLegY,
-		backLegX, backLegY, backFarLegX, backFarLegY
+		backLegX, backLegY, backFarLegX, backFarLegY,
+		headTurned: headTurned ? true : undefined
 	};
 }
 
@@ -717,8 +720,10 @@ export function mergeAnimations(name: string, fps: number, loop: boolean, animat
 
 // head animations
 
-export function createHeadFrame([headX = 0, headY = 0, left = 0, right = 0, mouth = 0]: number[]): HeadAnimationFrame {
-	return { headX, headY, left, right, mouth };
+export function createHeadFrame([
+	headX = 0, headY = 0, left = 0, right = 0, mouth = 0, noseX = 0, noseY = 0
+]: number[]): HeadAnimationFrame {
+	return { headX, headY, noseX, noseY, left, right, mouth };
 }
 
 export function createHeadAnimation(name: string, fps: number, loop: boolean, frames: number[][],

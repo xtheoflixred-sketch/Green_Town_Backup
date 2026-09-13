@@ -732,6 +732,65 @@ it('previewBackground persists and does not corrupt fields', () => {
 		expect(result.backLegs!.fills).eql(['00ff00']);
 	});
 
+	it('preserves unlocked back markings when both markings are empty', () => {
+		const custom = createBasePony();
+		custom.lockBackLegs = false;
+		custom.frontLegs = { type: 0, pattern: 0 } as any;
+		custom.backLegs = { type: 0, pattern: 0 } as any;
+
+		const data = compressPonyString(custom as any);
+		const result = decompressPonyString(data, true);
+
+		expect(result.lockBackLegs).equal(false);
+	});
+
+	it('preserves a solid front leg color without a pattern', () => {
+		const custom = createBasePony();
+		custom.frontLegs = {
+			type: 0,
+			pattern: 0,
+			fills: ['123456'],
+			lockFills: [false],
+		} as any;
+
+		const data = compressPonyString(custom as any);
+		const result = decompressPonyString(data, true);
+
+		expect(result.frontLegs!.fills![0]).equal('123456');
+	});
+
+	it('keeps locked back legs on custom coat fill instead of black', () => {
+		const custom = createBasePony();
+		custom.coatFill = '123456';
+		custom.coatOutline = '654321';
+		custom.lockBackLegs = true;
+		custom.frontLegs = {
+			type: 0,
+			pattern: 0,
+			fills: ['123456'],
+			outlines: ['654321'],
+			lockFills: [true],
+			lockOutlines: [true],
+		} as any;
+		custom.backLegs = {
+			type: 0,
+			pattern: 0,
+			fills: ['123456'],
+			outlines: ['654321'],
+			lockFills: [true],
+			lockOutlines: [true],
+		} as any;
+
+		const data = compressPonyString(custom as any);
+		const result = decompressPonyString(data, true);
+
+		expect(result.lockBackLegs).equal(true);
+		expect(result.frontLegs!.fills![0]).equal('123456');
+		expect(result.backLegs!.fills![0]).equal('123456');
+		expect(result.frontLegs!.outlines![0]).equal('654321');
+		expect(result.backLegs!.outlines![0]).equal('654321');
+	});
+
 	it('different back legs with unlock (lockBackLegs = false, unlockBackLegs = true)', () => {
 		const custom = createBasePony();
 		custom.lockBackLegs = false;

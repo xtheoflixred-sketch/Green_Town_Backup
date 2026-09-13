@@ -1086,6 +1086,28 @@ describe('ServerActions', () => {
 			serverActions.editorAction({ type: 'place', x: 0, y: 0, entity: 'foo' });
 		});
 
+		it('handles light color changes and undo restores previous state', () => {
+			client.isMod = true;
+			server.flags.editor = true;
+			const entity = {
+				id: 42,
+				type: 5,
+				x: 1,
+				y: 2,
+				state: 0,
+				lightColor: 0,
+				coverLifting: 0,
+				selected: false,
+			} as any;
+			stub(world, 'getEntityById').withArgs(42).returns(entity);
+
+			serverActions.editorAction({ type: 'setLightColor', entities: [42], color: 0xFF3377 });
+			expect(entity.lightColor).to.equal(0xFF3377);
+
+			serverActions.editorAction({ type: 'undo' });
+			expect(entity.lightColor).to.equal(0);
+		});
+
 		it('undos', () => {
 			client.isMod = true;
 			server.flags.editor = true;

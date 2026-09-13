@@ -35,6 +35,8 @@ import { DatePicker } from './date-picker/date-picker';
 import { SignInBox } from './sign-in-box/sign-in-box';
 import { MockLoginModal } from './mock-login-modal/mock-login-modal';
 import { MockLoginCreateModal } from './mock-login-modal/mock-login-create-modal';
+import { TeleportModal } from './teleport-modal/teleport-modal';
+import { TimeModal } from './time-modal/time-modal';
 import { PonyBox } from './pony-box/pony-box';
 import { PonyPreview } from './pony-info/pony-info';
 import { ModBox } from './mod-box/mod-box';
@@ -45,12 +47,14 @@ import { SettingsBox } from './settings-box/settings-box';
 import { SettingsModal } from './settings-modal/settings-modal';
 import { InvitesModal } from './invites-modal/invites-modal';
 import { DeleteModal } from './delete-modal/delete-modal';
+import { ImportedModal } from './imported-modal/imported-modal';
 import { SignOutModal } from './sign-out-modal/sign-out-modal';
 import { ChangelogModal } from './changelog-modal/changelog-modal';
 import { DevChangelogModal } from './dev-changelog-modal/dev-changelog-modal';
 import { ChangelogView } from './changelog-view/changelog-view';
 import { SelectToyModal } from './select-toy-modal/select-toy-modal';
 import { TestModal } from './test-modal/test-modal';
+import { BuilderToolsModal } from './builder-tools-modal/builder-tools-modal';
 import { UnsavedCharacterModal } from './unsaved-character-modal/unsaved-character-modal';
 import { FillOutline } from './fill-outline/fill-outline';
 import { FriendsBox } from './friends-box/friends-box';
@@ -70,6 +74,9 @@ import { PageLoader } from './page-loader/page-loader';
 import { virtualListDirectives, VirtualList } from './virtual-list/virtual-list';
 import { EmojiPickerComponent } from './emoji-picker/emoji-picker';
 import { EmojiInputComponent } from './emoji-input/emoji-input';
+import { CustomSignModal } from './custom-sign-modal/custom-sign-modal';
+import { MiniMap } from './mini-map/mini-map';
+import { ScreenEntityModal } from './screen-entity-modal/screen-entity-modal';
 
 import { Anchor } from './directives/anchor';
 import { BtnHighlight, BtnHighlightDanger } from './directives/btnHighlight';
@@ -115,6 +122,8 @@ const declarations = [
 	EmoteBox,
 	EmojiPickerComponent,
 	EmojiInputComponent,
+	CustomSignModal,
+	ScreenEntityModal,
 	SliderBar,
 	SpriteBox,
 	SpriteSelection,
@@ -143,6 +152,8 @@ const declarations = [
 	SignInBox,
 	MockLoginModal,
 	MockLoginCreateModal,
+	TeleportModal,
+	TimeModal,
 	PonyBox,
 	PonyPreview,
 	ModBox,
@@ -156,6 +167,7 @@ const declarations = [
 	InstallButton,
 	InvitesModal,
 	DeleteModal,
+	ImportedModal,
 	SignOutModal,
 	ChangelogModal,
 	DevChangelogModal,
@@ -163,6 +175,7 @@ const declarations = [
 	InventoryBar,
 	SelectToyModal,
 	TestModal,
+	BuilderToolsModal,
 	UnsavedCharacterModal,
 	LeaveSiteModal,
 	KbdKey,
@@ -176,6 +189,7 @@ const declarations = [
 	NotificationItem,
 	NotificationList,
 	EmojiText,
+	MiniMap,
 	...dropdownDirectives,
 	...tabsetComponents,
 	...draggableComponents,

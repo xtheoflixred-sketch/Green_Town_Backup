@@ -14,6 +14,175 @@
 	justify-content: center;
 }
 
+.play-action {
+	position: relative;
+	min-width: 0;
+	min-height: 48px;
+	overflow: hidden;
+}
+
+.play-selected-content,
+.play-hover-content,
+.play-loading-content,
+.play-empty-content {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-width: 0;
+}
+
+.play-state-viewport {
+	display: block;
+	position: relative;
+	height: 24px;
+	overflow: hidden;
+	width: 100%;
+}
+
+.play-state-stack {
+	display: flex;
+	flex-direction: column;
+	transition: transform 220ms ease;
+}
+
+.play-state-stack > div {
+	min-height: 24px;
+}
+
+.server-markers {
+	display: inline-flex;
+	align-items: center;
+	flex: 0 0 auto;
+	height: 18px;
+	margin-right: 6px;
+}
+
+.server-markers > * {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	box-sizing: border-box;
+	flex: 0 0 18px;
+	width: 18px;
+	height: 18px;
+	margin: 0 0 0 -9px !important;
+	font-size: 13px;
+	line-height: 18px;
+	filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.65));
+}
+
+.server-markers > :first-child {
+	margin-left: 0 !important;
+}
+
+.server-markers > .flag {
+	border-radius: 50%;
+}
+
+.server-markers > .server-marker {
+	z-index: 1;
+	color: currentColor;
+}
+
+.server-markers > .server-marker.server-marker-dev,
+.server-markers > .server-marker.server-marker-test {
+	color: $text-muted;
+	filter:
+		drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.95))
+		drop-shadow(0 0 1px rgba(255, 255, 255, 0.95));
+}
+
+.server-markers > .server-marker.server-marker-dev {
+	filter:
+		drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.95))
+		drop-shadow(0 0 1px $dev);
+}
+
+.server-markers > .server-marker.server-marker-test {
+	filter:
+		drop-shadow(0 0 0.5px rgba(255, 255, 255, 0.95))
+		drop-shadow(0 0 1px #777);
+}
+
+.play-selected-content {
+	gap: 8px;
+}
+
+.play-server-label {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.play-hover-content {
+	order: 2;
+}
+
+.play-loading-content {
+	font-weight: 600;
+}
+
+.play-action:not([disabled]):hover .play-state-stack {
+	transform: translateY(-24px);
+}
+
+.play-cancel {
+	align-self: center;
+	min-height: 40px;
+	margin: 4px 4px 4px 0;
+	border-color: #fff;
+	color: #fff;
+}
+
+.play-cancel:hover {
+	background: #fff;
+	color: $success;
+}
+
+.play-progress-inline {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	position: absolute;
+	left: 12px;
+	right: 12px;
+	bottom: 4px;
+	height: 7px;
+	z-index: 2;
+}
+
+.play-progress-icon {
+	flex: 0 0 14px;
+	width: 14px;
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.85);
+	animation: play-progress-icon 420ms ease-in-out;
+}
+
+
+.play-progress-inline .progress {
+	flex: 1;
+	height: 6px;
+	margin: 0;
+	background: rgba(255, 255, 255, 0.18);
+}
+
+.play-progress-inline .progress-bar {
+	transition: width 420ms ease;
+}
+
+.server-markers-selected {
+	flex: 0 0 auto;
+}
+
+@keyframes play-progress-icon {
+	from { opacity: 0; transform: translateY(2px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
 .server-alert {
 	display: flex;
 	align-items: center;

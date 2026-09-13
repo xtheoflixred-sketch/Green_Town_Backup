@@ -33,6 +33,13 @@ ng-template(#testModal)
 		(keydown)="$event.stopPropagation()"
 	)
 
+ng-template(#builderToolsModal)
+	builder-tools-modal(
+		(close)="modalRef.hide()"
+		[focusTrap]="true"
+		(keydown)="$event.stopPropagation()"
+	)
+
 .settings-box.unselectable
 	.dropdown(
 		#dropdown="ag-dropdown"
@@ -53,7 +60,9 @@ ng-template(#testModal)
 
 			.dropdown-header.d-flex.justify-content-between.mb-1
 				span {{server}}
-				span.clock-display {{time}}
+				span.clock-display
+					fa-icon.mr-1([icon]="weatherIcon" [fixedWidth]="true")
+					| {{time}}
 
 			// =========================
 			// SCALE (ZOOM OVERHAUL)
@@ -177,6 +186,10 @@ ng-template(#testModal)
 			)
 				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
 				| Select toys
+
+			a.dropdown-item.mb-1(*ngIf="isBuilderOrMod" (click)="openBuilderTools()")
+				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")
+				| Builder tools
 
 			a.dropdown-item.mb-1((click)="openTestModal()")
 				fa-icon.mr-2([icon]="emptyIcon" [fixedWidth]="true")

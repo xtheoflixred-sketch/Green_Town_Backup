@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { PalettePonyInfo } from '../../../common/interfaces';
+import { PalettePonyInfo, PonyState } from '../../../common/interfaces';
 
 @Component({
 	selector: 'square-portrait-box',
@@ -12,6 +12,7 @@ export class SquarePortraitBox {
 	@Input() size = 'large';
 	@Input() pony: PalettePonyInfo | undefined = undefined;
 	@Input() chatHoverColor: number | undefined = undefined;
+	@Input() renderState: PonyState | undefined = undefined;
 
 	get squareSize() {
 		return `${this.size}-square`;

@@ -903,12 +903,15 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 	}
 
 	private insertLineBreakAtCursor() {
-		const selection = window.getSelection();
 		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
-		if (!selection || !el) return;
+		if (!el) return;
 
-		if (!selection.rangeCount || !el.contains(selection.anchorNode)) {
+		let selection = window.getSelection();
+		if (!selection || !selection.rangeCount || !el.contains(selection.anchorNode)) {
 			this.focusInput();
+			selection = window.getSelection();
+		}
+		if (!selection || !selection.rangeCount || !el.contains(selection.anchorNode)) {
 			return;
 		}
 
@@ -936,7 +939,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 				const sprite = emoji && font && getCharacterSprite(part, font);
 				if (sprite && emoji) {
 					const img = document.createElement('img');
-					img.className = 'pixelart';
+					img.className = 'ui-emoji';
 					img.style.display = 'inline-block';
 					img.style.verticalAlign = 'middle';
 					img.style.width = `${(sprite.w + sprite.ox) * 1.6}px`;
@@ -1132,8 +1135,33 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.keydown(e);
 	}
 
-	onEditorPaste(_event: ClipboardEvent) {
+	onEditorPaste(event: ClipboardEvent) {
 		this.pasted = true;
+		event.preventDefault();
+
+		const text = event.clipboardData && event.clipboardData.getData('text/plain');
+		if (!text) {
+			return;
+		}
+
+		const selection = window.getSelection();
+		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
+		if (!selection || !el) return;
+		if (!selection.rangeCount || !el.contains(selection.anchorNode)) {
+			this.focusInput();
+		}
+
+		const activeSelection = window.getSelection();
+		if (!activeSelection || !activeSelection.rangeCount || !el.contains(activeSelection.anchorNode)) return;
+		const range = activeSelection.getRangeAt(0);
+		range.deleteContents();
+		const textNode = document.createTextNode(text);
+		range.insertNode(textNode);
+		range.setStartAfter(textNode);
+		range.collapse(true);
+		activeSelection.removeAllRanges();
+		activeSelection.addRange(range);
+		this.onMessageChange();
 	}
 	send(_event: Event | undefined) {
 		const { chatType, message, entityId } = this.getMessageState();
@@ -1210,6 +1238,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			return;
 		}
 
+		const isEnter = e.key === 'Enter' || e.keyCode === Key.ENTER;
 		if (e.keyCode === Key.TAB) {
 			if (this.showChatTypeMenu) {
 				const options = this.selectableChatTypeMenuOptions;
@@ -1241,7 +1270,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			}
 
 			e.preventDefault();
-		} else if (e.keyCode === Key.ENTER && this.isOpen) {
+		} else if (isEnter && this.isOpen) {
 			if (e.shiftKey) {
 				this.insertLineBreakAtCursor();
 				e.preventDefault();

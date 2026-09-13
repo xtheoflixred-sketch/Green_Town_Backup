@@ -110,7 +110,10 @@ export function getPonyHeadPosition(state: State, ponyX: number, ponyY: number) 
 	const baseY = ponyY - PONY_HEIGHT;
 	const x = baseX + frame.bodyX;
 	const y = baseY + frame.bodyY;
-	const { headX, headY } = getHeadXY(x, y, state.headTurned, frame, headFrame);
+	const headTurned = state.headTurnedOverride === undefined
+		? (frame.headTurned === undefined ? state.headTurned : frame.headTurned)
+		: state.headTurnedOverride;
+	const { headX, headY } = getHeadXY(x, y, headTurned, frame, headFrame);
 	return { x: headX, y: headY };
 }
 
@@ -352,7 +355,10 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 	const x = baseX + frame.bodyX;
 	const y = baseY + frame.bodyY;
 	const body = frame.body;
-	const { headX, headY } = getHeadXY(x, y, state.headTurned, frame, headFrame);
+	const frameHeadTurned = state.headTurnedOverride === undefined
+		? (frame.headTurned === undefined ? state.headTurned : frame.headTurned)
+		: state.headTurnedOverride;
+	const { headX, headY } = getHeadXY(x, y, frameHeadTurned, frame, headFrame);
 	const frontLegOffset = at(offsets.frontLegOffsets, body)!;
 	const backLegOffset = at(offsets.backLegOffsets, body)!;
 	const wingOffset = at(offsets.wingOffsets, body)!;
@@ -384,7 +390,10 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 	const headOffsetY = headOffsetsY[headOffset];
 
 	const headTotalY = headY + headOffsetY;
-	const headTransform = createHeadTransform(undefined, headX + headOffsetX, headTotalY, state);
+	const headTransform = createHeadTransform(undefined, headX + headOffsetX, headTotalY, {
+		...state,
+		headTurned: frameHeadTurned,
+	});
 	const headCropY = 42 - ((headTotalY + headFlipOffsetY) - baseY);
 	const cropW = 80;
 	const cropH = 65;
@@ -436,7 +445,7 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 
 	if (draw(options, NoDraw.Behind)) {
 		// far wing
-		drawLocalSet(wing, farWingSet, x + FAR_WING_OX + wingOffset.x, y + FAR_WING_OY + wingOffset.y, FAR_COLOR);
+		drawLocalSet(wing, farWingSet, x + FAR_WING_OX + wingOffset.x + frame.wingX, y + FAR_WING_OY + wingOffset.y + frame.wingY, FAR_COLOR);
 
 		batch.save();
 		batch.multiplyTransform(headTransform);
@@ -471,7 +480,7 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 
 		drawLocalSet(ponytails, info.ponytail, 0, maneBehindOffsetY, WHITE);
 
-		if (!state.headTurned) {
+		if (!frameHeadTurned) {
 			drawLocalSet(sprites.behindManes, info.mane, 0, maneBehindOffsetY, WHITE);
 		}
 
@@ -521,8 +530,8 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 
 	// tail
 	const tailOffset = at(offsets.tailOffsets, body)!;
-	const tailX = x + tailOffset.x;
-	const tailY = y + tailOffset.y;
+	const tailX = x + tailOffset.x + frame.tailX;
+	const tailY = y + tailOffset.y + frame.tailY;
 	const failFrame = hasFlag(state.flags, PonyStateFlags.CurlTail) ? 1 : frame.tail;
 
 	drawLocalSet(at(tails, failFrame), info.tail, tailX, tailY, WHITE);
@@ -622,11 +631,10 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 	drawLocalSet(waistAccessories[waistFrame], info.waistAccessoryExtra, x + waistOffset.x, y + waistOffset.y, WHITE);
 
 	// wings
-	drawLocalSet(wing, closeWingSet, x + wingOffset.x, y + wingOffset.y, WHITE);
+	drawLocalSet(wing, closeWingSet, x + wingOffset.x + frame.wingX, y + wingOffset.y + frame.wingY, WHITE);
 
 	// head
-	const headTurned = state.headTurned;
-	const headFlip = headTurned ? !flipped : flipped;
+	const headFlip = frameHeadTurned ? !flipped : flipped;
 	const headSprite = headFlip ? sprites.head0[frame.head] : sprites.head1[frame.head];
 
 	if (swimming) {
@@ -640,7 +648,7 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 		batch.crop(0, headCropY, cropW, cropH);
 	}
 
-	if (headTurned) {
+	if (frameHeadTurned) {
 		drawLocalSet(sprites.behindManes, info.mane, 0, maneBehindOffsetY, WHITE);
 	}
 
@@ -816,7 +824,8 @@ export function drawHead(
 		const nose = att(noses, info.nose && info.nose.type)![0];
 
 		if (!outlineMode) {
-			nose.mouth && batch.drawSprite(nose.mouth, WHITE, info.defaultPalette, x, y);
+			const mouthPalette = info.mouthColorPalette;
+			nose.mouth && batch.drawSprite(nose.mouth, WHITE, mouthPalette || info.defaultPalette, x + headFrame.noseX, y + headFrame.noseY);
 		}
 
 		if (holding !== undefined && holding.draw !== undefined) {
@@ -841,10 +850,10 @@ export function drawHead(
 			}
 		}
 
-		drawLocalSet(noses, info.nose, x, y, WHITE);
+		drawLocalSet(noses, info.nose, x + headFrame.noseX, y + headFrame.noseY, WHITE);
 
 		if (!outlineMode && info.fangs && nose.fangs) {
-			batch.drawSprite(nose.fangs, WHITE, info.defaultPalette, x, y);
+			batch.drawSprite(nose.fangs, WHITE, info.teethColorPalette || info.fangsColorPalette || info.defaultPalette, x + headFrame.noseX, y + headFrame.noseY);
 		}
 	}
 

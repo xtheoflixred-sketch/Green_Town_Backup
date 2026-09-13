@@ -176,12 +176,13 @@
 			class="emoji-dropdown"
 		)
 
-		emote-box.game-button.chat-emoji-button(
-			[emote]="btnEmoji"
-			[square]="true"
+		button.emote.game-button.chat-emoji-button(
 			(click)="toggleEmojiBox()"
 			(mouseenter)="onMouseEnterEmojiButton($event)"
+			aria-label="Emojis"
+			title="Emojis (use Control + E to open)"
 		)
+			emote-box([emote]="btnEmoji" [square]="true")
 
 		button.game-button.chat-send-button(
 			(click)="send($event)"

@@ -1,4 +1,5 @@
 import { compact } from 'lodash';
+import { URL } from 'url';
 import * as sprites from '../generated/sprites';
 import {
 	Entity, PaletteManager, Rect, ServerFlags, PaletteRenderable, ColorShadow, EntityDescriptor, EntityOptions,
@@ -12,7 +13,7 @@ import {
 	AnimatedRenderable1, collider, taperColliderSW, taperColliderNE, taperColliderSE,
 	taperColliderNW, skewColliderNE, ponyColliders, ponyCollidersBounds, mixTrigger, mixDraw, mixInteract,
 	mixPickable, mixMinimap, mixColliderRect, mixColliderRounded, mixLight, mixLightSprite, mixColliders,
-	mixDrawShadow, mixAnimation, mixBobbing, mixDrawWall, mixDrawRain, mixDrawSeasonal, mixDrawWindow,
+	mixDrawShadow, mixAnimation, mixBobbing, mixDrawWall, mixDrawSeasonal, mixDrawWindow,
 	mixDrawDirectionSign, skewColliderNW, triangleColliderNE, triangleColliderNW, mixInteractAt, mixItemTrigger
 } from './mixins';
 import { times, repeat, flatten, hasFlag } from './utils';
@@ -156,6 +157,17 @@ function mixOrder(order: number): MixinEntity {
 
 const collectableInteractive = mixInteract(-8, -12, 16, 16, 1.5);
 
+const boatSurface = (base: Entity) => {
+	if (base.bounds) {
+		base.boatSurfaceBounds = base.bounds;
+		base.boatSurfaceBobbing = true;
+	}
+};
+
+function hasBoatSurface(name: string) {
+	return /^(boat|bench|couch|armchair|cushion)/.test(name);
+}
+
 // entity with centered sprite and larger clickable area
 function collectable(name: string, sprite: PaletteRenderable, paletteIndex = 0, ...other: MixinEntity[]) {
 	return doodad(name, sprite, Math.floor(sprite.color!.w / 2), sprite.color!.h - 1, paletteIndex,
@@ -168,6 +180,7 @@ function decal(name: string, sprite: PaletteRenderable, palette = 0, ...other: M
 	return registerMix(name,
 		mixDraw(sprite, Math.floor((sprite.color!.w + sprite.color!.ox) / 2), sprite.color!.oy, palette),
 		mixFlags(EntityFlags.Decal),
+		...(hasBoatSurface(name) ? [boatSurface] : []),
 		...other);
 }
 
@@ -175,6 +188,7 @@ function decalOffset(name: string, sprite: PaletteRenderable, dx: number, dy: nu
 	return registerMix(name,
 		mixDraw(sprite, dx, dy, palette),
 		mixFlags(EntityFlags.Decal),
+		...(hasBoatSurface(name) ? [boatSurface] : []),
 		...other);
 }
 
@@ -182,11 +196,52 @@ function decalOffset(name: string, sprite: PaletteRenderable, dx: number, dy: nu
 function doodad(
 	name: string, sprite: PaletteRenderable, ox: number, oy: number, palatte = 0, ...other: (MixinEntity | undefined)[]
 ) {
-	return registerMix(name, mixDraw(sprite, ox, oy, palatte), ...compact(other));
+	return registerMix(name, mixDraw(sprite, ox, oy, palatte),
+		...(hasBoatSurface(name) ? [boatSurface] : []), ...compact(other));
 }
 
 function doodadSet(name: string, sprite: PaletteRenderable, ox: number, oy: number, ...other: MixinEntity[]) {
 	return times(sprite.palettes!.length, i => registerMix(`${name}-${i}`, mixDraw(sprite, ox, oy, i), ...other));
+}
+
+function mixTentDraw(base: Entity, options: EntityOptions, worldState: EntityWorldState) {
+	const tentFloorAnchorX = 111;
+	const tentFloorAnchorY = 91;
+	const tentRoofAnchorX = 70;
+	const tentRoofAnchorY = 204;
+
+	const floorMixin = mixDraw(sprites.tent_floor, tentFloorAnchorX, tentFloorAnchorY, 0);
+	floorMixin(base, options, worldState);
+	const floorDraw = base.draw;
+	const floorBounds = base.bounds!;
+
+	const roofMixin = mixDraw(sprites.tent_flysheet, tentRoofAnchorX, tentRoofAnchorY, 0);
+	roofMixin(base, options, worldState);
+	const roofDraw = base.draw;
+	const roofBounds = base.bounds!;
+
+	if (floorDraw && roofDraw) {
+		const minX = Math.min(floorBounds.x, roofBounds.x);
+		const minY = Math.min(floorBounds.y, roofBounds.y);
+		base.bounds = rect(
+			minX,
+			minY,
+			Math.max(floorBounds.x + floorBounds.w, roofBounds.x + roofBounds.w) - minX,
+			Math.max(floorBounds.y + floorBounds.h, roofBounds.y + roofBounds.h) - minY,
+		);
+		base.coverBounds = rect(-62, -105, 124, 105);
+		base.draw = function (batch, drawOptions) {
+			const coverLifted = !!this.coverLifted;
+			const previousCoverOpacity = (this as any).coverOpacity;
+
+			(this as any).coverOpacity = 1;
+			floorDraw.call(this, batch, drawOptions);
+			(this as any).coverOpacity = coverLifted ? 0 : 1;
+			roofDraw.call(this, batch, drawOptions);
+
+			(this as any).coverOpacity = previousCoverOpacity;
+		};
+	}
 }
 
 // placeholder entity
@@ -259,16 +314,19 @@ const waterBobbing = mixBobbing(WATER_FPS, WATER_HEIGHT);
 
 export const boat = doodad(n('boat'), sprites.boat, 95, 4, 0,
 	boatMinimap,
+	boatSurface,
 	mixOrder(-1));
 
 export const boatBob = doodad(n('boat-bob'), sprites.boat, 95, 18, 0,
 	boatMinimap,
+	boatSurface,
 	waterBobbing,
 	mixOrder(-1),
 	mixFlags(EntityFlags.StaticY));
 
 export const boatFrontBob = doodad(n('boat-front-bob'), sprites.boat_front, 71, 16, 0,
 	boatMinimap,
+	boatSurface,
 	waterBobbing,
 	mixFlags(EntityFlags.StaticY));
 
@@ -291,6 +349,17 @@ export const boatWake = registerMix(n('boat-wake'),
 	mixAnimation(sprites.boat_wake, WATER_FPS, 93, 0, { useGameTime: true }),
 	mixFlags(EntityFlags.StaticY));
 
+export const greenBoatWake = registerMix(n('green-boat-wake'),
+	mixAnimation(sprites.green_boat_wake, WATER_FPS, 93, 0, { useGameTime: true }),
+	mixFlags(EntityFlags.StaticY));
+
+const pickMeStickPickable = mixPickable(17, 37);
+
+export const pickMeStickWhite = decal(n('pickme-stick-white'), sprites. pickme_PickMe_stick_white, 0, pickMeStickPickable);
+export const pickMeStickRed = decal(n('pickme-stick-red'), sprites. pickme_PickMe_stick_red, 0, pickMeStickPickable);
+export const pickMeStickPink = decal(n('pickme-stick-pink'), sprites. pickme_PickMe_stick_pink, 0, pickMeStickPickable);
+export const pickMeStickBlue = decal(n('pickme-stick-blue'), sprites. pickme_PickMe_stick_blue, 0, pickMeStickPickable);
+
 export function fullBoat(x: number, y: number, sail = true) {
 	const sailEntities = sail ? [
 		boatSail(x - (12 / tileWidth), y + (16 / tileHeight)),
@@ -303,6 +372,39 @@ export function fullBoat(x: number, y: number, sail = true) {
 		...sailEntities,
 		boatWake(x, y + (5 / tileHeight)),
 	];
+}
+
+export function fullBoatNoSail(x: number, y: number) {
+	return fullBoat(x, y, false);
+}
+
+// green boat
+
+export const greenBoat = doodad(n('green-boat'), sprites.green_boat, 77, 32, 0,
+    boatMinimap,
+    mixOrder(-1));
+
+export const greenBoatBob = doodad(n('green-boat-bob'), sprites.green_boat_side, 95, 18, 0,
+    boatMinimap,
+    waterBobbing,
+    mixOrder(-1),
+    mixFlags(EntityFlags.StaticY));
+
+export const greenBoatPaddleTop = doodad(n('green-boat-paddle-top'), sprites.green_boat_paddle_top, 71, 16, 0,
+    boatMinimap,
+    waterBobbing,
+    mixFlags(EntityFlags.StaticY));
+
+export const greenBoatPaddleBottom = doodad(n('green-boat-paddle-bottom'), sprites.green_boat_paddle_bottom, 77, 48, 0,
+	mixOrder(-1));
+
+export function fullGreenBoat(x: number, y: number, sail = true) {
+    return [
+        greenBoatBob(x, y),
+		greenBoatPaddleTop(x, y + (29 / tileHeight)),
+        ...(sail ? [greenBoatPaddleBottom(x - (12 / tileWidth), y + (16 / tileHeight))] : []),
+		greenBoatWake(x, y + (5 / tileHeight)),
+    ];
 }
 
 // pier
@@ -349,6 +451,30 @@ export const plankShadowShort = registerMix(n('plank-shadow-short'),
 	mixDrawShadow(sprites.plank_shadow_short, 21, -12),
 	mixFlags(EntityFlags.Decal | EntityFlags.StaticY),
 	mixOrder(-1));
+
+function createFullPlank(x: number, y: number, variant = 0) {
+	const plank = planks[Math.abs(variant) % planks.length](x, y);
+	const shadow = (Math.abs(variant) % 2 ? plankShadow2 : plankShadow)(x, y);
+	plank.boatSurfaceBounds = plank.bounds;
+	plank.boatSurfaceBobbing = false;
+	return [plank, shadow];
+}
+
+function createFullPlankShort(x: number, y: number, variant = 0) {
+	const plank = planksShort[Math.abs(variant) % planksShort.length](x, y);
+	const shadow = plankShadowShort(x, y);
+	plank.boatSurfaceBounds = plank.bounds;
+	plank.boatSurfaceBobbing = false;
+	return [plank, shadow];
+}
+
+export function fullPlank1(x: number, y: number) { return createFullPlank(x, y, 0); }
+export function fullPlank2(x: number, y: number) { return createFullPlank(x, y, 1); }
+export function fullPlank3(x: number, y: number) { return createFullPlank(x, y, 2); }
+export function fullPlank4(x: number, y: number) { return createFullPlank(x, y, 3); }
+export function fullPlankShort1(x: number, y: number) { return createFullPlankShort(x, y, 0); }
+export function fullPlankShort2(x: number, y: number) { return createFullPlankShort(x, y, 1); }
+export function fullPlankShort3(x: number, y: number) { return createFullPlankShort(x, y, 2); }
 
 // pickables
 
@@ -717,6 +843,25 @@ export const barrel = doodad(n('barrel'), sprites.barrel, 13, 27, 0,
 	mixFlags(EntityFlags.Interactive),
 	base => base.interactRange = 3);
 
+export const metalBarrel = doodad(n('metal-barrel'), sprites.metal_barrel, 15, 39, 0,
+	mixColliderRounded(-14, -12, 28, 11, 5));
+export const plasticBarrel = doodad(n('plastic-barrel'), sprites.plastic_barrel, 14, 35, 0,
+	mixColliderRounded(-13, -11, 26, 10, 5));
+
+export const smallJar = doodad(n('small-jar'), sprites.small_jar, 6, 12, 0,
+	mixColliderRounded(-5, -5, 10, 5, 2));
+export const smallJarMix = doodad(n('small-jar-mix'), sprites.small_jar_mix, 6, 12, 0,
+	mixColliderRounded(-5, -5, 10, 5, 2));
+export const smallJarWorms = doodad(n('small-jar-worms'), sprites.small_jar_worms, 6, 12, 0,
+	mixColliderRounded(-5, -5, 10, 5, 2));
+
+export const boxClosed = doodad(n('box-closed'), sprites.box_closed, 16, 24, 0,
+	mixColliderRounded(-15, -10, 30, 9, 3));
+export const boxEmpty2 = doodad(n('box-empty-2'), sprites.box_empty_2, 16, 24, 0,
+	mixColliderRounded(-15, -10, 30, 9, 3));
+export const boxBait = doodad(n('box-bait'), sprites.box_bait, 16, 24, 0,
+	mixColliderRounded(-15, -10, 30, 9, 3));
+
 export const bench1 = doodad(n('bench-1'), sprites.bench_1, 37, 20, 0,
 	mixColliderRect(-37, -3, 75, 8),
 	mixFlags(EntityFlags.Interactive),
@@ -733,6 +878,18 @@ export const benchSeatH = doodad(n('bench-seat-h'), sprites.bench_seath, 11, 0, 
 	mixOrder(-1));
 export const benchBackH = doodad(n('bench-back-h'), sprites.bench_backh, 9, 84, 0, mixColliderRect(-15, -64, 30, 65));
 export const benchBackH2 = doodad(n('bench-back-h2'), sprites.bench_backh2, 6, 84, 0, mixColliderRect(-15, -64, 30, 65));
+
+export function fullBench(x: number, y: number) {
+	return [benchBack(x, y + 0.875), benchSeat(x, y)];
+}
+
+export function fullBenchHigh(x: number, y: number) {
+	return [benchBackH(x - 0.5, y + 2.708333333333333), benchSeatH(x, y)];
+}
+
+export function fullBenchHighRight(x: number, y: number) {
+	return [benchBackH2(x + 0.5, y + 2.708333333333333), benchSeatH(x, y)];
+}
 
 export const table1 = doodad(n('table-1'), sprites.table_1, 14, 34, 0,
 	mixColliderRect(-18, -22, 37, 23),
@@ -1373,7 +1530,8 @@ export const rain = registerMix(n('rain'),
 export const raindrop = registerMix(n('raindrop'),
 	mixAnimation(sprites.raindrop, 12, 4, 0, { color: rainColor }));
 
-export const weatherRain = registerMix(n('weather-rain'), mixDrawRain());
+export const stormLight = registerMix(n('storm-light'),
+	mixLight(0xddeeffcc, 0, 0, 64, 64));
 
 // flowers
 
@@ -1964,38 +2122,38 @@ export const largeLeafedBush4 = registerMix(n('large-leafed-bush-4'),
 // berry bushes (seasonal)
 export const berryBush = registerMix(n('berry-bush'),
 	mixDrawSeasonal({
-		spring: { sprite: sprites.berry_bush_spring, dx: 16, dy: 24, palette: 0 },
-		summer: { sprite: sprites.berry_bush_summer, dx: 16, dy: 24, palette: 0 },
-		autumn: { sprite: sprites.berry_bush_autumn, dx: 16, dy: 24, palette: 0 },
-		winter: { sprite: sprites.berry_bush_winter, dx: 16, dy: 24, palette: 0 },
+		spring: { sprite: sprites.berry_bush_spring, dx: 8, dy: 20, palette: 0 },
+		summer: { sprite: sprites.berry_bush_summer, dx: 8, dy: 20, palette: 0 },
+		autumn: { sprite: sprites.berry_bush_autumn, dx: 8, dy: 20, palette: 0 },
+		winter: { sprite: sprites.berry_bush_winter, dx: 8, dy: 20, palette: 0 },
 	}));
 
 // heart bushes (seasonal)
-const bushHeartCollider = mixColliderRounded(-14, -6, 28, 12, 2, false);
+const bushHeartCollider = mixColliderRounded(-21, 3, 28, 12, 2, false);
 
 export const bushHeart = registerMix(n('bush-heart'),
 	mixDrawSeasonal({
-		spring: { sprite: sprites.bush_heart_summer, dx: 10, dy: 24, palette: 0 },
-		summer: { sprite: sprites.bush_heart_summer, dx: 16, dy: 24, palette: 0 },
-		autumn: { sprite: sprites.bush_heart_autumn, dx: 16, dy: 24, palette: 0 },
-		winter: { sprite: sprites.bush_heart_winter, dx: 16, dy: 24, palette: 0 },
+		spring: { sprite: sprites.bush_heart_summer, dx: 17, dy: 33, palette: 0 },
+		summer: { sprite: sprites.bush_heart_summer, dx: 23, dy: 33, palette: 0 },
+		autumn: { sprite: sprites.bush_heart_autumn, dx: 23, dy: 33, palette: 0 },
+		winter: { sprite: sprites.bush_heart_winter, dx: 23, dy: 33, palette: 0 },
 	}),
 	bushHeartCollider);
 
 export const bushHeart2 = registerMix(n('bush-heart-2'),
 	mixDrawSeasonal({
-		spring: { sprite: sprites.bush_heart_autumn_2, dx: 16, dy: 24, palette: 0 },
-		summer: { sprite: sprites.bush_heart_autumn_2, dx: 16, dy: 24, palette: 0 },
-		autumn: { sprite: sprites.bush_heart_autumn_2, dx: 16, dy: 24, palette: 0 },
-		winter: { sprite: sprites.bush_heart_autumn_2, dx: 16, dy: 24, palette: 0 },
+		spring: { sprite: sprites.bush_heart_autumn_2, dx: 23, dy: 33, palette: 0 },
+		summer: { sprite: sprites.bush_heart_autumn_2, dx: 23, dy: 33, palette: 0 },
+		autumn: { sprite: sprites.bush_heart_autumn_2, dx: 23, dy: 33, palette: 0 },
+		winter: { sprite: sprites.bush_heart_autumn_2, dx: 23, dy: 33, palette: 0 },
 	}),
 	bushHeartCollider);
 
-export const amanitaSoda = doodad(n('amanita-soda'), sprites.amanita_soda, 8, 16, 0);
-export const cherrySoda = doodad(n('cherry-soda'), sprites.cherry_soda, 8, 16, 0);
-export const magmaSoda = doodad(n('magma-soda'), sprites.magma_soda, 8, 16, 0);
-export const mintSoda = doodad(n('mint-soda'), sprites.mint_soda, 8, 16, 0);
-export const strawberrySoda = doodad(n('strawberry-soda'), sprites.strawberry_soda, 8, 16, 0);
+export const amanitaSoda = doodad(n('amanita-soda'), sprites.amanita_soda, 4, 13, 0);
+export const cherrySoda = doodad(n('cherry-soda'), sprites.cherry_soda, 4, 13, 0);
+export const magmaSoda = doodad(n('magma-soda'), sprites.magma_soda, 4, 13, 0);
+export const mintSoda = doodad(n('mint-soda'), sprites.mint_soda, 4, 13, 0);
+export const strawberrySoda = doodad(n('strawberry-soda'), sprites.strawberry_soda, 4, 13, 0);
 
 // cliffs
 
@@ -2503,7 +2661,7 @@ export const tree1 = trees1[0];
 export const tree2 = trees2[0];
 export const tree3 = trees3[0];
 
-export const [tree4] = createTree(n('tree4'), 31, 92, 12, {
+export const [tree4, , tree4Trunks, tree4Crowns] = createTree(n('tree4'), 31, 92, 12, {
 	stumpCollider: mixColliderRounded(-5, -1, 12, 6, 1, stumpsTall),
 	trunkCollider: mixColliderRounded(-5, -1, 12, 6, 1),
 	cover: rect(-20, -77, 42, 60),
@@ -2518,7 +2676,7 @@ export const [tree4] = createTree(n('tree4'), 31, 92, 12, {
 		})),
 });
 
-export const [tree5, [tree5Stump]] = createTree(n('tree5'), 43, 128, 24, {
+export const [tree5, tree5StumpsArray, tree5Trunks, tree5Crowns] = createTree(n('tree5'), 43, 128, 24, {
 	stumpCollider: mixColliderRounded(-8, -2, 16, 8, 2, stumpsTall),
 	trunkCollider: mixColliderRounded(-8, -2, 16, 8, 2),
 	cover: rect(-30, -106, 64, 80),
@@ -2532,8 +2690,9 @@ export const [tree5, [tree5Stump]] = createTree(n('tree5'), 43, 128, 24, {
 			paletteWinter: 1,
 		})),
 });
+export const [tree5Stump] = tree5StumpsArray;
 
-export const [tree, [treeStump1, treeStump2]] = createTree(n('tree'), 80, 162, 30, {
+export const [tree, treeStumpsArray, treeTrunks, treeCrowns] = createTree(n('tree'), 80, 162, 30, {
 	stumpCollider: mixColliderRounded(-16, -1, 32, 12, 4, stumpsTall),
 	trunkCollider: mixColliderRounded(-16, -1, 32, 12, 4),
 	cover: rect(-50, -135, 110, 120),
@@ -2572,6 +2731,7 @@ export const [tree, [treeStump1, treeStump2]] = createTree(n('tree'), 80, 162, 3
 		},
 	]))
 });
+export const [treeStump1, treeStump2] = treeStumpsArray;
 
 const pine1Options = { sprite: sprites.pine_1, dx: 7, dy: 18 };
 const pine2Options = { sprite: sprites.pine_2, dx: 10, dy: 35 };
@@ -2661,7 +2821,8 @@ interface TreeParams {
 	crownCollider?: MixinEntity;
 }
 
-type CreateTreeMethod = (x: number, y: number, v: number, hasWeb?: boolean, hasSpider?: boolean) => Entity[];
+type TreeOptions = { variant?: number; web?: boolean; spider?: boolean; [key: string]: any; };
+type CreateTreeMethod = (x: number, y: number, v?: number | TreeOptions, hasWeb?: boolean, hasSpider?: boolean) => Entity[];
 
 function createTree(
 	name: string, offsetX: number, offsetY: number, crownOffset: number,
@@ -2717,15 +2878,19 @@ function createTree(
 		spiderHeight: v.spiderHeight,
 	}));
 
-	function tree(x: number, y: number, v?: number, hasWeb?: boolean, hasSpider?: boolean): Entity[] {
-		const { stumpTall, trunk, crown, webX, webY, spiderHeight } = trees[v || 0];
+	function tree(x: number, y: number, v?: number | TreeOptions, hasWeb?: boolean, hasSpider?: boolean): Entity[] {
+		const options = typeof v === 'object' && v !== null ? v : undefined;
+		const variant = options ? (typeof options.variant === 'number' ? options.variant : 0) : (typeof v === 'number' ? v : 0);
+		const useWeb = options ? !!options.web : !!hasWeb;
+		const useSpider = options ? !!options.spider : !!hasSpider;
+		const { stumpTall, trunk, crown, webX, webY, spiderHeight } = trees[variant] || trees[0];
 
 		return compact([
 			stumpTall && stumpTall(x, y),
 			trunk && trunk(x, y),
 			crown && crown(x, y + (crownOffset / tileHeight)),
-			hasWeb ? web(x + (webX! / tileWidth), y + (webY! / tileHeight)) : undefined,
-			hasSpider ? spider(x - 1, y + 0.3, { height: spiderHeight!, time: Math.random() * 100 }) : undefined,
+			useWeb ? web(x + (webX! / tileWidth), y + (webY! / tileHeight)) : undefined,
+			useSpider ? spider(x - 1, y + 0.3, { height: spiderHeight!, time: Math.random() * 100 }) : undefined,
 		]);
 	}
 
@@ -2736,14 +2901,30 @@ export const stashEntities = [
 	rose, cookie, cookiePony, letter, rope,
 ];
 
-export const placeableEntities: { type: number; name: string; }[] = [
+export const placeableEntities: { type?: number; entity?: string; name: string; }[] = [
+	{ entity: 'tent', name: 'Tent' },
+	{ entity: 'fullPlank1', name: 'Wooden plank (1)' },
+	{ entity: 'fullPlank2', name: 'Wooden plank (2)' },
+	{ entity: 'fullPlank3', name: 'Wooden plank (3)' },
+	{ entity: 'fullPlank4', name: 'Wooden plank (4)' },
+	{ entity: 'fullPlankShort1', name: 'Short wooden plank (1)' },
+	{ entity: 'fullPlankShort2', name: 'Short wooden plank (2)' },
+	{ entity: 'fullPlankShort3', name: 'Short wooden plank (3)' },
 	{ type: cushion1.type, name: 'Cushion (red)' },
 	{ type: cushion2.type, name: 'Cushion (blue)' },
 	{ type: cushion3.type, name: 'Cushion (green)' },
 	{ type: barrel.type, name: 'Barrel' },
+	{ type: metalBarrel.type, name: 'Metal barrel' },
+	{ type: plasticBarrel.type, name: 'Plastic barrel' },
 	{ type: box.type, name: 'Box' },
+	{ type: boxClosed.type, name: 'Closed box' },
+	{ type: boxEmpty2.type, name: 'Empty box (new)' },
+	{ type: boxBait.type, name: 'Box with bait' },
 	{ type: boxLanterns.type, name: 'Box of lanterns' },
 	{ type: boxFruits.type, name: 'Box of fruits' },
+	{ type: smallJar.type, name: 'Small jar' },
+	{ type: smallJarMix.type, name: 'Small jar (mix)' },
+	{ type: smallJarWorms.type, name: 'Small jar (worms)' },
 	{ type: cookieTable2.type, name: 'Cookie table' },
 	{ type: table1.type, name: 'Small table' },
 	{ type: table2.type, name: 'Large table' },
@@ -2808,6 +2989,24 @@ export const placeableEntities: { type: number; name: string; }[] = [
 	{ type: waterRock9.type, name: 'Water rock (9)' },
 	{ type: waterRock10.type, name: 'Water rock (10)' },
 	{ type: waterRock11.type, name: 'Water rock (11)' },
+	{ type: tree1.type, name: 'Small tree (1)' },
+	{ type: trees1[1].type, name: 'Small tree (1 autumn)' },
+	{ type: trees1[2].type, name: 'Small tree (1 winter)' },
+	{ type: tree2.type, name: 'Small tree (2)' },
+	{ type: trees2[1].type, name: 'Small tree (2 autumn)' },
+	{ type: trees2[2].type, name: 'Small tree (2 winter)' },
+	{ type: tree3.type, name: 'Small tree (3)' },
+	{ type: trees3[1].type, name: 'Small tree (3 autumn)' },
+	{ type: trees3[2].type, name: 'Small tree (3 winter)' },
+	{ entity: 'tree4', name: 'Large tree (4)' },
+	{ entity: 'tree5', name: 'Large tree (5)' },
+	{ entity: 'tree', name: 'Large tree' },
+	{ type: pine1.type, name: 'Pine (1)' },
+	{ type: pine2.type, name: 'Pine (2)' },
+	{ entity: 'pine3', name: 'Pine (3)' },
+	{ entity: 'pine4', name: 'Pine (4)' },
+	{ entity: 'pine5', name: 'Pine (5)' },
+	{ entity: 'pine', name: 'Pine' },
 	{ type: apple.type, name: 'Apple (1)' },
 	{ type: apple2.type, name: 'Apple (2)' },
 	{ type: appleGreen.type, name: 'Green apple (1)' },
@@ -2922,16 +3121,68 @@ export const tools = [
 	   text: 'Rope: drag & move objects\n[Shift] drag multiple objects', textMobile: undefined },
 	{ type: pickaxe.type,
 	   text: 'Pickaxe: drag & clone objects', textMobile: undefined },
+	{ type: doubleEndedWrench.type,
+	   text: 'Double-ended wrench: offset objects vertically', textMobile: undefined },
 	{ type: scrap.type,
 	   text: 'Scrap: mirror objects', textMobile: undefined },
 	{ type: recolor.type,
 	   text: 'Brush: recolor furniture', textMobile: undefined },
 	{ type: season.type,
 	   text: 'Forest Axe: cycle seasons of objects', textMobile: undefined },
+	{ type: screwdriver.type,
+	   text: 'Screwdriver: edit signs', textMobile: undefined },
 ];
 
 export const candies1Types = [candyCane1, candyCane2, cookie, cookiePony].map(e => e.type);
 export const candies2Types = [cookie, cookiePony].map(e => e.type);
+
+// tent
+const tentCollider = mixColliders(
+	collider(-64, 7, 10, 92, false),
+	collider(61, 7, 10, 92, false),
+	collider(-64, -7, 128, 14, false),
+);
+
+export const tent = registerMix(n('tent'),
+	mixTentDraw,
+	tentCollider,
+);
+
+// Buckets and basins
+export const bucket = doodad(n('bucket'), sprites.bucket, 8, 19, 0,
+	mixColliderRect(-6, -6, 12, 6));
+export const smallBasinWater = doodad(
+	n('small-basin-water'), sprites.small_basin_water, 9, 14, 0,
+	mixColliderRect(-7, -5, 14, 5));
+export const largeBasinWater = doodad(
+	n('large-basin-water'), sprites.large_basin_water, 12, 16, 0,
+	mixColliderRect(-9, -6, 19, 6));
+export const smallBasinFish = doodad(
+	n('small-basin-fish'), sprites.small_basin_fish, 9, 14, 0,
+	mixColliderRect(-7, -5, 14, 5));
+export const bucketFish = doodad(n('bucket-fish'), sprites.bucket_fish, 9, 20, 0,
+	mixColliderRect(-6, -6, 12, 6));
+export const bucketWater = doodad(n('bucket-water'), sprites.bucket_water, 8, 19, 0,
+	mixColliderRect(-6, -6, 12, 6));
+export const largeBasinFish = doodad(
+	n('large-basin-fish'), sprites.large_basin_fish, 12, 16, 0,
+	mixColliderRect(-9, -6, 19, 6));
+export const smallBasin = doodad(n('small-basin'), sprites.small_basin, 9, 14, 0,
+	mixColliderRect(-7, -5, 14, 5));
+export const largeBasin = doodad(n('large-basin'), sprites.large_basin, 12, 16, 0,
+	mixColliderRect(-9, -6, 19, 6));
+
+placeableEntities.push(
+	{ type: bucket.type, name: 'Bucket' },
+	{ type: bucketWater.type, name: 'Bucket with water' },
+	{ type: bucketFish.type, name: 'Bucket with fish' },
+	{ type: smallBasin.type, name: 'Small basin' },
+	{ type: smallBasinWater.type, name: 'Small basin with water' },
+	{ type: smallBasinFish.type, name: 'Small basin with fish' },
+	{ type: largeBasin.type, name: 'Large basin' },
+	{ type: largeBasinWater.type, name: 'Large basin with water' },
+	{ type: largeBasinFish.type, name: 'Large basin with fish' },
+);
 
 // custom image entity
 
@@ -2987,6 +3238,68 @@ export const customImage = registerMix(n('custom-image'),
 );
 
 export const CUSTOM_IMAGE_TYPE = customImage.type;
+
+export function normalizeScreenSource(value: any, requestedKind: 'youtube' | 'video') {
+	if (typeof value !== 'string' || value.length > 2048) return undefined;
+
+	try {
+		const url = new URL(value);
+		if (url.protocol !== 'https:') return undefined;
+
+		const isYouTubeHost = url.hostname === 'www.youtube.com' || url.hostname === 'youtube.com' ||
+			url.hostname === 'www.youtube-nocookie.com' || url.hostname === 'youtube-nocookie.com';
+		const isShortYouTubeHost = url.hostname === 'youtu.be';
+		if (requestedKind !== 'youtube' && !isYouTubeHost && !isShortYouTubeHost) {
+			return { url: url.toString(), kind: 'video' as 'video' };
+		}
+		let videoId = '';
+		if (isYouTubeHost && url.pathname.indexOf('/embed/') === 0) {
+			videoId = url.pathname.substring('/embed/'.length).split('/')[0];
+		} else if (isYouTubeHost && url.pathname === '/watch') {
+			videoId = url.searchParams.get('v') || '';
+		} else if (url.hostname === 'youtu.be') {
+			videoId = url.pathname.substring(1).split('/')[0];
+		}
+
+		if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return undefined;
+		return { url: `https://www.youtube-nocookie.com/embed/${videoId}`, kind: 'youtube' as 'youtube' };
+	} catch (e) {
+		return undefined;
+ 	}
+}
+
+export function normalizeScreenUrl(value: any, kind: 'youtube' | 'video'): string | undefined {
+	const source = normalizeScreenSource(value, kind);
+	return source && source.url;
+}
+
+export function isSafeScreenUrl(value: any, kind: 'youtube' | 'video'): value is string {
+	return normalizeScreenUrl(value, kind) !== undefined;
+}
+
+function mixScreenEntity(base: Entity, options?: EntityOptions) {
+	const source = options as any || {};
+	const normalized = normalizeScreenSource(source.url, source.kind === 'youtube' ? 'youtube' : 'video');
+	const kind = normalized ? normalized.kind : (source.kind === 'youtube' ? 'youtube' : 'video');
+	const url = normalized ? normalized.url : '';
+	const width = Math.max(160, Math.min(1920, Number(source.width) || 640));
+	const height = Math.max(90, Math.min(1080, Number(source.height) || 360));
+
+	base.options = {
+		url, kind, width, height,
+		muted: source.muted !== false,
+		controls: source.controls !== false,
+		zOrder: source.zOrder === 'below' ? 'below' : 'above',
+	} as any;
+	base.bounds = rect(-width / 2, -height, width, height);
+}
+
+export const screenEntity = registerMix('screen-entity',
+	mixFlags(EntityFlags.IgnoreTool),
+	mixScreenEntity,
+);
+
+export const SCREEN_ENTITY_TYPE = screenEntity.type;
 
 if (DEVELOPMENT) {
 	if (pony.type !== PONY_TYPE) {
