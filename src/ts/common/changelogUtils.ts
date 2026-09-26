@@ -3,8 +3,15 @@ import { AccountRoles, hasRole, isAdmin, isDev, isMod } from './accountUtils';
 
 export interface ChangelogRawEntry {
 	version: string;
+ changes: ChangelogChange[];
+}
+
+export interface ChangelogSection {
+	title: string;
 	changes: string[];
 }
+
+export type ChangelogChange = string | ChangelogSection;
 
 export interface ChangelogParsedEntry extends ChangelogRawEntry {
 	season: number;
@@ -104,7 +111,13 @@ export function mergeChangelog(r: ChangelogResponse): ChangelogRawEntry[] {
 export function buildSeasonGroups(entries: ChangelogRawEntry[]): ChangelogSeasonGroup[] {
 	const parsed = entries.map(e => ({
 		...e,
-		changes: (e.changes || []).map(change => markdownToHtml(change)),
+		changes: (e.changes || []).map(change => typeof change === 'string'
+			? markdownToHtml(change)
+			: {
+				...change,
+				title: markdownToHtml(change.title),
+				changes: (change.changes || []).map(item => markdownToHtml(item)),
+			}),
 		...parseChangelogVersion(e.version),
 	}));
 	const sorted = parsed.sort((a, b) => {

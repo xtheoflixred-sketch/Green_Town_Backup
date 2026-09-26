@@ -8,7 +8,12 @@ div.changelog-view
 				div(*ngIf="isPatchVisible(patch)")
 					h4.changelog-patch-title {{patch.extraTitle}}
 					ul
-						li(*ngFor='let change of patch.changes' [innerHTML]='change')
+						ng-container(*ngFor='let change of patch.changes')
+							li(*ngIf='!isChangelogSection(change)' [innerHTML]='change')
+							li.changelog-section(*ngIf='isChangelogSection(change)')
+								h5 {{change.title}}
+								ul
+									li(*ngFor='let item of change.changes' [innerHTML]='item')
 					div(*ngIf="i < season.patches.length - 1")
 						hr
 

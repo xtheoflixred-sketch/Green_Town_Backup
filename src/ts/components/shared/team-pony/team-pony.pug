@@ -1,6 +1,6 @@
 character-preview(
-	#characterPreview [pony]="previewPony" [name]="previewName" [tag]="previewTag" [tagColor]="tagColor"
-	[tagGradientStart]="tagGradientStart || (previewPony && previewPony.tagGradientStart)"
-	[tagGradientEnd]="tagGradientEnd || (previewPony && previewPony.tagGradientEnd)"
-	[tagGradientDirection]="tagGradientDirection || (previewPony && previewPony.tagGradientDirection) || 'horizontal'"
+	#characterPreview [pony]="previewPony" [name]="previewName" [tag]="previewTag" [tagColor]="previewTagColor"
+	[tagGradientStart]="previewTagGradientStart"
+	[tagGradientEnd]="previewTagGradientEnd"
+	[tagGradientDirection]="previewTagGradientDirection"
 	[state]="state" [noBackground]="true" [noShadow]="noShadow" [noOutline]="true" [scale]="scale" [style.width.px]="180" [style.height.px]="180" style="position: relative;" [style.top.px]="topOffset")

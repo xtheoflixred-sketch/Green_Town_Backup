@@ -10,12 +10,12 @@ import { getTag, getTagGradient } from '../../../common/tags';
 import { oauthProviders } from '../../../client/data';
 import { Model } from '../../services/model';
 import { getProviderIcon } from '../../shared/sign-in-box/sign-in-box';
-import { faStar, faExclamationCircle, faSync, faCopy, faDesktop, faMobile, faTablet, faQuestionCircle, faEyeSlash, faCheck } from '../../../client/icons';
+import { faStar, faExclamationCircle, faSync, faCopy, faDesktop, faMobile, faTablet, faQuestionCircle, faEyeSlash, faCheck, faSignOutAlt } from '../../../client/icons';
 import { Router } from '@angular/router';
 import { formatPlaytime } from '../../../common/utils';
 import { AccountDataFlags } from '../../../common/interfaces';
 import { hasFlag } from '../../../common/utils';
-import { buildAccountSessionEntries, getActiveGameSessions, getLastGameSession } from '../../../common/accountSessionUtils';
+import { AccountSessionSummary, buildAccountSessionEntries, getActiveGameSessions, getLastGameSession } from '../../../common/accountSessionUtils';
 
 @Component({
 
@@ -28,6 +28,16 @@ export class Account implements OnInit, OnDestroy {
 
 	private accountInfoInterval: any;
 	private sessionInfoInterval: any;
+	private accountInfoRequest?: Promise<void>;
+	private activeSessions: ReturnType<typeof getActiveGameSessions> = [];
+	private activeSessionEntries: any[] = [];
+	private activeSessionKey = '';
+	private sessionEntriesCache: AccountSessionSummary[] = [];
+	private sessionEntriesKey = '';
+	private rolePrivilegesCache: string[] = [];
+	private rolePrivilegesKey = '';
+	private assignedRoleDetailsCache: any[] = [];
+	private assignedRoleDetailsKey = '';
 	currentTime = Date.now();
 	readonly starIcon = faStar;
 	readonly alertIcon = faExclamationCircle;
@@ -38,6 +48,7 @@ export class Account implements OnInit, OnDestroy {
 	readonly questionIcon = faQuestionCircle;
 	readonly hiddenIcon = faEyeSlash;
 	readonly checkIcon = faCheck;
+	readonly signOutIcon = faSignOutAlt;
 	expandedSocials = new Set<string>();
 	idCopied = false;
 	copiedSocialNames = new Set<string>();
@@ -97,8 +108,9 @@ export class Account implements OnInit, OnDestroy {
 
 		this.pageChanged();
 
-		this.sessionInfoInterval = setInterval(() => this.currentTime = Date.now(), 1000);
-		this.accountInfoInterval = setInterval(() => this.refreshAccountInfo(), 5000);
+		this.updateSessionInfo();
+		this.sessionInfoInterval = setInterval(() => this.updateSessionInfo(), 1000);
+		this.accountInfoInterval = setInterval(() => this.refreshAccountInfo(), 30000);
 	}
 	ngOnDestroy() {
 		this.model.mergedAccount = false;
@@ -110,12 +122,33 @@ export class Account implements OnInit, OnDestroy {
 		}
 	}
 	private refreshAccountInfo() {
-		this.model.getAccount().then(account => {
+		if (this.accountInfoRequest) return;
+		this.accountInfoRequest = this.model.getAccount().then(account => {
 			if (!account || 'limit' in account) return;
 			this.model.account = account;
 			this.model.ponies = account.ponies || [];
 			this.sites = account.sites && account.sites.map(toSocialSiteInfo);
-		}).catch(() => { /* keep the last visible account data */ });
+		}).catch(() => { /* keep the last visible account data */ }).then(() => {
+			this.accountInfoRequest = undefined;
+		});
+	}
+	private updateSessionInfo() {
+		this.currentTime = Date.now();
+		const account = this.account;
+		this.activeSessions = account ? getActiveGameSessions(account.id, this.currentTime) : [];
+		const sessionKey = this.activeSessions.map(session => `${session.id}:${session.startedAt}`).join('|');
+		if (sessionKey !== this.activeSessionKey) {
+			this.activeSessionKey = sessionKey;
+			this.activeSessionEntries = this.activeSessions.map(session => ({
+				gameSessionId: session.id,
+				title: 'Other active session',
+				subtitle: 'Game session',
+				detail: `Started ${new Date(session.startedAt).toLocaleString()}`,
+				location: 'This account',
+				authoritative: true,
+				icon: 'desktop',
+			}));
+		}
 	}
 	pageChanged() {
 		this.model.getHides(this.page)
@@ -166,7 +199,7 @@ export class Account implements OnInit, OnDestroy {
 	get displayCurrentSessionPlaytime() {
 		const account = this.account;
 		if (!account) return '-';
-		const sessions = getActiveGameSessions(account.id, this.currentTime);
+		const sessions = this.activeSessions;
 		if (!sessions.length) {
 			const lastSession = getLastGameSession(account.id);
 			return lastSession == null ? '-' : this.formatPlaytime(lastSession);
@@ -181,7 +214,7 @@ export class Account implements OnInit, OnDestroy {
 		const account = this.account;
 		const stored = account && account.playtimeSeconds;
 		if (stored == null) return undefined;
-		const currentSeconds = getActiveGameSessions(account!.id, this.currentTime)
+		const currentSeconds = this.activeSessions
 			.reduce((total, session) => total + Math.max(0, Math.floor((this.currentTime - session.startedAt) / 1000)), 0);
 		return stored + currentSeconds;
 	}
@@ -222,44 +255,45 @@ export class Account implements OnInit, OnDestroy {
 			.catch(error => this.supporterCodeError = error && error.message || 'Unable to redeem supporter code');
 	}
 	get rolePrivileges() {
-		return getRolePrivileges(this.account);
+		const roles = this.account && this.account.roles || [];
+		const key = roles.join('|');
+		if (key !== this.rolePrivilegesKey) {
+			this.rolePrivilegesKey = key;
+			this.rolePrivilegesCache = getRolePrivileges(this.account);
+		}
+		return this.rolePrivilegesCache;
 	}
 	get assignedRoleDetails() {
 		const roles = this.account && this.account.roles || [];
-		return ROLES.filter(role => roles.includes(role)).map(role => ({
+		const key = roles.join('|');
+		if (key === this.assignedRoleDetailsKey) {
+			return this.assignedRoleDetailsCache;
+		}
+		this.assignedRoleDetailsKey = key;
+		this.assignedRoleDetailsCache = ROLES.filter(role => roles.includes(role)).map(role => {
+			const tagColor = this.getRoleTagColor(role);
+			const gradient = getTagGradient(role);
+			const tagStyle = gradient ? {
+				background: `linear-gradient(${gradient.direction === 'vertical' ? 'to bottom' : 'to right'}, #${gradient.start}, #${gradient.end})`,
+				color: '#fff',
+			} : { 'background-color': tagColor };
+			return {
 			id: role,
 			name: ROLE_DISPLAY_NAMES[role] || role,
 			tag: getTag(role),
 			privileges: ROLE_PRIVILEGES[role] || [],
 			links: ROLE_LINKS[role] || [],
-		}));
-	}
-	get rolePreviewInfo(): PonyInfo | undefined {
-		return this.model.pony && this.model.pony.ponyInfo;
+			tags: ROLE_TAGS[role] || [],
+			tagStyle,
+			borderLeft: `4px solid ${tagColor}`,
+			background: `linear-gradient(100deg, ${tagColor}12, rgba(255,255,255,.035) 42%)`,
+		};
+		});
+		return this.assignedRoleDetailsCache;
 	}
 	getRoleTagColor(role: string) {
 		const tag = getTag(role);
 		return tag ? `#${((tag.color >>> 8) & 0xffffff).toString(16).padStart(6, '0')}` : undefined;
-	}
-	getRoleTags(role: string) {
-		return ROLE_TAGS[role] || [];
-	}
-	getRolePreviewTag(role: string) {
-		const tags = this.getRoleTags(role);
-		return tags.length ? tags[0] : role;
-	}
-	getRoleGradient(role: string) {
-		return getTagGradient(role);
-	}
-	getRoleTagStyle(role: string) {
-		const gradient = getTagGradient(role);
-		if (gradient) {
-			return {
-				background: `linear-gradient(${gradient.direction === 'vertical' ? 'to bottom' : 'to right'}, #${gradient.start}, #${gradient.end})`,
-				color: '#fff',
-			};
-		}
-		return { 'background-color': this.getRoleTagColor(role) };
 	}
 	getRoleLinks(role: string) {
 		return ROLE_LINKS[role] || [];
@@ -290,7 +324,37 @@ export class Account implements OnInit, OnDestroy {
 		return this.isNewAccount ? 'Save and continue' : 'Save';
 	}
 	get sessionEntries() {
-		return buildAccountSessionEntries(this.account || {}, navigator.userAgent);
+		const account = this.account;
+		const sessionAccount = account as { lastVisit?: string; lastLogin?: string; lastLogout?: string; lastUserAgent?: string } | undefined;
+		const loginSessions = (account as any && (account as any).loginSessions || []) as any[];
+		const loginSessionKey = loginSessions.map(session => `${session.id}:${session.lastSeen}:${session.current}`).join('|');
+		const key = sessionAccount ? [sessionAccount.lastVisit, sessionAccount.lastLogin, sessionAccount.lastLogout, sessionAccount.lastUserAgent, navigator.userAgent, loginSessionKey].join('|') : '';
+		if (key !== this.sessionEntriesKey) {
+			this.sessionEntriesKey = key;
+			this.sessionEntriesCache = buildAccountSessionEntries(account || {}, navigator.userAgent);
+			const loginSessions = (account as any && (account as any).loginSessions || []) as any[];
+			const loginSessionEntries: AccountSessionSummary[] = loginSessions.map(session => ({
+				loginSessionId: session.id,
+				current: !!session.current,
+				title: session.current ? 'Current session' : 'Other browser session',
+				subtitle: `${session.browser || 'Browser'}${session.browserVersion ? ` ${session.browserVersion}` : ''} · ${session.os || 'Unknown OS'}${session.osVersion ? ` ${session.osVersion}` : ''}`,
+				detail: session.lastSeen ? `Last activity ${new Date(session.lastSeen).toLocaleString()}` : 'Activity not recorded yet',
+				location: 'Account login',
+				authoritative: true,
+				deviceType: session.deviceType === 'mobile' ? 'mobile' : session.deviceType === 'tablet' ? 'tablet' : 'desktop',
+				icon: session.deviceType === 'mobile' ? 'mobile' : session.deviceType === 'tablet' ? 'tablet' : 'desktop',
+			}));
+			this.sessionEntriesCache = this.sessionEntriesCache.concat(loginSessionEntries);
+		}
+		return this.sessionEntriesCache;
+	}
+	get allSessionEntries() {
+		return this.sessionEntries.concat(this.activeSessionEntries);
+	}
+	revokeSession(sessionId: string) {
+		if (!sessionId) return;
+		this.model.revokeAccountSession(sessionId)
+			.then(() => this.refreshAccountInfo());
 	}
 	getSessionIcon(summary: any) {
 		if (summary.icon === 'mobile') return this.mobileIcon;

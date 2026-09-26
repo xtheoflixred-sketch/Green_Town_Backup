@@ -81,15 +81,24 @@
 	border-radius: 5px;
 }
 
-.account-role-preview {
-	flex: 0 0 96px;
-	width: 96px;
-	min-height: 90px;
-}
-
 .account-role-content {
 	min-width: 0;
 	flex: 1;
+}
+
+.account-role-tag {
+	display: inline-block;
+	padding: 3px 6px;
+	border-radius: 4px;
+	font-size: 11px;
+	line-height: 1.2;
+}
+
+.account-role-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
 }
 
 .account-role-badge {
@@ -116,10 +125,6 @@
 		flex-direction: column;
 	}
 
-	.account-role-preview {
-		flex-basis: auto;
-		width: 100%;
-	}
 }
 
 .supporter-1 {
@@ -147,6 +152,11 @@
 	align-items: flex-start;
 	gap: 12px;
 	padding: 8px 0;
+}
+
+.session-logout {
+	margin-left: auto;
+	white-space: nowrap;
 }
 
 .session-icon {

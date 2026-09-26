@@ -3,7 +3,7 @@ import { fromByteArray, toByteArray } from 'base64-js';
 import { PonyInfoNumber, SpriteSet, PonyInfo, PonyInfoBase, PaletteManager, PalettePonyInfo, ColorExtraSet } from './interfaces';
 import { syncLockedPonyInfoNumber, syncLockedPonyInfo, createBasePony, toPaletteNumber } from './ponyInfo';
 import { bitWriter, bitReader, ReadBits, WriteBits, countBits, numberToBitCount } from './bitUtils';
-import { BLACK, WHITE, TRANSPARENT } from './colors';
+import { BLACK, SHADOW_COLOR, WHITE, TRANSPARENT } from './colors';
 import { at, toInt, pushUniq, array, clamp, includes, att } from './utils';
 import { getColorCount } from '../client/spriteUtils';
 import * as sprites from '../generated/sprites';
@@ -14,11 +14,12 @@ import {
 } from '../client/ponyUtils';
 import { CM_SIZE } from './constants';
 
-export const VERSION = 9; // previous: 8
+export const VERSION = 10; // previous: 9
 
 const VERSION_BITS = 6; // max 63
 const COLORS_LENGTH_BITS = 10; // max 1024
-const BOOLEAN_FIELDS_LENGTH_BITS = 5; // max 31
+const BOOLEAN_FIELDS_LENGTH_BITS = 6; // max 63
+const LEGACY_BOOLEAN_FIELDS_LENGTH_BITS = 5;
 const NUMBER_FIELDS_LENGTH_BITS = 4; // max 15
 const COLOR_FIELDS_LENGTH_BITS = 5; // max 31
 const SET_FIELDS_LENGTH_BITS = 6; // max 63
@@ -294,6 +295,7 @@ const booleanFields: FieldDefinition<boolean>[] = [
 	{ name: 'useExtraNeckAccessory' },
 	{ name: 'useExtraFacePattern' },
 	{ name: 'darkenLockedOutlines', omit: info => !info.freeOutlines },
+	{ name: 'customShadows' },
 ];
 
 const numberFields: FieldDefinition<number>[] = [
@@ -325,6 +327,7 @@ const colorFields: FieldDefinition<number>[] = [
 	{ name: 'tongueColor', default: parseColorFast('f39f4b') },
 	{ name: 'teethColor', default: WHITE },
 	{ name: 'fangsColor', default: WHITE },
+	{ name: 'shadowColor', default: SHADOW_COLOR, omit: info => !info.customShadows },
 ];
 
 const omittableFields: FieldDefinition<any>[] = [
@@ -518,7 +521,7 @@ function postdecompressFields<TDef extends FieldDefinition<TValue>, TValue, TRes
 
 // pony
 
-type Info<T> = PonyInfoBase<T, SpriteSet<T>>;
+type Info<T> = PonyInfoBase<T, SpriteSet<T>> & { shadowColor?: T };
 
 export function precompressPony<T>(info: Info<T>, defaultColor: T, parseColor: (color: T) => number): Precompressed {
 	const colors: number[] = [];
@@ -712,7 +715,8 @@ export function readPony(read: ReadBits): Precompressed {
 	const colors = readFields(read, COLORS_LENGTH_BITS, readColorValue);
 	const colorBits = Math.max(numberToBitCount(colors.length), 1);
 	const readColor = readBits(colorBits);
-	const booleanFields = readFields(read, BOOLEAN_FIELDS_LENGTH_BITS, readBoolean);
+	const booleanFields = readFields(read,
+		version < 10 ? LEGACY_BOOLEAN_FIELDS_LENGTH_BITS : BOOLEAN_FIELDS_LENGTH_BITS, readBoolean);
 	const customOutlines = !!booleanFields[0];
 	const numberFields = readFields(read, NUMBER_FIELDS_LENGTH_BITS, readNumber);
 	const colorFields = readFields(read, version < 9 ? 4 : COLOR_FIELDS_LENGTH_BITS, readColor);

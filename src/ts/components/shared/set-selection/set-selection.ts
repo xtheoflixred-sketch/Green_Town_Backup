@@ -3,8 +3,16 @@ import { clamp } from 'lodash';
 import { SpriteSet, ColorExtraSets, ColorExtraSet } from '../../../common/interfaces';
 import { getColorCount } from '../../../client/spriteUtils';
 
-const FILLS = ['Orange', 'DodgerBlue', 'LimeGreen', 'Orchid', 'crimson', 'Aquamarine'];
-const OUTLINES = ['Chocolate', 'SteelBlue', 'ForestGreen', 'DarkOrchid', 'darkred', 'DarkTurquoise'];
+const FILLS = [
+	'Orange', 'DodgerBlue', 'LimeGreen', 'Orchid', 'crimson', 'Aquamarine', 'Gold', 'DarkOrange',
+	'Purple', 'Cyan', 'DeepPink', 'BlueViolet', 'SpringGreen', 'Tomato', 'RoyalBlue', 'LightSeaGreen',
+	'HotPink', 'GreenYellow', 'OrangeRed', 'SteelBlue', 'MediumVioletRed',
+];
+const OUTLINES = [
+	'Chocolate', 'SteelBlue', 'ForestGreen', 'DarkOrchid', 'darkred', 'DarkTurquoise', 'Goldenrod', 'SaddleBrown',
+	'Indigo', 'DarkCyan', 'MediumVioletRed', 'DarkViolet', 'SeaGreen', 'FireBrick', 'MidnightBlue', 'DarkSlateGray',
+	'DeepPink', 'OliveDrab', 'Crimson', 'DarkBlue', 'Maroon',
+];
 
 @Directive({
 	selector: '[setOutlineHidden]',

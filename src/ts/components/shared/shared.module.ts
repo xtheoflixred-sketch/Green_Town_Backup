@@ -30,6 +30,7 @@ import { PortraitBox } from './portrait-box/portrait-box';
 import { SquarePortraitBox } from './square-portrait-box/square-portrait-box';
 import { ScalePicker } from './scale-picker/scale-picker';
 import { ColorPicker } from './color-picker/color-picker';
+import { DefaultColorPicker } from './default-color-picker/default-color-picker';
 import { CustomCheckbox } from './custom-checkbox/custom-checkbox';
 import { DatePicker } from './date-picker/date-picker';
 import { SignInBox } from './sign-in-box/sign-in-box';
@@ -147,6 +148,7 @@ const declarations = [
 	ScalePicker,
 	SwapBox,
 	ColorPicker,
+	DefaultColorPicker,
 	CustomCheckbox,
 	DatePicker,
 	SignInBox,

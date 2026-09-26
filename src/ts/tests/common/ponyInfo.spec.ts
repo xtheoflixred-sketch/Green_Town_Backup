@@ -168,7 +168,7 @@ describe('ponyInfo', () => {
 	});
 
 	describe('syncLockedPonyInfo()', () => {
-		it('keeps the solid hoof color editable on all sides', () => {
+		it('keeps the solid hoof color lockable on all sides', () => {
 			const pony = createBasePony();
 			pony.lockBackHooves = false;
 			pony.unlockFrontHooves = true;
@@ -193,7 +193,7 @@ describe('ponyInfo', () => {
 				pony.frontHoovesRight!.fills![0],
 				pony.backHooves!.fills![0],
 				pony.backHoovesRight!.fills![0],
-			]).eql([false, false, false, false, '112233', '223344', '334455', '445566']);
+			]).eql([true, true, true, true, 'ff0000', 'ff0000', '334455', '445566']);
 		});
 
 		it('locks the first leg marking color on all sides', () => {

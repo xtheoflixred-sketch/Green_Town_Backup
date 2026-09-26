@@ -1,0 +1,59 @@
+:host {
+	display: block;
+}
+
+.butt-mark-toolbar {
+	width: auto;
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 8px;
+}
+
+.butt-mark-toolbar .btn-group {
+	flex: 0 0 auto;
+}
+
+.color-picker-toolbar {
+	flex: 1 1 180px;
+	min-width: 160px;
+	max-width: 260px;
+}
+
+.butt-mark-canvas-area {
+	position: relative;
+	display: inline-block;
+	padding: 32px;
+	line-height: 0;
+}
+
+.butt-mark-tool-cursor {
+	position: absolute;
+	z-index: 3;
+	width: 26px;
+	height: 26px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transform: translate(-50%, -50%);
+	border: 1px solid rgba(255, 255, 255, .6);
+	border-radius: 4px;
+	background: rgba(25, 25, 25, .72);
+	color: #fff;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+
+.rectangle-tool-icon {
+	display: inline-block;
+	width: 13px;
+	height: 13px;
+	border: 2px solid currentColor;
+	box-sizing: border-box;
+}
+
+@media (max-width: 575.98px) {
+	.color-picker-toolbar {
+		flex-basis: 100%;
+		max-width: 280px;
+	}
+}

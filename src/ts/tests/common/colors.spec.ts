@@ -57,6 +57,10 @@ describe('colors', () => {
 		it('returns outline color', () => {
 			expect(fillToOutline('ff0000')).equals('b30000');
 		});
+
+		it('preserves alpha in outline color', () => {
+			expect(fillToOutline('ff000080')).equals('b3000080');
+		});
 	});
 
 	describe('fillToOutlineColor()', () => {

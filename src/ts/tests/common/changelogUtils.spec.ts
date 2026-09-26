@@ -16,6 +16,19 @@ describe('changelogUtils', () => {
 		expect(groups[0].patches[0].changes[1]).to.contain('<code>/col</code>');
 	});
 
+	it('preserves H3 changelog sections', () => {
+		const groups = buildSeasonGroups([
+			{ version: 'Season 1 — Patch 1', changes: [
+				{ title: 'Редактор персонажа', changes: ['Добавлены новые паттерны.'] },
+			] },
+		]);
+		const section = groups[0].patches[0].changes[0];
+		expect(section).to.deep.equal({
+			title: 'Редактор персонажа',
+			changes: ['Добавлены новые паттерны.'],
+		});
+	});
+
 	it('returns only public changelog entries for anonymous account', () => {
 		const response = getServerChangelog();
 		const changelog = mergeChangelog(response);

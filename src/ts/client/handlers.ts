@@ -22,7 +22,7 @@ import {
 } from '../common/pony';
 import { PonyTownGame } from './game';
 import { setupPlayer, savePlayerPosition } from './sec';
-import { PONY_INFO_KEY, FLY_DELAY, isChatlogRangeUnlimited, SECOND, PONY_TYPE } from '../common/constants';
+import { PONY_INFO_KEY, FLY_DELAY, isChatlogRangeUnlimited, SECOND, PONY_TYPE, OPEN_TOY_MODAL_MESSAGE } from '../common/constants';
 import { getSaysTime, containsCyrillic } from './clientUtils';
 import { dismissSays } from '../graphics/graphicsUtils';
 import { decodeUpdate, readOneUpdate } from '../common/encoders/updateDecoder';
@@ -475,9 +475,22 @@ export function handleAction(game: PonyTownGame, id: number, action: Action) {
 			case Action.Boop:
 				doBoopPonyAction(game, pony);
 				break;
-				case Action.Dance1:
-					doPonyAction(pony, DoAction.Dance1);
-					break;
+			case Action.Dance1:
+				doPonyAction(pony, DoAction.Dance1);
+				break;
+			case Action.Dance2:
+				doPonyAction(pony, DoAction.Dance2);
+				break;
+			case Action.Clapping1_0:
+				doPonyAction(pony, DoAction.Clapping1_0);
+				break;
+			case Action.Dance3:
+				doPonyAction(pony, DoAction.Dance3);
+				break;
+			case Action.WingToggle:
+				pony.options = pony.options || {};
+				pony.options.wingOpen = !pony.options.wingOpen;
+				break;
 			case Action.HoldPoof:
 				doPonyAction(pony, DoAction.HoldPoof);
 				break;
@@ -705,6 +718,8 @@ function isChatInRange(entity: Entity, player: Entity | undefined, range: number
 function shouldShowChatMessageInChatlog(game: PonyTownGame, entity: Entity | FakeEntity, type: MessageType): boolean {
 	if (entity.type !== PONY_TYPE)
 		return false;
+	if (type === MessageType.NPC)
+		return false;
 	if (entity.fake)
 		return true;
 	if (!isPublicMessage(type))
@@ -735,7 +750,7 @@ function getRoleChatColor(entity: Entity | FakeEntity, type: MessageType): strin
 
 function getChatColor(entity: Entity | FakeEntity, type: MessageType): string | undefined {
 	if (type === MessageType.Chat) {
-		return (entity as any).tagColor || (entity as any).tagGradientStart || getRoleChatColor(entity, type) || undefined;
+		return (entity as any).messageColor || undefined;
 	}
 	return getRoleChatColor(entity, type);
 }
@@ -763,17 +778,17 @@ function getRoleChatGradient(entity: Entity | FakeEntity, type: MessageType): { 
 function getChatGradient(entity: Entity | FakeEntity, type: MessageType): { start: string; end: string; direction: 'horizontal' | 'vertical'; } | undefined {
 	if ((entity as any).messageColor) return undefined;
 	if (type === MessageType.Chat) {
-		const tag = ((entity as any).tagRole || (entity as any).tag) as string | undefined;
-		const builtInGradient = getTagGradient(tag);
-		const start = (entity as any).tagGradientStart || (builtInGradient && builtInGradient.start);
-		const end = (entity as any).tagGradientEnd || (builtInGradient && builtInGradient.end);
-		const direction = (entity as any).tagGradientDirection || (builtInGradient && builtInGradient.direction) || 'horizontal';
-		return start && end ? { start, end, direction } : undefined;
+		return undefined;
 	}
 	return getRoleChatGradient(entity, type);
 }
 
 export function handleSay(game: PonyTownGame, entity: Entity | FakeEntity, message: string, type: MessageType) {
+	if (message === OPEN_TOY_MODAL_MESSAGE && type === MessageType.System && entity.id !== game.playerId) {
+		game.onOpenToyModal.next();
+		return;
+	}
+
 	if (!shouldShowChatMessage(game, entity, message, type))
 		return;
 

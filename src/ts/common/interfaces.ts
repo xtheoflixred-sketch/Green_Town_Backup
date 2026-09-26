@@ -1711,6 +1711,7 @@ export interface PonyInfoBase<T, SET> {
 	customOutlines: boolean | undefined;
 	freeOutlines: boolean | undefined;
 	darkenLockedOutlines: boolean | undefined;
+	customShadows: boolean | undefined;
 }
 
 export interface PaletteSpriteSet extends SpriteSetBase {
@@ -1723,6 +1724,7 @@ export interface PaletteSpriteSet extends SpriteSetBase {
 }
 
 export interface PalettePonyInfo extends PonyInfoBase<Palette, PaletteSpriteSet> {
+	shadowColor?: number;
 	coatPalette: Palette;
 	eyePaletteLeft: Palette;
 	eyePalette: Palette;
@@ -1746,9 +1748,11 @@ export interface PalettePonyInfo extends PonyInfoBase<Palette, PaletteSpriteSet>
 }
 
 export interface PonyInfo extends PonyInfoBase<string, SpriteSet<string>> {
+	shadowColor?: string;
 }
 
 export interface PonyInfoNumber extends PonyInfoBase<number, SpriteSet<number>> {
+	shadowColor?: number;
 }
 
 export interface ColorExtra {

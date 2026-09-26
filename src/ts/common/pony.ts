@@ -1,5 +1,5 @@
 import { PONY_WIDTH, PONY_HEIGHT, BLINK_FRAMES, canFly } from '../client/ponyUtils';
-import { stand, sneeze, defaultHeadAnimation, defaultBodyFrame, defaultHeadFrame } from '../client/ponyAnimations';
+import { stand, sneeze, raise_the_wing, close_the_wing, defaultHeadAnimation, defaultBodyFrame, defaultHeadFrame } from '../client/ponyAnimations';
 import {
 	PaletteSpriteBatch, Pony, BodyAnimation, EntityState, SpriteBatch, ExpressionExtra, HeadAnimation, Palette,
 	PaletteManager, DrawOptions, Rect, EntityFlags, IMap, Entity, DoAction, Muzzle, Expression, getEyeOpenness,
@@ -27,7 +27,7 @@ import {
 } from './animator';
 import {
 	trotting, flying, hovering, toBoopState, isFlyingUpOrDown, isFlyingDown, isSittingDown, isSittingUp, swinging,
-	standing, sitting, lying, swimming, isSwimmingState, swimmingToFlying, toKissState, toDanceState, isDanceState,
+	standing, standingBack, sitting, lying, swimming, isSwimmingState, swimmingToFlying, toKissState, toDanceState, isDanceState,
 } from '../client/ponyStates';
 import { decodePonyInfo } from './compressPony';
 import { defaultPonyState, defaultDrawPonyOptions, isStateEqual } from '../client/ponyHelpers';
@@ -231,6 +231,16 @@ export function ensurePonyInfoDecoded(pony: Pony) {
 			? blushPaletteColor
 			: blushColor(pony.palettePonyInfo.coatPalette.colors[1]);
 		pony.magicColor = withAlpha(pony.palettePonyInfo.magicColorValue, MAGIC_ALPHA);
+		if (!pony.ponyState.expression) {
+			pony.ponyState.expression = {
+				left: pony.palettePonyInfo.eyeOpennessLeft || 1,
+				right: pony.palettePonyInfo.eyeOpennessRight || 1,
+				muzzle: pony.palettePonyInfo.muzzle || 0,
+				leftIris: pony.palettePonyInfo.irisLeft != null ? pony.palettePonyInfo.irisLeft : Iris.Forward,
+				rightIris: pony.palettePonyInfo.irisRight != null ? pony.palettePonyInfo.irisRight : Iris.Forward,
+				extra: ExpressionExtra.None,
+			};
+		}
 
 		// apply persistent head / flip options from pony info
 		pony.ponyState.headTurned = !!info.headTurned;
@@ -478,6 +488,29 @@ export function updatePonyEntity(pony: Pony, delta: number, gameTime: number, sa
 	const state = pony.ponyState;
 	const walking = pony.vx !== 0 || pony.vy !== 0;
 	const animationState = flagsToState(pony.state, walking, pony.swimming);
+	const wingOpen = !!(pony.options && pony.options.wingOpen);
+
+	if (state.wingOpen === undefined) {
+		state.wingOpen = wingOpen;
+		state.wingAnimation = wingOpen ? raise_the_wing : undefined;
+		state.wingAnimationTime = 0;
+		state.wingAnimationFrame = 0;
+	} else if (state.wingOpen !== wingOpen) {
+		state.wingOpen = wingOpen;
+		state.wingAnimation = wingOpen ? raise_the_wing : close_the_wing;
+		state.wingAnimationTime = 0;
+		state.wingAnimationFrame = 0;
+	}
+
+	if (state.wingAnimation) {
+		state.wingAnimationTime = (state.wingAnimationTime || 0) + delta;
+		const frame = Math.floor(state.wingAnimationTime * state.wingAnimation.fps);
+		if (frame >= state.wingAnimation.frames.length) {
+			state.wingAnimationFrame = state.wingAnimation.frames.length - 1;
+		} else {
+			state.wingAnimationFrame = frame;
+		}
+	}
 
 	if (pony.inTheAirDelay > 0) {
 		pony.inTheAirDelay -= delta;
@@ -500,6 +533,15 @@ export function updatePonyEntity(pony: Pony, delta: number, gameTime: number, sa
 			case DoAction.Dance1:
 				setAnimatorState(pony.animator, toDanceState(animationState) || animationState);
 				break;
+			case DoAction.Dance2:
+				setAnimatorState(pony.animator, toDanceState(animationState, 2) || animationState);
+				break;
+			case DoAction.Clapping1_0:
+				setAnimatorState(pony.animator, toDanceState(animationState, 4) || animationState);
+				break;
+			case DoAction.Dance3:
+				setAnimatorState(pony.animator, toDanceState(animationState, 3) || animationState);
+				break;
 			default:
 				if (DEVELOPMENT) {
 					console.error(`Invalid DoAction: ${pony.doAction}`);
@@ -509,8 +551,13 @@ export function updatePonyEntity(pony: Pony, delta: number, gameTime: number, sa
 		pony.doAction = DoAction.None;
 	} else {
 		const danceState = toDanceState(animationState);
+		const standBackEnabled = !!(pony.options && pony.options.standBack) && !walking && !pony.swimming && !isPonyFlying(pony) && !isPonyLying(pony) && !isPonySitting(pony);
 
-		if (isDanceState(pony.animator.state) && danceState) {
+		if (standBackEnabled) {
+			if (pony.animator.state !== standingBack) {
+				setAnimatorState(pony.animator, standingBack);
+			}
+		} else if (isDanceState(pony.animator.state) && danceState) {
 			setAnimatorState(pony.animator, danceState);
 		} else {
 			setAnimatorState(pony.animator, animationState);

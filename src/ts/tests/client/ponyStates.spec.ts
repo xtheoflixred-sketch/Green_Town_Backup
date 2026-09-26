@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import {
 	trotting, flying, standing, lying, sitting, hovering, toBoopState, booping, boopingSitting,
 	boopingLying, boopingFlying, sittingDown, isFlyingUp, flyingUp, trottingToFlying, flyingToTrotting,
-	flyingDown, isFlyingUpOrDown, isFlyingDown
+	flyingDown, isFlyingUpOrDown, isFlyingDown, standingBack
 } from '../../client/ponyStates';
 import { EntityState } from '../../common/interfaces';
 import { flagsToState } from '../../common/pony';
@@ -20,6 +20,10 @@ describe('ponyStates', () => {
 
 		it('returns standing for standing state', () => {
 			expect(flagsToState(EntityState.PonyStanding, false, false)).equal(standing);
+		});
+
+		it('exposes the standing-back animation state', () => {
+			expect(standingBack.animation.name).equal('stand back');
 		});
 
 		it('returns trotting for walking state', () => {

@@ -243,6 +243,10 @@ export function colorToHexRGB(color: number) {
 	return toHex(color >>> 8, 6);
 }
 
+export function colorToHexRGBA(color: number) {
+	return toHex(color >>> 0, 8);
+}
+
 export function colorToFloatArray(color: number): Float32Array {
 	const result = new Float32Array(4);
 	colorToExistingFloatArray(result, color);
@@ -295,7 +299,9 @@ export function parseColorFast(str: string): number {
 
 	const int = parseInt(str, 16);
 
-	if (str.length !== 6 || isNaN(int) || int < 0) {
+	if ((str.length === 4 || str.length === 8) && /^[0-9a-f]+$/i.test(str)) {
+		return parseColor(str);
+	} else if (str.length !== 6 || isNaN(int) || int < 0) {
 		return parseColorWithAlpha(str, 1);
 	} else {
 		return (((int << 8) | 0xff) >>> 0);
@@ -328,11 +334,12 @@ export function parseColor(str: string): number {
 	if (n) {
 		const s = n[0];
 
-		if (s.length === 3) {
+		if (s.length === 3 || s.length === 4) {
 			return colorFromRGBA(
 				parseInt(s.charAt(0), 16) * 0x11,
 				parseInt(s.charAt(1), 16) * 0x11,
-				parseInt(s.charAt(2), 16) * 0x11, 255);
+				parseInt(s.charAt(2), 16) * 0x11,
+				s.length === 4 ? parseInt(s.charAt(3), 16) * 0x11 : 255);
 		} else {
 			return colorFromRGBA(
 				parseInt(s.substr(0, 2), 16),

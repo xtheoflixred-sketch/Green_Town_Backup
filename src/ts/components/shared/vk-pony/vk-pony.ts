@@ -6,6 +6,7 @@ import { excite_meno, happy_tongue_meno, stand, boop, happy_tongue_meno_2 } from
 import { FrameService, FrameLoop } from '../../services/frameService';
 import { CharacterPreview } from '../character-preview/character-preview';
 import { decompressPonyString } from '../../../common/compressPony';
+import { getTagGradient } from '../../../common/tags';
 
 const BLEP: Expression = {
 	...defaultExpression,
@@ -49,6 +50,7 @@ const MENO = 'DBWIzP8imd08//D19fVazSjcwf1GhLNEiMxENSovLy/NsIdJQDnGqYBiSztWQTM6Ly
 export class VkPony implements OnInit, OnDestroy {
 	@ViewChild('characterPreview', { static: true }) characterPreview!: CharacterPreview;
 	@Input() scale = 3;
+	@Input() tag?: string;
 	@Input() tagColor?: string;
 	@Input() tagGradientStart?: string;
 	@Input() tagGradientEnd?: string;
@@ -69,6 +71,24 @@ export class VkPony implements OnInit, OnDestroy {
 		this.loop = frameService.create(delta => this.tick(delta));
 	}
 
+	getTagGradientFor(tag?: string) {
+		return tag ? getTagGradient(tag) : undefined;
+	}
+	get previewTagColor() {
+		return this.tagColor && !(/^sup[1-4]$/.test(this.tag || '')) ? this.tagColor : undefined;
+	}
+	get previewTagGradientStart() {
+		const gradient = this.getTagGradientFor(this.tag);
+		return this.tagGradientStart || (gradient && gradient.start);
+	}
+	get previewTagGradientEnd() {
+		const gradient = this.getTagGradientFor(this.tag);
+		return this.tagGradientEnd || (gradient && gradient.end);
+	}
+	get previewTagGradientDirection() {
+		const gradient = this.getTagGradientFor(this.tag);
+		return this.tagGradientDirection || (gradient && gradient.direction) || 'horizontal';
+	}
 	ngOnInit() {
 		this.loop.init();
 		this.lastInteractionTime = Date.now();

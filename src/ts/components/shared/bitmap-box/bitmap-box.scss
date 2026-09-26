@@ -7,6 +7,19 @@
 	display: inline-block;
 	user-select: none;
 	-webkit-user-drag: none;
+	background: transparent;
+
+	&.bitmap-box-background {
+		background-color: var(--bitmap-base-color, #ff0000);
+		background-image: conic-gradient(
+			from 90deg at 50% 50%,
+			rgba(255, 255, 255, .3) 0 25%,
+			rgba(0, 0, 0, .16) 0 50%,
+			rgba(255, 255, 255, .3) 0 75%,
+			rgba(0, 0, 0, .16) 0
+		);
+		background-size: 16px 16px;
+	}
 }
 
 .bitmap-box-row {
@@ -20,6 +33,7 @@
 .bitmap-box-cell {
 	width: 40px;
 	height: 40px;
+	background-color: transparent;
 	border-right: solid 1px $border-color;
 	border-bottom: solid 1px $border-color;
 

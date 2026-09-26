@@ -1,5 +1,5 @@
 import { MessageType, Season, TileType } from './interfaces';
-import { colorFromHSVA, colorToHexRGB, parseColorFast, colorToHSVA, withAlphaFloat } from './color';
+import { colorFromHSVA, colorToHexRGB, colorToHexRGBA, getAlpha, parseColorFast, colorToHSVA, withAlphaFloat } from './color';
 import { invalidEnum, invalidEnumReturn } from './utils';
 import { darkenForOutline } from './ponyInfo';
 
@@ -116,11 +116,15 @@ export function getMessageColor(type: MessageType): number {
 }
 
 export function fillToOutline(color: string | undefined): string | undefined {
-	return color ? colorToHexRGB(fillToOutlineColor(parseColorFast(color))) : undefined;
+	return color ? colorToHex(fillToOutlineColor(parseColorFast(color))) : undefined;
 }
 
 export function fillToOutlineWithDarken(color: string | undefined): string | undefined {
-	return color ? colorToHexRGB(darkenForOutline(fillToOutlineColor(parseColorFast(color)))) : undefined;
+	return color ? colorToHex(darkenForOutline(fillToOutlineColor(parseColorFast(color)))) : undefined;
+}
+
+function colorToHex(color: number) {
+	return getAlpha(color) === 255 ? colorToHexRGB(color) : colorToHexRGBA(color);
 }
 
 export function fillToOutlineColor(color: number): number {

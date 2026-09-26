@@ -138,6 +138,7 @@ const colorPal9 = colorPal(9);
 const colorPal11 = colorPal(11);
 const colorPal13 = colorPal(13);
 const colorPal17 = colorPal(17);
+const colorPal21 = colorPal(21);
 
 export function getPalette(index: number) {
 	return palettes[index];
@@ -195,5 +196,5 @@ export function createAnimationShadow(frames: number[], shadow: number, palette:
 
 export {
 	Sprite, SpriteBorder, PonyNose, PonyEye, ColorExtra, ColorExtraSets,
-	colorPal3, colorPal5, colorPal7, colorPal9, colorPal11, colorPal13, colorPal17
+	colorPal3, colorPal5, colorPal7, colorPal9, colorPal11, colorPal13, colorPal17, colorPal21
 };

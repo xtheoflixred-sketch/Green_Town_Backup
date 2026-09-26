@@ -1,26 +1,81 @@
 .color-picker.dropdown(
 	[class.disabled]="isDisabled" [class.open]="isOpen" [class.show]="isOpen")
 	//-[class.indicator]="indicatorColor"
-	.color-picker-box([style.background-color]="bg")
+	.color-picker-box(
+		[class.color-picker-box-drop-target]="colorDropTarget"
+		[attr.draggable]="isDisabled ? null : 'true'"
+		(dragstart)="startColorDrag($event)"
+		(dragover)="allowColorDrop($event)"
+		(dragleave)="leaveColorDrop()"
+		(drop)="dropColor($event)"
+		title="Drag color"
+		aria-label="Drag color to another color picker")
+		.color-picker-box-checker
+		.color-picker-box-color([style.background-color]="bg")
 	input.form-control.color-picker-input(
 		#input
 		type="text"
 		spellcheck="false"
 		(focus)="focus($event)"
-		(blur)="close()"
+		(blur)="blurInput()"
 		(input)="inputChanged(input.value)"
-		[value]="inputColor"
+		[value]="formattedInputColor"
 		[disabled]="isDisabled"
 		[attr.aria-labelledby]="labelledBy"
 		[attr.aria-label]="label")
 		//-[style.border-left-color]="indicatorColor"
+	.color-picker-name-suggestions(*ngIf="namedColorSuggestions.length" [class.open-up]="openUp" (mousedown)="stopEvent($event)")
+		button.color-picker-name-suggestion(*ngFor="let name of namedColorSuggestions" type="button" (click)="selectNamedColor(name)")
+			span.color-picker-name-swatch([style.background-color]="'#' + colorNames[name]")
+			| {{name}}
 	a.color-picker-chevron((mousedown)="toggleOpen()" [hidden]="isDisabled" aria-label="Pick color")
 		fa-icon([icon]="chevronIcon" [fixedWidth]="true")
-	.dropdown-menu.dropdown-menu-right.color-picker-menu.show(
-		[class.open-up]="openUp" (mousedown)="stopEvent($event)" *ngIf="isOpen" aria-hidden="true")
-		.color-picker-sv(
-			[style.background-color]="hue" (agDrag)="dragSV($event)" agDragRelative="self" [agDragPrevent]="true")
-			.color-picker-sv-overlay
-			.color-wheel-circle-sv([style.left.%]="svLeft" [style.top.%]="svTop")
-		.color-picker-hue((agDrag)="dragHue($event)" agDragRelative="self" [agDragPrevent]="true")
-			.color-wheel-circle-hue([style.top.%]="hueTop")
+	.color-picker-popup(*ngIf="isOpen" [class.open-up]="openUp" (mousedown)="stopEvent($event)")
+		.dropdown-menu.dropdown-menu-right.color-picker-menu.show(
+			#menu aria-hidden="true")
+			.color-picker-main
+				.color-picker-sv(
+					[style.background-color]="hue" (agDrag)="dragSV($event)" agDragRelative="self" [agDragPrevent]="true")
+					.color-picker-sv-overlay
+					.color-wheel-circle-sv([style.left.%]="svLeft" [style.top.%]="svTop")
+				.color-picker-hue((agDrag)="dragHue($event)" agDragRelative="self" [agDragPrevent]="true")
+					.color-wheel-circle-hue([style.top.%]="hueTop")
+			.color-picker-horizontal-controls
+			.color-picker-horizontal-control.color-picker-brightness-control
+				.color-picker-settings(*ngIf="brightnessOpen")
+					.btn-group.btn-group-sm.color-picker-format-controls(role="group" aria-label="Color format and clipboard actions")
+						button.btn(type="button" *ngFor="let colorFormat of colorFormats" [ngClass]="clipboardFormat === colorFormat.value ? 'btn-primary' : 'btn-outline-secondary'" (click)="setClipboardFormat(colorFormat.value)" [attr.aria-pressed]="clipboardFormat === colorFormat.value")
+							| {{colorFormat.label}}
+						button.btn.btn-outline-secondary(type="button" (click)="copyColor()" title="Copy color" aria-label="Copy color")
+							fa-icon([icon]="copyIcon" [fixedWidth]="true")
+						button.btn.btn-outline-secondary(type="button" (click)="pasteColor()" title="Paste color" aria-label="Paste color")
+							fa-icon([icon]="pasteIcon" [fixedWidth]="true")
+					span.color-picker-clipboard-message(*ngIf="clipboardMessage") {{clipboardMessage}}
+					.color-picker-horizontal-ranges
+						.color-picker-range-row
+							span.color-picker-range-label Hue
+							.color-picker-range-track(
+								[style.background]="hueHorizontalGradient" (agDrag)="dragHueHorizontal($event)" agDragRelative="self" [agDragPrevent]="true")
+								.color-wheel-circle-range([style.left.%]="hueLeft")
+						.color-picker-range-row
+							span.color-picker-range-label Saturation
+							.color-picker-range-track(
+								[style.background]="saturationGradient" (agDrag)="dragSaturation($event)" agDragRelative="self" [agDragPrevent]="true")
+								.color-wheel-circle-range([style.left.%]="saturationLeft")
+						.color-picker-range-row
+							span.color-picker-range-label Brightness
+							.color-picker-range-track(
+								[style.background]="brightnessGradient" (agDrag)="dragBrightness($event)" agDragRelative="self" [agDragPrevent]="true")
+								.color-wheel-circle-range([style.left.%]="brightnessLeft")
+			.color-picker-range-row.color-picker-alpha-row
+				span.color-picker-range-label Alpha
+				slider-bar(
+					[(value)]="alphaValue"
+					[min]="0"
+					[max]="1"
+					[step]="0.01"
+					[disabled]="isDisabled"
+					aria-label="Alpha")
+		button.color-picker-brightness-toggle(
+			type="button" (click)="toggleBrightness()" [attr.aria-expanded]="brightnessOpen" aria-label="Toggle color settings")
+			fa-icon([icon]="brightnessIcon" [fixedWidth]="true")

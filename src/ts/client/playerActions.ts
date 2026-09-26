@@ -110,7 +110,43 @@ export function sitAction(player: Pony, game: PonyTownGame) {
 export function standAction(player: Pony, game: PonyTownGame) {
 	if (canPonyStand(player, game.map) && game.send(server => server.action(Action.Stand))) {
 		player.state = setPonyState(player.state, EntityState.PonyStanding);
+		player.options = player.options || {};
+		player.options.standBack = false;
 		game.stateOverride = EntityState.PonyStanding;
+		game.onActionsUpdate.next();
+	}
+}
+
+export function standBackAction(game: PonyTownGame) {
+	const player = game.player;
+	if (!player) {
+		return;
+	}
+
+	player.options = player.options || {};
+	const enabled = !!player.options.standBack;
+	if (game.send(server => server.action(Action.StandBack))) {
+		player.options.standBack = !enabled;
+		if (player.options.standBack) {
+			player.state = setPonyState(player.state, EntityState.PonyStanding);
+			game.stateOverride = EntityState.PonyStanding;
+		} else {
+			player.state = setPonyState(player.state, EntityState.PonyStanding);
+			game.stateOverride = EntityState.PonyStanding;
+		}
+		game.onActionsUpdate.next();
+	}
+}
+
+export function toggleWingAction(game: PonyTownGame) {
+	const player = game.player;
+	if (!player || !player.palettePonyInfo || !player.palettePonyInfo.wings || !player.palettePonyInfo.wings.type) {
+		return;
+	}
+
+	if (game.send(server => server.action(Action.WingToggle))) {
+		player.options = player.options || {};
+		player.options.wingOpen = !player.options.wingOpen;
 		game.onActionsUpdate.next();
 	}
 }
@@ -141,6 +177,12 @@ export function boopAction(game: PonyTownGame) {
 export function dance1Action(game: PonyTownGame) {
 	if (game.player && canBoop(game.player) && game.send(server => server.action(Action.Dance1))) {
 		doPonyAction(game.player, DoAction.Dance1);
+	}
+}
+
+export function danceAction(game: PonyTownGame, action: Action, doAction: DoAction) {
+	if (game.player && canBoop(game.player) && game.send(server => server.action(action))) {
+		doPonyAction(game.player, doAction);
 	}
 }
 

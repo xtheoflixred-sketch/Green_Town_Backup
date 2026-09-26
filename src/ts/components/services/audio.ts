@@ -40,7 +40,6 @@ function getTracks(season: Season, holiday: Holiday, map: MapType) {
 				'trills',
 				'waltzalt',
 				'barkerrs',
-				'gazan',
 				...(season === Season.Winter ? [
 					'trees-winter',
 					'reindeer-winter',

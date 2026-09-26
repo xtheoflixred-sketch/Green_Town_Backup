@@ -20,7 +20,7 @@ import { mergeAccounts } from '../api/merge';
 import { findOrCreateAuth } from '../authUtils';
 import { getOriginFromHTTP, getOrigin, addOrigin } from '../originUtils';
 import { Profile } from '../../common/interfaces';
-import { updateAccountSessionInfo } from '../auth';
+import { addLoginSession, updateAccountSessionInfo } from '../auth';
 
 interface MergeRequest {
 	accountId: string;
@@ -140,8 +140,9 @@ async function loginUser(server: ServerConfig, req: Request, res: Response, acco
 	}
 
 	updateAccountSessionInfo(account, 'login');
-	await account.save();
 	await logIn(req, account);
+	addLoginSession(account, req.sessionID || '', req.get('User-Agent') || '');
+	await account.save();
 	await accountChanged(account._id.toString());
 
 	const isFresh = account.createdAt && account.createdAt.getTime() > fromNow(-FRESH_ACCOUNT_TIME).getTime();
@@ -328,7 +329,8 @@ async function handleAuth(
 		}
 	} catch (e) {
 		const message = merge ? 'Account merge error' : 'Authentication error';
-		handleErrorAndRedirect(server, merge ? '/account' : '/', message, e, req, res);
+		const error = e instanceof Error ? e : new Error(String(e));
+		handleErrorAndRedirect(server, merge ? '/account' : '/', message, error, req, res);
 	}
 }
 
@@ -475,6 +477,8 @@ export function authRoutes(
 
 		if (account) {
 			updateAccountSessionInfo(account, 'logout');
+			(account as any).loginSessions = ((account as any).loginSessions || [])
+				.filter((session: any) => session.sessionId !== req.sessionID);
 			await account.save();
 		}
 
@@ -485,6 +489,25 @@ export function authRoutes(
 
 	if (mockLogin) {
 		use(new LocalStrategy((login, _pass, done) => Account.findById(login, done)));
+		app.post('/mock-login', async (req, res) => {
+			try {
+				const id = typeof req.body && typeof req.body.id === 'string' ? req.body.id.trim() : '';
+				if (!id) {
+					res.status(400).json({ error: 'Account id is required' });
+					return;
+				}
+
+				const account = await Account.findById(id).exec();
+				if (!account) {
+					res.status(404).json({ error: 'Account not found' });
+					return;
+				}
+
+				await loginUser(server, req, res, account);
+			} catch (error) {
+				res.status(500).json({ error: 'Mock login failed' });
+			}
+		});
 		app.get('/local', authenticate('local', { successRedirect: '/', failureRedirect: '/failed-login' }));
 	}
 

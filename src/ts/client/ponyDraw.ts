@@ -104,7 +104,10 @@ function getHeadXY(x: number, y: number, turned: boolean, frame: BodyAnimationFr
 }
 
 export function getPonyHeadPosition(state: State, ponyX: number, ponyY: number) {
-	const frame = getPonyAnimationFrame(state.animation, state.animationFrame, defaultBodyFrame);
+	const baseFrame = getPonyAnimationFrame(state.animation, state.animationFrame, defaultBodyFrame);
+	const wingFrame = state.wingAnimation && getPonyAnimationFrame(
+		state.wingAnimation, state.wingAnimationFrame || 0, defaultBodyFrame);
+	const frame = wingFrame ? { ...baseFrame, wing: wingFrame.wing, wingX: wingFrame.wingX, wingY: wingFrame.wingY } : baseFrame;
 	const headFrame = getPonyAnimationFrame(state.headAnimation || defaultHeadAnimation, state.headAnimationFrame, defaultHeadFrame);
 	const baseX = ponyX - PONY_WIDTH / 2;
 	const baseY = ponyY - PONY_HEIGHT;
@@ -310,8 +313,9 @@ function getWakeIndex(info: Info) {
 }
 
 export function drawPony(batch: Batch, info: Info, state: State, ponyX: number, ponyY: number, options: Options) {
+	const drawOptions: Options = info.customShadows ? { ...options, shadowColor: info.shadowColor as unknown as number } : options;
 	// Draw selection outline glow behind pony
-	if (options.selected) {
+	if (drawOptions.selected) {
 		// Draw white offset outlines (1 pixel in cardinal directions) for selection highlight
 		const outlineOffsets: [number, number][] = [[0, -1], [0, 1], [-1, 0], [1, 0]];
 
@@ -321,7 +325,7 @@ export function drawPony(batch: Batch, info: Info, state: State, ponyX: number, 
 
 			// Draw pony outline in white, without shadow and without selection to avoid recursion
 			const outlineOptions: DrawPonyOptions = {
-				...options,
+				...drawOptions,
 				selected: false,
 				shadow: false,
 				shadowColor: TRANSPARENT,
@@ -333,7 +337,7 @@ export function drawPony(batch: Batch, info: Info, state: State, ponyX: number, 
 	}
 
 	// Draw the actual pony on top
-	drawPonyImpl(batch, info, state, ponyX, ponyY, options);
+	drawPonyImpl(batch, info, state, ponyX, ponyY, drawOptions);
 }
 
 function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, ponyY: number, options: Options) {
@@ -347,7 +351,10 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 		tint: number,
 	) => drawSet(batch, spriteSets, set, x, y, tint, outlineMode, outlineColor);
 
-	const frame = getPonyAnimationFrame(state.animation, state.animationFrame, defaultBodyFrame);
+	const baseFrame = getPonyAnimationFrame(state.animation, state.animationFrame, defaultBodyFrame);
+	const wingFrame = state.wingAnimation && getPonyAnimationFrame(
+		state.wingAnimation, state.wingAnimationFrame || 0, defaultBodyFrame);
+	const frame = wingFrame ? { ...baseFrame, wing: wingFrame.wing, wingX: wingFrame.wingX, wingY: wingFrame.wingY } : baseFrame;
 	const headFrame = getPonyAnimationFrame(state.headAnimation || defaultHeadAnimation, state.headAnimationFrame, defaultHeadFrame);
 	const headAnimationProperties = (state.headAnimation || defaultHeadAnimation).properties;
 	const baseX = ponyX - PONY_WIDTH / 2;
@@ -374,7 +381,10 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 	const farEarSet = flipped ? info.ears : info.earsRight;
 	const farSleeveSet = flipped ? info.sleeveAccessory : info.sleeveAccessoryRight;
 	const closeSleeveSet = flipped ? info.sleeveAccessoryRight : info.sleeveAccessory;
+	const farWaistSet = flipped ? info.waistAccessory : info.waistAccessoryRight;
 	const closeWaistSet = flipped ? info.waistAccessoryRight : info.waistAccessory;
+	const farWaistExtraSet = flipped ? info.waistAccessoryExtra : info.waistAccessoryExtraRight;
+	const closeWaistExtraSet = flipped ? info.waistAccessoryExtraRight : info.waistAccessoryExtra;
 	const closeBodySet = flipped ? info.bodyRight : info.body;
 	const farFrontLegSet = flipped ? info.frontLegs : info.frontLegsRight;
 	const closeFrontLegSet = flipped ? info.frontLegsRight : info.frontLegs;
@@ -384,6 +394,18 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 	const closeFrontHoofSet = flipped ? info.frontHoovesRight : info.frontHooves;
 	const farBackHoofSet = flipped ? info.backHooves : info.backHoovesRight;
 	const closeBackHoofSet = flipped ? info.backHoovesRight : info.backHooves;
+	const farFrontLegExtraSet = flipped ? info.frontLegsExtra : info.frontLegsExtraRight;
+	const closeFrontLegExtraSet = flipped ? info.frontLegsExtraRight : info.frontLegsExtra;
+	const farBackLegExtraSet = flipped ? info.backLegsExtra : info.backLegsExtraRight;
+	const closeBackLegExtraSet = flipped ? info.backLegsExtraRight : info.backLegsExtra;
+	const farFrontHoofExtraSet = flipped ? info.frontHoovesExtra : info.frontHoovesExtraRight;
+	const closeFrontHoofExtraSet = flipped ? info.frontHoovesExtraRight : info.frontHoovesExtra;
+	const farBackHoofExtraSet = flipped ? info.backHoovesExtra : info.backHoovesExtraRight;
+	const closeBackHoofExtraSet = flipped ? info.backHoovesExtraRight : info.backHoovesExtra;
+	const farFrontLegAccessoryExtraSet = flipped ? info.frontLegAccessoryExtra : info.frontLegAccessoryExtraRight;
+	const closeFrontLegAccessoryExtraSet = flipped ? info.frontLegAccessoryExtraRight : info.frontLegAccessoryExtra;
+	const farBackLegAccessoryExtraSet = flipped ? info.backLegAccessoryExtra : info.backLegAccessoryExtraRight;
+	const closeBackLegAccessoryExtraSet = flipped ? info.backLegAccessoryExtraRight : info.backLegAccessoryExtra;
 
 	const headOffset = clamp(state.headTurn, 0, headOffsetsX.length - 1);
 	const headOffsetX = headOffsetsX[headOffset];
@@ -494,13 +516,24 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 	const behindX = x + FAR_OX;
 	const behindY = y + FAR_OY;
 	const hasTailAccessory = behindBackAccessory(info.backAccessory);
+	const hasTailAccessoryExtra = behindBackAccessory(info.backAccessoryExtra);
+	const backAccessoryExtra = info.backAccessoryExtra;
 	const hasSleeves = sleevedAccessory(info.chestAccessory);
 	const hasBackSleeves = sleevedBackAccessory(info.backAccessory);
+	const hasBackSleevesExtra = sleevedBackAccessory(info.backAccessoryExtra);
 
 	const frontBehindX = behindX + frontLegOffset.x + frame.frontFarLegX;
 	const frontBehindY = behindY + frontLegOffset.y + frame.frontFarLegY;
 	const backBehindX = behindX + backLegOffset.x + frame.backFarLegX;
 	const backBehindY = behindY + backLegOffset.y + frame.backFarLegY;
+	const frontX = x + frontLegOffset.x + frame.frontLegX;
+	const frontY = y + frontLegOffset.y + frame.frontLegY;
+	const backX = x + backLegOffset.x + frame.backLegX;
+	const backY = y + backLegOffset.y + frame.backLegY;
+	const extraBackAccessoryInFront = !!info.backAccessoryExtraInFront;
+	const deferExtraBackAccessory = !hasBackSleevesExtra && !hasTailAccessory;
+	const extraBackSleevesBehindTail = !extraBackAccessoryInFront &&
+		behindBackAccessory(info.backAccessory) && hasBackSleevesExtra;
 
 	// far leg back
 	if (draw(options, NoDraw.BackFarLeg)) {
@@ -508,6 +541,13 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 			sprites.backLegHooves, sprites.backLegAccessories, farBackLegSet,
 			flipped ? info.backLegAccessory : info.backLegAccessoryRight, farBackHoofSet, backHoovesInFront, FAR_COLOR,
 			undefined, false, 0, 0, outlineMode, outlineColor);
+		if (info.useExtraLegs || info.useExtraHooves || info.useExtraLegAccessory) {
+			drawLeg(batch, backBehindX, backBehindY, frame.backFarLeg, sprites.backLegs,
+				sprites.backLegHooves, sprites.backLegAccessories, info.useExtraLegs ? farBackLegExtraSet : undefined,
+				info.useExtraLegAccessory ? farBackLegAccessoryExtraSet : undefined,
+				info.useExtraHooves ? farBackHoofExtraSet : undefined, backHoovesInFront, FAR_COLOR,
+				undefined, false, 0, 0, outlineMode, outlineColor);
+		}
 	}
 
 	// far leg front
@@ -516,16 +556,44 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 			frontHooves, sprites.frontLegAccessories, farFrontLegSet,
 			flipped ? info.frontLegAccessory : info.frontLegAccessoryRight, farFrontHoofSet, frontHoovesInFront, FAR_COLOR,
 			undefined, false, 0, 0, outlineMode, outlineColor);
+		if (info.useExtraLegs || info.useExtraHooves || info.useExtraLegAccessory) {
+			drawLeg(batch, frontBehindX, frontBehindY, frame.frontFarLeg, sprites.frontLegs,
+				frontHooves, sprites.frontLegAccessories, info.useExtraLegs ? farFrontLegExtraSet : undefined,
+				info.useExtraLegAccessory ? farFrontLegAccessoryExtraSet : undefined,
+				info.useExtraHooves ? farFrontHoofExtraSet : undefined, frontHoovesInFront, FAR_COLOR,
+				undefined, false, 0, 0, outlineMode, outlineColor);
+		}
 	}
 
 	// far leg back sleeve
-	if (draw(options, NoDraw.FarSleeves) && hasBackSleeves) {
-		drawLocalSet(at(sprites.backLegSleeves, frame.backFarLeg), info.backAccessory, backBehindX, backBehindY, FAR_COLOR);
+	if (draw(options, NoDraw.FarSleeves)) {
+		const farBackSleeve = at(sprites.backLegSleeves, frame.backFarLeg);
+		if (!extraBackAccessoryInFront && hasBackSleevesExtra) {
+			drawLocalSet(farBackSleeve, info.backAccessoryExtra, backBehindX, backBehindY, FAR_COLOR);
+		}
+		if (hasBackSleeves) {
+			drawLocalSet(farBackSleeve, info.backAccessory, backBehindX, backBehindY, FAR_COLOR);
+		}
+		if (extraBackAccessoryInFront && hasBackSleevesExtra) {
+			drawLocalSet(farBackSleeve, info.backAccessoryExtra, backBehindX, backBehindY, FAR_COLOR);
+		}
+	}
+	if (draw(options, NoDraw.CloseSleeves) && extraBackSleevesBehindTail) {
+		drawLocalSet(at(backLegSleeves, frame.backLeg), info.backAccessoryExtra, backX, backY, WHITE);
+		drawLocalSet(at(sprites.backLegSleeves2, frame.backLeg), info.backAccessoryExtra, backX, backY, WHITE);
 	}
 
 	// far leg front sleeve
 	if (draw(options, NoDraw.FarSleeves) && hasSleeves) {
 		drawLocalSet(at(sprites.frontLegSleeves, frame.frontFarLeg), farSleeveSet, frontBehindX, frontBehindY, FAR_COLOR);
+	}
+
+	// far waist accessory stays behind the tail
+	if (draw(options, NoDraw.Body) && draw(options, NoDraw.BodyOnly)) {
+		const waistFrame = frame.wing > 2 ? 16 : body;
+		const waistOffset = at(offsets.waistAccessoryOffsets, waistFrame)!;
+		drawLocalSet(waistAccessories[waistFrame], farWaistSet, x + waistOffset.x, y + waistOffset.y, FAR_COLOR);
+		drawLocalSet(waistAccessories[waistFrame], farWaistExtraSet, x + waistOffset.x, y + waistOffset.y, FAR_COLOR);
 	}
 
 	// tail
@@ -537,14 +605,22 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 	drawLocalSet(at(tails, failFrame), info.tail, tailX, tailY, WHITE);
 
 	// tail accessory
-	if (draw(options, NoDraw.BackAccessory) && hasTailAccessory) {
-		drawLocalSet(backAccessories[body], info.backAccessory, x + backOffset.x, y + backOffset.y, WHITE);
+	if (draw(options, NoDraw.BackAccessory)) {
+		if (!extraBackAccessoryInFront && hasTailAccessoryExtra) {
+			drawLocalSet(backAccessories[body], backAccessoryExtra, x + backOffset.x, y + backOffset.y, WHITE);
+		}
+		if (hasTailAccessory) {
+			drawLocalSet(backAccessories[body], info.backAccessory, x + backOffset.x, y + backOffset.y, WHITE);
+		}
+		if (extraBackAccessoryInFront && hasTailAccessoryExtra) {
+			drawLocalSet(backAccessories[body], backAccessoryExtra, x + backOffset.x, y + backOffset.y, WHITE);
+		}
 	}
 
 	// body
 	if (draw(options, NoDraw.Body) && draw(options, NoDraw.BodyOnly)) {
 		drawLocalSet(sprites.body[body], closeBodySet, x, y, WHITE);
-		drawLocalSet(sprites.body[body], info.bodyExtra, x, y, WHITE);
+		drawLocalSet(sprites.body[body], flipped ? info.bodyExtraRight : info.bodyExtra, x, y, WHITE);
 	}
 
 	// neck accessory
@@ -554,10 +630,6 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 	// 	drawSpriteSet(context, neckAccessories[frame.body], info.neckAccessory, x, y);
 	// }
 
-	const frontX = x + frontLegOffset.x + frame.frontLegX;
-	const frontY = y + frontLegOffset.y + frame.frontLegY;
-	const backX = x + backLegOffset.x + frame.backLegX;
-	const backY = y + backLegOffset.y + frame.backLegY;
 	const cmOffset = at(offsets.cmOffsets, body)!;
 	const hooves = (TOOLS && options.useAllHooves) ? sprites.frontLegHooves : frontHooves;
 
@@ -567,16 +639,41 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 			batch, backX, backY, frame.backLeg, sprites.backLegs, sprites.backLegHooves, sprites.backLegAccessories,
 			closeBackLegSet, flipped ? info.backLegAccessoryRight : info.backLegAccessory, closeBackHoofSet, backHoovesInFront, WHITE,
 			info.cmPalette, flipped && !!info.cmFlip, x + cmOffset.x, y + cmOffset.y, outlineMode, outlineColor);
+		if (info.useExtraLegs || info.useExtraHooves || info.useExtraLegAccessory) {
+			drawLeg(
+				batch, backX, backY, frame.backLeg, sprites.backLegs, sprites.backLegHooves, sprites.backLegAccessories,
+				info.useExtraLegs ? closeBackLegExtraSet : undefined,
+				info.useExtraLegAccessory ? closeBackLegAccessoryExtraSet : undefined,
+				info.useExtraHooves ? closeBackHoofExtraSet : undefined, backHoovesInFront, WHITE,
+				undefined, false, 0, 0, outlineMode, outlineColor);
+		}
 	}
 
 	// back accessory
-	if (draw(options, NoDraw.BackAccessory) && !hasTailAccessory) {
-		drawLocalSet(backAccessories[body], info.backAccessory, x + backOffset.x, y + backOffset.y, WHITE);
+	if (draw(options, NoDraw.BackAccessory)) {
+		if (!deferExtraBackAccessory && !extraBackAccessoryInFront && !hasTailAccessoryExtra) {
+			drawLocalSet(backAccessories[body], backAccessoryExtra, x + backOffset.x, y + backOffset.y, WHITE);
+		}
+		if (!hasTailAccessory) {
+			drawLocalSet(backAccessories[body], info.backAccessory, x + backOffset.x, y + backOffset.y, WHITE);
+		}
+		if (!deferExtraBackAccessory && extraBackAccessoryInFront && !hasTailAccessoryExtra) {
+			drawLocalSet(backAccessories[body], backAccessoryExtra, x + backOffset.x, y + backOffset.y, WHITE);
+		}
 	}
 
 	// close leg back sleeves
-	if (draw(options, NoDraw.CloseSleeves) && hasBackSleeves) {
-		drawLocalSet(at(backLegSleeves, frame.backLeg), info.backAccessory, backX, backY, WHITE);
+	if (draw(options, NoDraw.CloseSleeves)) {
+		const closeBackSleeve = at(backLegSleeves, frame.backLeg);
+		if (!extraBackSleevesBehindTail && !extraBackAccessoryInFront && hasBackSleevesExtra) {
+			drawLocalSet(closeBackSleeve, info.backAccessoryExtra, backX, backY, WHITE);
+		}
+		if (hasBackSleeves) {
+			drawLocalSet(closeBackSleeve, info.backAccessory, backX, backY, WHITE);
+		}
+		if (!extraBackSleevesBehindTail && extraBackAccessoryInFront && hasBackSleevesExtra) {
+			drawLocalSet(closeBackSleeve, info.backAccessoryExtra, backX, backY, WHITE);
+		}
 	}
 
 	const isChestAccessoryInFront = chestAccessoryInFront(info.chestAccessory);
@@ -592,6 +689,14 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 			batch, frontX, frontY, frame.frontLeg, sprites.frontLegs, hooves, sprites.frontLegAccessories,
 			closeFrontLegSet, flipped ? info.frontLegAccessoryRight : info.frontLegAccessory, closeFrontHoofSet, frontHoovesInFront, WHITE,
 			undefined, false, 0, 0, outlineMode, outlineColor);
+		if (info.useExtraLegs || info.useExtraHooves || info.useExtraLegAccessory) {
+			drawLeg(
+				batch, frontX, frontY, frame.frontLeg, sprites.frontLegs, hooves, sprites.frontLegAccessories,
+				info.useExtraLegs ? closeFrontLegExtraSet : undefined,
+				info.useExtraLegAccessory ? closeFrontLegAccessoryExtraSet : undefined,
+				info.useExtraHooves ? closeFrontHoofExtraSet : undefined, frontHoovesInFront, WHITE,
+				undefined, false, 0, 0, outlineMode, outlineColor);
+		}
 	}
 
 	// close legs front sleeves
@@ -610,11 +715,32 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 			batch, backX, backY, frame.backLeg, sprites.backLegs2, sprites.backLegHooves2, sprites.backLegAccessories2,
 			closeBackLegSet, flipped ? info.backLegAccessoryRight : info.backLegAccessory, closeBackHoofSet, backHoovesInFront, WHITE,
 			undefined, false, 0, 0, outlineMode, outlineColor);
+		if (info.useExtraLegs || info.useExtraHooves || info.useExtraLegAccessory) {
+			drawLeg(
+				batch, backX, backY, frame.backLeg, sprites.backLegs2, sprites.backLegHooves2, sprites.backLegAccessories2,
+				info.useExtraLegs ? closeBackLegExtraSet : undefined,
+				info.useExtraLegAccessory ? closeBackLegAccessoryExtraSet : undefined,
+				info.useExtraHooves ? closeBackHoofExtraSet : undefined, backHoovesInFront, WHITE,
+				undefined, false, 0, 0, outlineMode, outlineColor);
+		}
 	}
 
 	// close legs back sleeves (2)
-	if (draw(options, NoDraw.CloseSleeves) && hasBackSleeves) {
-		drawLocalSet(at(sprites.backLegSleeves2, frame.backLeg), info.backAccessory, backX, backY, WHITE);
+	if (draw(options, NoDraw.CloseSleeves)) {
+		const closeBackSleeve2 = at(sprites.backLegSleeves2, frame.backLeg);
+		if (!extraBackSleevesBehindTail && !extraBackAccessoryInFront && hasBackSleevesExtra) {
+			drawLocalSet(closeBackSleeve2, info.backAccessoryExtra, backX, backY, WHITE);
+		}
+		if (hasBackSleeves) {
+			drawLocalSet(closeBackSleeve2, info.backAccessory, backX, backY, WHITE);
+		}
+		if (!extraBackSleevesBehindTail && extraBackAccessoryInFront && hasBackSleevesExtra) {
+			drawLocalSet(closeBackSleeve2, info.backAccessoryExtra, backX, backY, WHITE);
+		}
+	}
+
+	if (draw(options, NoDraw.BackAccessory) && deferExtraBackAccessory) {
+		drawLocalSet(backAccessories[body], backAccessoryExtra, x + backOffset.x, y + backOffset.y, WHITE);
 	}
 
 	// neck accessory
@@ -628,7 +754,7 @@ function drawPonyImpl(batch: Batch, info: Info, state: State, ponyX: number, pon
 	const waistFrame = frame.wing > 2 ? 16 : body;
 	const waistOffset = at(offsets.waistAccessoryOffsets, waistFrame)!;
 	drawLocalSet(waistAccessories[waistFrame], closeWaistSet, x + waistOffset.x, y + waistOffset.y, WHITE);
-	drawLocalSet(waistAccessories[waistFrame], info.waistAccessoryExtra, x + waistOffset.x, y + waistOffset.y, WHITE);
+	drawLocalSet(waistAccessories[waistFrame], closeWaistExtraSet, x + waistOffset.x, y + waistOffset.y, WHITE);
 
 	// wings
 	drawLocalSet(wing, closeWingSet, x + wingOffset.x + frame.wingX, y + wingOffset.y + frame.wingY, WHITE);
@@ -708,6 +834,10 @@ export function drawHead(
 		let eyeRightBase = -1;
 		let irisLeft = headFrame.leftIris != null ? headFrame.leftIris : Iris.Forward;
 		let irisRight = headFrame.rightIris != null ? headFrame.rightIris : Iris.Forward;
+		if (expression === undefined) {
+			if (info.irisLeft != null) irisLeft = info.irisLeft;
+			if (info.irisRight != null) irisRight = info.irisRight;
+		}
 
 		const expressionExtra = expression ? (expression.extra || 0) : 0;
 		if (expression !== undefined) {

@@ -118,7 +118,7 @@ export class App implements OnInit, OnDestroy, DoCheck {
 		private modalService: BsModalService,
 		private gameService: GameService,
 		private model: Model,
-		private game: PonyTownGame,
+		public game: PonyTownGame,
 		private router: Router,
 		private activatedRoute: ActivatedRoute,
 		private errorReporter: ErrorReporter,

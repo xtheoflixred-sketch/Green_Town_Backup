@@ -52,7 +52,10 @@ export class Welcome implements OnInit {
 	}
 
 	onMockLoginSubmit(data: { id: string }) {
-		window.location.href = `/auth/local?password=x&username=${data.id}`;
+		this.http.post('/auth/mock-login', { id: data.id }, { responseType: 'text' }).subscribe(
+			() => window.location.href = '/',
+			error => console.error('Не удалось выполнить mock-login', error)
+		);
 	}
 
 	onMockCreateAccount(event?: any) {

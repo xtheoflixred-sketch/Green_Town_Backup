@@ -63,7 +63,7 @@ export function createIslandMap(world: World, instanced: boolean, template = fal
 	setEntityName(boxOfFruits, 'Box of fruits');
 
 	const giftPile = add(entities.giftPileInteractive(37.66, 18.21));
-	giftPile.interact = (_, client) => useToyStash(client);
+	giftPile.interact = (entity, client) => useToyStash(client, entity);
 	setEntityName(giftPile, 'Toy stash');
 
 	const types = entities.stashEntities.map(e => e.type);

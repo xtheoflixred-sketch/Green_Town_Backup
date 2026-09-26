@@ -18,6 +18,7 @@ import { createCaveMap } from './maps/caveMap';
 import { createCustomMap } from './maps/customMap';
 import { createTestMap } from './maps/testMap';
 import { createSignWithText } from './controllerUtils';
+import { NPCUtils } from './NPCUtils';
 
 export function start(world: World, server: ServerConfig) {
 	const data = readFileSync(pathTo('src', 'ts', 'generated', 'pony.bin'));
@@ -33,6 +34,7 @@ export function start(world: World, server: ServerConfig) {
 	world.maps.push(createMainMap(world));
 	world.maps.push(createCaveMap(world));
 	const mainMap = world.getMainMap();
+	new NPCUtils(world).spawnDefaultNPCs(mainMap);
 	const entranceY = mainMap.spawnArea.y;
 	const signY = entranceY - 0.5;
 	const triggerY = signY;

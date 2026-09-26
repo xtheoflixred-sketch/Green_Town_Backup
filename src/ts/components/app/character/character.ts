@@ -75,6 +75,7 @@ function eyeSprite(e: PonyEye | undefined) {
 interface CharacterUndoState {
 	pony: PonyObject;
 	previewScale: number;
+	previewOpacity: number;
 	hidePreviewName: boolean;
 	hidePreviewTag: boolean;
 	showBackground: boolean;
@@ -95,8 +96,10 @@ export class Character implements DoCheck, OnInit, OnDestroy {
 	@Input() inGameMode = false;
 	readonly debug = DEVELOPMENT || BETA;
 	previewScale: number = 4;
+	previewOpacity = 1;
 	showBackground = false;
-	showPreviewControls = true;
+	showPreviewControls = false;
+	hidePreviewControls = false;
 	hidePreviewName = false;
 	hidePreviewTag = false;
 
@@ -388,6 +391,7 @@ get previewState(): PonyState {
 		const pony = this.previewPony || this.pony;
 		const previewTag = this.previewTag;
 		const gradient = previewTag ? getTagGradient(previewTag) : undefined;
+		if (previewTag && /^sup[1-4]$/.test(previewTag)) return 'vertical';
 		return pony.tagGradientDirection || (gradient && gradient.direction) || 'horizontal';
 	}
 	get displayedSupporterTag(): string | undefined {
@@ -480,7 +484,7 @@ get previewState(): PonyState {
 		this.changed();
 	}
 	get hasCustomPreviewSettings() {
-		return this.previewScale !== 4 || !!this.info.headTurned || !!this.info.flip || this.hidePreviewName || this.hidePreviewTag
+		return this.previewScale !== 4 || this.previewOpacity !== 1 || !!this.info.headTurned || !!this.info.flip || this.hidePreviewName || this.hidePreviewTag
 			|| (this.canPreviewHoldItem && !this.previewHoldItem);
 	}
 	get hasCustomBlushColor() {
@@ -497,6 +501,7 @@ get previewState(): PonyState {
 	}
 	resetPreview() {
 		this.previewScale = 4;
+		this.previewOpacity = 1;
 		this.info.headTurned = false;
 		this.info.flip = false;
 		this.hidePreviewName = false;
@@ -640,6 +645,7 @@ get previewState(): PonyState {
 
 	get tagGradientDirection(): 'horizontal' | 'vertical' {
 		const gradient = getTagGradient(this.tag.id);
+		if (/^sup[1-4]$/.test(this.tag.id)) return 'vertical';
 		return this.pony.tagGradientDirection || (gradient && gradient.direction) || 'horizontal';
 	}
 
@@ -850,7 +856,14 @@ get previewState(): PonyState {
 	}
 	ngOnInit() {
 		if (!this.state.expression) {
-			this.state.expression = createExpression(Eye.Neutral, Eye.Neutral, Muzzle.Smile, Iris.Forward, Iris.Forward, ExpressionExtra.None);
+			this.state.expression = createExpression(
+				Eye.Neutral,
+				Eye.Neutral,
+				Muzzle.Smile,
+				this.info.irisRight != null ? this.info.irisRight : Iris.Forward,
+				this.info.irisLeft != null ? this.info.irisLeft : Iris.Forward,
+				ExpressionExtra.None,
+			);
 		}
 
 		// sync expression state from saved info (eye openness, muzzle)
@@ -899,18 +912,26 @@ get previewState(): PonyState {
 	}
 	private syncIrisLockState() {
 		if (!this.state.expression) {
-			this.lockIrises = true;
+			this.lockIrises = this.info.lockIrises !== false;
 			return;
 		}
 
-		this.lockIrises = !!this.info.lockEyes || this.lockIrises;
+		this.lockIrises = this.info.lockIrises !== false;
+		this.info.irisRight = this.state.expression.rightIris;
+		this.info.irisLeft = this.state.expression.leftIris;
+		if (this.lockIrises) {
+			this.state.expression.leftIris = this.state.expression.rightIris;
+			this.info.irisLeft = this.info.irisRight;
+		}
 	}
 
 	setRightIris(iris: Iris) {
 		if (this.state.expression) {
 			this.state.expression.rightIris = iris;
-			if (this.lockIrises || this.info.lockEyes) {
+			this.info.irisRight = iris;
+			if (this.lockIrises) {
 				this.state.expression.leftIris = iris;
+				this.info.irisLeft = iris;
 			}
 			this.renderChanged();
 		}
@@ -918,8 +939,10 @@ get previewState(): PonyState {
 	setLeftIris(iris: Iris) {
 		if (this.state.expression) {
 			this.state.expression.leftIris = iris;
-			if (this.lockIrises || this.info.lockEyes) {
+			this.info.irisLeft = iris;
+			if (this.lockIrises) {
 				this.state.expression.rightIris = iris;
+				this.info.irisRight = iris;
 			}
 			this.renderChanged();
 		}
@@ -932,6 +955,9 @@ get previewState(): PonyState {
 		const expression = action.expression;
 		this.info.lockEyes = expression.right === expression.left;
 		this.lockIrises = expression.rightIris === expression.leftIris;
+		this.info.lockIrises = this.lockIrises;
+		this.info.irisRight = expression.rightIris;
+		this.info.irisLeft = expression.leftIris;
 		this.info.eyeOpennessRight = expression.right;
 		this.info.eyeOpennessLeft = expression.left;
 		this.info.muzzle = expression.muzzle;
@@ -1042,6 +1068,7 @@ get previewState(): PonyState {
 		return {
 			pony: this.createUndoPonySnapshot(),
 			previewScale: this.previewScale,
+			previewOpacity: this.previewOpacity,
 			hidePreviewName: this.hidePreviewName,
 			hidePreviewTag: this.hidePreviewTag,
 			showBackground: this.showBackground,
@@ -1050,7 +1077,7 @@ get previewState(): PonyState {
 	}
 	private getUndoStateKey(state: CharacterUndoState) {
 		const ponyInfo = state.pony.ponyInfo || state.pony.info || '';
-		return `${ponyInfo}|${state.previewScale}|${state.hidePreviewName}|${state.hidePreviewTag}|${state.showBackground}|${state.previewHoldItem}`;
+		return `${ponyInfo}|${state.previewScale}|${state.previewOpacity}|${state.hidePreviewName}|${state.hidePreviewTag}|${state.showBackground}|${state.previewHoldItem}`;
 	}
 	private resetUndoHistory() {
 		this.undoHistory = [];
@@ -1082,7 +1109,7 @@ get previewState(): PonyState {
 			this.ponyInfoCacheDirty = false;
 		}
 
-		const stateKey = `${this.cachedPonyInfoKey}|${this.previewScale}|${this.hidePreviewName}|${this.hidePreviewTag}|${this.showBackground}|${this.previewHoldItem}`;
+		const stateKey = `${this.cachedPonyInfoKey}|${this.previewScale}|${this.previewOpacity}|${this.hidePreviewName}|${this.hidePreviewTag}|${this.showBackground}|${this.previewHoldItem}`;
 
 		if (stateKey === this.currentUndoStateKey) {
 			return;
@@ -1118,6 +1145,7 @@ get previewState(): PonyState {
 		this.syncGlobalBackground();
 		this.syncExpressionFromInfo();
 		this.previewScale = state.previewScale;
+		this.previewOpacity = state.previewOpacity === undefined ? 1 : state.previewOpacity;
 		this.hidePreviewName = state.hidePreviewName;
 		this.hidePreviewTag = state.hidePreviewTag;
 		this.showBackground = state.showBackground;
@@ -1396,6 +1424,17 @@ get previewState(): PonyState {
 		this.showPreviewControls = !this.showPreviewControls;
 	}
 
+	setPreviewControlsDisabled(disabled: boolean) {
+		this.hidePreviewControls = disabled;
+		if (disabled) {
+			this.showPreviewControls = false;
+		}
+	}
+
+	setRespawnMode(atSpawn: boolean) {
+		this.pony.respawnAtSpawn = atSpawn;
+	}
+
 	toggleHidePreviewName() {
 		this.hidePreviewName = !this.hidePreviewName;
 		this.changed();
@@ -1450,11 +1489,14 @@ get previewState(): PonyState {
 	}
 	irisLockChanged(locked: boolean) {
 		this.lockIrises = locked;
+		this.info.lockIrises = locked;
 		if (this.state.expression) {
 			this.state.expression = syncLockedIrisPair(this.state.expression, locked) || this.state.expression;
 			if (locked) {
 				this.state.expression.rightIris = this.state.expression.leftIris;
 			}
+			this.info.irisRight = this.state.expression.rightIris;
+			this.info.irisLeft = this.state.expression.leftIris;
 		}
 		this.changed();
 	}
@@ -1524,6 +1566,16 @@ get previewState(): PonyState {
 			this.info.backHoovesRight = cloneDeep(this.lockFrontHooves ? this.info.frontHooves : this.info.frontHoovesRight);
 		}
 	}
+	backHoovesExtraPairChanged(locked: boolean) {
+		if (locked) {
+			this.info.backHoovesExtra = cloneDeep(this.info.frontHoovesExtra);
+			this.info.backHoovesExtraRight = cloneDeep(
+				this.info.unlockFrontHoovesExtra ? this.info.frontHoovesExtraRight : this.info.frontHoovesExtra);
+		} else {
+			this.info.backHoovesExtra = cloneDeep(this.info.backHoovesExtra || this.info.frontHoovesExtra);
+			this.info.backHoovesExtraRight = cloneDeep(this.info.backHoovesExtraRight || this.info.backHoovesExtra);
+		}
+	}
 	backHoovesLockChanged(locked: boolean) {
 		if (locked) {
 			this.info.backHoovesRight = cloneDeep(this.info.backHooves);
@@ -1567,7 +1619,9 @@ get previewState(): PonyState {
 			const right = (this.info.eyeOpennessRight != null ? this.info.eyeOpennessRight : Eye.Neutral) as Eye;
 			const left = (this.info.eyeOpennessLeft != null ? this.info.eyeOpennessLeft : Eye.Neutral) as Eye;
 			const muzzle = (this.info.muzzle != null ? this.info.muzzle : Muzzle.Smile) as Muzzle;
-			this.state.expression = { ...this.state.expression, right, left, muzzle };
+			const rightIris = this.info.irisRight != null ? this.info.irisRight : this.state.expression.rightIris;
+			const leftIris = this.info.irisLeft != null ? this.info.irisLeft : this.state.expression.leftIris;
+			this.state.expression = { ...this.state.expression, right, left, muzzle, rightIris, leftIris };
 			this.syncIrisLockState();
 		}
 	}
@@ -1579,8 +1633,21 @@ get previewState(): PonyState {
 	freeOutlinesChanged(_free: boolean) {
 		this.changed();
 	}
-	darkenLockedOutlinesChanged(_darken: boolean) {
+	customOutlinesChanged(enabled: boolean) {
+		if (enabled && this.info.lockedOutlineDarkness === undefined) {
+			this.info.lockedOutlineDarkness = 50;
+		}
 		this.changed();
+	}
+	get lockedOutlineDarkness() {
+		return this.info.lockedOutlineDarkness === undefined ? 50 : this.info.lockedOutlineDarkness;
+	}
+	setLockedOutlineDarkness(value: number) {
+		this.info.lockedOutlineDarkness = Math.max(0, Math.min(100, Number(value) || 0));
+		this.changed();
+	}
+	resetLockedOutlineDarkness() {
+		this.setLockedOutlineDarkness(50);
 	}
 	get canSave() {
 		return !this.model.pending && !!this.pony && !!this.pony.name && !this.savingLocked;

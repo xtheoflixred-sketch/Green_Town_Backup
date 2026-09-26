@@ -207,11 +207,18 @@ export class SettingsBox implements OnInit, OnDestroy {
 	// =====================
 
 	ngOnInit() {
-		this.subscription = this.game.onOpenTestModal.subscribe(() => {
+		this.subscription = new Subscription();
+		this.subscription.add(this.game.onOpenToyModal.subscribe(() => {
+			if (!document.body.classList.contains('modal-open')) {
+				this.zone.run(() => this.openToys());
+			}
+		}));
+
+		this.subscription.add(this.game.onOpenTestModal.subscribe(() => {
 			if (!document.body.classList.contains('modal-open')) {
 				this.zone.run(() => this.openTestModal());
 			}
-		});
+		}));
 
 		this.updateSubscription = interval(100).subscribe(() => {
 			this.updateVisualizerBars();

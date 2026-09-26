@@ -150,7 +150,18 @@ const changelog = cb => {
 			if (node.type === 'Heading' && node.depth === 2) {
 				const version = (node.text || '').trim();
 				const changes = [];
-				node.children && node.children.forEach(child => collectTokens(child, changes));
+				node.children && node.children.forEach(child => {
+					if (child.type === 'Heading' && child.depth === 3) {
+						const sectionChanges = [];
+						collectTokens(child, sectionChanges);
+						const title = markdownToHtml((child.text || '').trim());
+						if (title && sectionChanges.length) {
+							changes.push({ title, changes: sectionChanges });
+						}
+					} else {
+						collectTokens(child, changes);
+					}
+				});
 				entries.push({ version, changes });
 			}
 			node.children && node.children.forEach(child => traverse(child));
@@ -164,7 +175,7 @@ const changelog = cb => {
 	const publicEntries = config.nochangelog ? [] : parseFile('CHANGELOG.md');
 	const devEntries = config.nochangelog ? [] : parseFile('DEVCHANGELOG.md');
 
-	const type = `{ version: string; changes: string[]; }[]`;
+		const type = `{ version: string; changes: (string | { title: string; changes: string[]; })[]; }[]`;
 	const code = `/* tslint:disable */\n\nexport const CHANGELOG_PUBLIC: ${type} = ${JSON.stringify(publicEntries, null, 2)};\n\nexport const CHANGELOG_DEV: ${type} = ${JSON.stringify(devEntries, null, 2)};\n\nexport const CHANGELOG_ALL: ${type} = ${JSON.stringify([...publicEntries, ...devEntries], null, 2)};\n`;
 	fs.writeFile('src/ts/generated/changelog.ts', code, 'utf8', cb);
 };

@@ -89,6 +89,22 @@
 		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
+	.changelog-section {
+		list-style: none;
+		margin: 14px 0 8px -1.5rem;
+
+		h5 {
+			font-size: 1rem;
+			font-weight: 600;
+			margin: 0 0 6px;
+			color: #d0d0d0;
+		}
+
+		ul {
+			margin-top: 0;
+		}
+	}
+
 	ul {
 		margin: 0.5rem 0 1rem 1.5rem;
 		padding: 0;

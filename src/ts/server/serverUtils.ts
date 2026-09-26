@@ -54,6 +54,17 @@ export function toAccountData(account: IAccount): AccountData {
 		lastLogout: account.lastLogout ? account.lastLogout.toISOString() : undefined,
 		lastSessionSeconds: account.lastSessionSeconds,
 		lastUserAgent: account.lastUserAgent,
+		loginSessions: ((account as any).loginSessions || []).map((session: any) => ({
+			id: session.id,
+			createdAt: session.createdAt && session.createdAt.toISOString(),
+			lastSeen: session.lastSeen && session.lastSeen.toISOString(),
+			browser: session.browser,
+			browserVersion: session.browserVersion,
+			os: session.os,
+			osVersion: session.osVersion,
+			deviceType: session.deviceType,
+			current: session.sessionId === (account as any).__currentSessionId,
+		})),
 	};
 }
 

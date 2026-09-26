@@ -1,7 +1,7 @@
 .pony-info-preview([style.background]="!noBackground ? '#ffffff' : 'transparent'")
 	character-preview(
-		[pony]="pony" [name]="name" [passive]="passive" [scale]="scale" [tag]="tag" [tagColor]="tagColor"
-		[tagGradientStart]="tagGradientStart || (pony && pony.tagGradientStart)"
-		[tagGradientEnd]="tagGradientEnd || (pony && pony.tagGradientEnd)"
-		[tagGradientDirection]="tagGradientDirection || (pony && pony.tagGradientDirection) || 'horizontal'"
+		[pony]="pony" [name]="name" [passive]="passive" [scale]="scale" [tag]="tag" [tagColor]="previewTagColor"
+		[tagGradientStart]="previewTagGradientStart"
+		[tagGradientEnd]="previewTagGradientEnd"
+		[tagGradientDirection]="previewTagGradientDirection"
 		[allowAnyTag]="allowAnyTag" [noBackground]="noBackground" [noOutline]="true" [namePlateOffsetY]="namePlateOffsetY" [tagOnlyNamePlateOffsetY]="tagOnlyNamePlateOffsetY")

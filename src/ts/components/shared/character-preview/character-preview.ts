@@ -20,6 +20,7 @@ import {
 import { cryAnimation, heartsAnimation, magicAnimation, tearsAnimation, zzzAnimations } from '../../../client/spriteAnimations';
 import * as sprites from '../../../generated/sprites';
 import { replaceEmojis } from '../../../client/emoji';
+import { getTagGradient } from '../../../common/tags';
 
 const DEFAULT_STATE = defaultPonyState();
 const DEFAULT_OPTIONS = defaultDrawPonyOptions();
@@ -46,7 +47,7 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 	@Input() tagTranslation?: string;
 	@Input() tagGradientStart?: string;
 	@Input() tagGradientEnd?: string;
-	@Input() tagGradientDirection: 'horizontal' | 'vertical' = 'horizontal';
+	@Input() tagGradientDirection?: 'horizontal' | 'vertical';
 	@Input() pony?: PonyInfo;
 
 	get resolvedTag() {
@@ -56,27 +57,35 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 	}
 
 	get resolvedTagColor() {
-		if (this.tagColor) return this.tagColor;
+		const tag = this.resolvedTag;
+		const isSupporterTag = !!tag && /^sup[1-4]$/.test(tag);
+		if (this.tagColor && !isSupporterTag) return this.tagColor;
 		const ponyTagColor = this.pony && (this.pony as any).tagColor ? (this.pony as any).tagColor as string : undefined;
-		if (ponyTagColor) return ponyTagColor;
+		if (ponyTagColor && !isSupporterTag) return ponyTagColor;
 		return this.tagGradientStart || undefined;
 	}
 
 	get resolvedTagGradientStart() {
 		if (this.tagGradientStart) return this.tagGradientStart;
 		if (this.pony && (this.pony as any).tagGradientStart) return (this.pony as any).tagGradientStart as string;
+		const gradient = getTagGradient(this.resolvedTag);
+		if (gradient) return gradient.start;
 		return undefined;
 	}
 
 	get resolvedTagGradientEnd() {
 		if (this.tagGradientEnd) return this.tagGradientEnd;
 		if (this.pony && (this.pony as any).tagGradientEnd) return (this.pony as any).tagGradientEnd as string;
+		const gradient = getTagGradient(this.resolvedTag);
+		if (gradient) return gradient.end;
 		return undefined;
 	}
 
 	get resolvedTagGradientDirection(): 'horizontal' | 'vertical' {
 		if (this.tagGradientDirection) return this.tagGradientDirection;
 		if (this.pony && (this.pony as any).tagGradientDirection) return (this.pony as any).tagGradientDirection as 'horizontal' | 'vertical';
+		const gradient = getTagGradient(this.resolvedTag);
+		if (gradient && gradient.direction) return gradient.direction;
 		return 'horizontal';
 	}
 	@Input() state?: PonyState = defaultPonyState();
@@ -87,6 +96,7 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 	@Input() selectionOutlineColor?: string;
 	@Input() extra = false;
 	@Input() magic = false;
+	@Input() opacity = 1;
 	@Input() passive = false;
 	@Input() blinks = true;
 	@Input() allowAnyTag = false;
@@ -288,6 +298,7 @@ export class CharacterPreview implements OnDestroy, OnChanges, AfterViewInit {
 			this.batch.start(sprites.paletteSpriteSheet, bg);
 
 			try {
+				this.batch.globalAlpha = Math.max(0, Math.min(1, this.opacity));
 
 				// apply preview options from pony info
 				options.flipped = !!(this.pony && (this.pony as any).flip);

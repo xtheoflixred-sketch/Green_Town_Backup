@@ -313,8 +313,6 @@ if (args.login) {
 		production, '/', 'style.css', 'bootstrap.js', 'bootstrap-es.js', socketOptions, false, !!args.local, !production);
 	const offlinePage = fs.readFileSync(pathTo('public', 'offline.html'), 'utf8');
 
-	const script = `${config.host}${index.getRevScript('bootstrap.js')}`;
-	const scriptES = `${config.host}${index.getRevScript('bootstrap-es.js')}`;
 	const analytics = config.analytics ? 'https://www.google-analytics.com' : '';
 	// const workbox = 'https://storage.googleapis.com/workbox-cdn';
 	// const rollbarScripts =
@@ -322,8 +320,8 @@ if (args.login) {
 	const csp = `object-src 'none';`
 		+ `frame-src 'self';`
 		+ `frame-ancestors 'self';`
-		+ `worker-src ${config.host}sw.js;`
-		+ `script-src 'unsafe-eval' ${script} ${scriptES} ${analytics};`
+		+ `worker-src 'self';`
+		+ `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${analytics};`
 		// + `report-uri /api2/csp`
 		;
 
@@ -333,7 +331,7 @@ if (args.login) {
 
 	app.use('/assets-admin', ...adminMiddlewares(), express.static(adminAssetsPath, { maxAge, etag }));
 	app.use('/auth', ...sessionMiddlewares(), authRoutes(
-		config.host, server, settings, liveSettings, args.local || DEVELOPMENT, removedDocument));
+		config.host, server, settings, liveSettings, !!settings.mockLoginEnabled || args.local || DEVELOPMENT, removedDocument));
 	app.use('/api', ...sessionMiddlewares(), api(
 		server, settings, { version, host: config.host, debug: DEVELOPMENT, local: !!args.local }, removedDocument, theWorld));
 	app.use('/api1', ...sessionMiddlewares(), api1(server, settings));

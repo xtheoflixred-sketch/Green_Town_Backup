@@ -1,6 +1,6 @@
 import { Component, Input, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ChangelogSeasonGroup, ChangelogParsedEntry, buildSeasonGroups } from '../../../common/changelogUtils';
+import { ChangelogChange, ChangelogSeasonGroup, ChangelogParsedEntry, buildSeasonGroups } from '../../../common/changelogUtils';
 
 @Component({
 	selector: 'changelog-view',
@@ -8,7 +8,7 @@ import { ChangelogSeasonGroup, ChangelogParsedEntry, buildSeasonGroups } from '.
 	styleUrls: ['changelog-view.scss'],
 })
 export class ChangelogView implements OnInit, OnChanges {
-	@Input() rawEntries: { version: string; changes: string[]; }[] = [];
+	@Input() rawEntries: { version: string; changes: ChangelogChange[]; }[] = [];
 	@Input() changelogResponse: any;
 	@Input() isDev = false;
 
@@ -102,6 +102,10 @@ export class ChangelogView implements OnInit, OnChanges {
 		}
 
 		return patch.hiddenIndex < this.revealedPrevious;
+	}
+
+	isChangelogSection(change: ChangelogChange): change is { title: string; changes: string[] } {
+		return typeof change !== 'string';
 	}
 
 	getSeasonImageUrl(season: number) {

@@ -1151,6 +1151,10 @@ export function createCommands(world: World): Command[] {
 		action(['magic'], Action.Magic, 'Actions'),
 		action(['kiss'], Action.Kiss, 'Actions'),
 		action(['dance1', 'dance-1', 'dance'], Action.Dance1, 'Actions'),
+		action(['dance2', 'dance-2'], Action.Dance2, 'Actions'),
+		action(['clapping1.0', 'clapping-1-0', 'clap'], Action.Clapping1_0, 'Actions'),
+		action(['dance3', 'dance-3'], Action.Dance3, 'Actions'),
+		action(['wing', 'wings', 'wing-toggle'], Action.WingToggle, 'Actions'),
 
 		// house
 		command(['savehouse'], '/savehouse - saves house setup (use ? for help)', '', async ({ }, client, message) => {

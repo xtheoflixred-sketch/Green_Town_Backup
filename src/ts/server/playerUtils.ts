@@ -15,7 +15,7 @@ import {
 } from '../common/interfaces';
 import { rareHoldTypes } from '../common/rareItems';
 import { encodeExpression, EMPTY_EXPRESSION, decodeExpression } from '../common/encoders/expressionEncoder';
-import { EXPRESSION_TIMEOUT, DAY, FLY_DELAY, SECOND, PONY_TYPE } from '../common/constants';
+import { EXPRESSION_TIMEOUT, DAY, FLY_DELAY, SECOND, PONY_TYPE, OPEN_TOY_MODAL_MESSAGE } from '../common/constants';
 import { World } from './world';
 import { centerCameraOn, createCamera } from '../common/camera';
 import { findEntitiesInBounds, findEntities } from './serverMap';
@@ -40,7 +40,7 @@ import {
 import { withBorder } from '../common/rect';
 import { isOnlineFriend } from './services/friends';
 import { grapePurple, grapeGreen, tools } from '../common/entities';
-import { saySystem, sayToOthers } from './chat';
+import { saySystem, sayTo, sayToOthers } from './chat';
 
 export function isMutedOrShadowed(client: IClient) {
 	return client.shadowed || isMuted(client.account);
@@ -599,6 +599,14 @@ export function dance1(client: IClient, now: number) {
 	}
 }
 
+export function dance(client: IClient, now: number, action: Action) {
+	if (canPerformAction(client, now) && canBoopOrKiss(client.pony)) {
+		cancelEntityExpression(client.pony);
+		sendAction(client.pony, action);
+		client.lastBoopOrKissAction = now + 850;
+	}
+}
+
 export function sneeze(client: IClient) {
 	const now = Date.now();
 	if (canPerformAction(client, now)) {
@@ -615,7 +623,23 @@ export function stand(client: IClient) {
 			cancelEntityExpression(client.pony);
 		}
 
+		updateEntityOptions(client.pony, { standBack: false } as any);
 		updateEntityState(client.pony, setPonyState(client.pony.state, EntityState.PonyStanding));
+	}
+}
+
+export function standBack(client: IClient) {
+	if (canPerformAction(client) && canStand(client.pony, client.map)) {
+		const enabled = !!(client.pony.options && (client.pony.options as any).standBack);
+		updateEntityOptions(client.pony, { standBack: !enabled } as any);
+		updateEntityState(client.pony, setPonyState(client.pony.state, EntityState.PonyStanding));
+	}
+}
+
+export function toggleWing(client: IClient) {
+	if (canPerformAction(client)) {
+		const enabled = !!(client.pony.options && client.pony.options.wingOpen);
+		updateEntityOptions(client.pony, { wingOpen: !enabled });
 	}
 }
 
@@ -807,15 +831,13 @@ export function getCollectedToysList(client: IClient): number[] {
 	return result;
 }
 
-export function useToyStash(client: IClient) {
-	const opt = getNextToyOrExtra(client);
-	updateEntityOptions(client.pony, opt);
-
-	if (opt.toy && opt.toy > 0) {
-		saySystem(client, `#${opt.toy}`);
-	} else if (opt.extra) {
-		saySystem(client, `#extra`);
+export function useToyStash(client: IClient, source: ServerEntity = client.pony) {
+	if (getCollectedToysCount(client).collected === 0) {
+		sayTo(client, source, 'У тебя нет игрушек', MessageType.System);
+		return;
 	}
+
+	sayTo(client, source, OPEN_TOY_MODAL_MESSAGE, MessageType.System);
 }
 
 export function getNextToyOrExtra(client: IClient) {
@@ -957,6 +979,9 @@ export function execAction(client: IClient, action: Action, settings: GameServer
 		case Action.Stand:
 			stand(client);
 			break;
+		case Action.StandBack:
+			standBack(client);
+			break;
 		case Action.Sit:
 			sit(client, settings);
 			break;
@@ -998,6 +1023,18 @@ export function execAction(client: IClient, action: Action, settings: GameServer
 			break;
 		case Action.Dance1:
 			dance1(client, Date.now());
+			break;
+		case Action.Dance2:
+			dance(client, Date.now(), Action.Dance2);
+			break;
+		case Action.Clapping1_0:
+			dance(client, Date.now(), Action.Clapping1_0);
+			break;
+		case Action.Dance3:
+			dance(client, Date.now(), Action.Dance3);
+			break;
+		case Action.WingToggle:
+			toggleWing(client);
 			break;
 		case Action.SwitchTool:
 			client.editorBypassWalls = false;

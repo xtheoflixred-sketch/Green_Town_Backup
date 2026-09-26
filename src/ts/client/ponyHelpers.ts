@@ -25,6 +25,9 @@ export function defaultPonyState(): PonyState {
 export function isStateEqual(a: PonyState, b: PonyState) {
 	return a.animation === b.animation &&
 		a.animationFrame === b.animationFrame &&
+		a.wingOpen === b.wingOpen &&
+		a.wingAnimation === b.wingAnimation &&
+		a.wingAnimationFrame === b.wingAnimationFrame &&
 		a.headAnimation === b.headAnimation &&
 		a.headAnimationFrame === b.headAnimationFrame &&
 		a.headTurned === b.headTurned &&

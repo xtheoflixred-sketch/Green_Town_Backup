@@ -1,6 +1,9 @@
 import { UAParser } from 'ua-parser-js';
 
 export interface AccountSessionSummary {
+	loginSessionId?: string;
+	current?: boolean;
+	gameSessionId?: string;
 	title: string;
 	subtitle: string;
 	detail: string;
@@ -11,11 +14,13 @@ export interface AccountSessionSummary {
 }
 
 export interface ActiveGameSession {
+	id: string;
 	startedAt: number;
 	updatedAt: number;
 }
 
 export const GAME_SESSION_KEY_PREFIX = 'pony-town-game-session:';
+export const REVOKED_GAME_SESSION_KEY_PREFIX = 'pony-town-revoked-game-session:';
 export const LAST_GAME_SESSION_KEY_PREFIX = 'pony-town-last-game-session:';
 const GAME_SESSION_TIMEOUT = 10000;
 
@@ -31,6 +36,18 @@ export function removeActiveGameSession(accountId: string, id: string, startedAt
 	}));
 }
 
+export function revokeActiveGameSession(accountId: string, id: string) {
+	localStorage.setItem(`${REVOKED_GAME_SESSION_KEY_PREFIX}${accountId}:${id}`, '1');
+}
+
+export function isActiveGameSessionRevoked(accountId: string, id: string) {
+	return localStorage.getItem(`${REVOKED_GAME_SESSION_KEY_PREFIX}${accountId}:${id}`) === '1';
+}
+
+export function clearRevokedGameSession(accountId: string, id: string) {
+	localStorage.removeItem(`${REVOKED_GAME_SESSION_KEY_PREFIX}${accountId}:${id}`);
+}
+
 export function getActiveGameSessions(accountId: string, now = Date.now()): ActiveGameSession[] {
 	const sessions: ActiveGameSession[] = [];
 	for (let index = 0; index < localStorage.length; index++) {
@@ -39,7 +56,7 @@ export function getActiveGameSessions(accountId: string, now = Date.now()): Acti
 		try {
 			const session = JSON.parse(localStorage.getItem(key) || '') as ActiveGameSession;
 			if (now - session.updatedAt <= GAME_SESSION_TIMEOUT) {
-				sessions.push(session);
+				sessions.push({ ...session, id: key.slice(`${GAME_SESSION_KEY_PREFIX}${accountId}:`.length) });
 			} else {
 				localStorage.removeItem(key);
 			}

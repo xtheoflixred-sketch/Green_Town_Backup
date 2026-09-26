@@ -7,6 +7,8 @@ export interface AgDragEvent {
 	type: 'start' | 'drag' | 'end';
 	x: number;
 	y: number;
+	width: number;
+	height: number;
 	dx: number;
 	dy: number;
 }
@@ -25,7 +27,7 @@ export function handleDrag(element: HTMLElement, emit: (event: AgDragEvent) => v
 			{ down: 'mousedown', move: 'mousemove', up: 'mouseup' },
 			{ down: 'touchstart', move: 'touchmove', up: 'touchend', up2: 'touchcancel' },
 		];
-	const emptyRect = { left: 0, top: 0 };
+	const emptyRect = { left: 0, top: 0, width: 0, height: 0 };
 	let rect = emptyRect;
 	let scrollLeft = 0;
 	let scrollTop = 0;
@@ -66,6 +68,8 @@ export function handleDrag(element: HTMLElement, emit: (event: AgDragEvent) => v
 			type,
 			x: x - rect.left + scrollLeft,
 			y: y - rect.top + scrollTop,
+			width: rect.width,
+			height: rect.height,
 			dx: x - startX,
 			dy: y - startY,
 		});

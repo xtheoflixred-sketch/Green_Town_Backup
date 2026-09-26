@@ -369,6 +369,9 @@ export class Model {
 	getAccount() {
 		return this.post<AccountData | { limit: true; } | undefined>('/api1/account', {}, false);
 	}
+	revokeAccountSession(id: string) {
+		return this.post<{ success: boolean }>('/api1/account/sessions/revoke', { id }, false);
+	}
 	getAccountCharacters() {
 		return this.post<PonyObject[]>('/api/account-characters', {});
 	}

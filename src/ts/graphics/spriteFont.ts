@@ -136,32 +136,35 @@ export function drawGradientText(
 	const length = stringToCodesTemp(text);
 	const width = Math.max(1, measureChars(codesBuffer, length, font).w);
 	if (direction === 'vertical') {
-		const height = Math.max(1, font.letterHeight);
-		for (let row = 0; row < height; row++) {
-			const progress = row / height;
-			const color = colorFromRGBA(
-				getR(startColor) + (getR(endColor) - getR(startColor)) * progress,
-				getG(startColor) + (getG(endColor) - getG(startColor)) * progress,
-				getB(startColor) + (getB(endColor) - getB(startColor)) * progress,
-				getAlpha(startColor) + (getAlpha(endColor) - getAlpha(startColor)) * progress,
-			);
-			let currentX = Math.round(x) | 0;
-			let currentY = Math.round(y) | 0;
-			batch.crop(0, currentY + row, Number.MAX_SAFE_INTEGER, 1);
-			for (let i = 0; i < length; i++) {
-				if (codesBuffer[i] === 10) {
-					currentX = Math.round(x) | 0;
-					currentY += font.letterHeight + font.lineSpacing;
-				} else {
-					currentX += drawChar(batch, font, codesBuffer[i], color, currentX, currentY, options) + font.letterSpacing;
-				}
+		const lines = text.split('\n');
+		const lineHeight = font.letterHeight + font.lineSpacing;
+		const glyphHeight = Math.max(1, font.letterHeightReal);
+		const totalHeight = Math.max(1, lines.length * lineHeight - font.lineSpacing);
+		for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+			const lineY = Math.round(y + lineIndex * lineHeight) | 0;
+			for (let row = 0; row < glyphHeight; row++) {
+				const progress = Math.max(0, Math.min(1, (lineIndex * lineHeight + row) / Math.max(1, totalHeight - 1)));
+				const color = colorFromRGBA(
+					getR(startColor) + (getR(endColor) - getR(startColor)) * progress,
+					getG(startColor) + (getG(endColor) - getG(startColor)) * progress,
+					getB(startColor) + (getB(endColor) - getB(startColor)) * progress,
+					getAlpha(startColor) + (getAlpha(endColor) - getAlpha(startColor)) * progress,
+				);
+				batch.crop(0, lineY + font.letterShiftY + row, Number.MAX_SAFE_INTEGER, 1);
+				drawText(batch, lines[lineIndex], font, color, x, lineY, options);
 			}
 		}
 		batch.clearCrop();
 		return;
 	}
 	let currentX = Math.round(x) | 0;
+	let currentY = Math.round(y) | 0;
 	for (let i = 0; i < length; i++) {
+		if (codesBuffer[i] === LINEFEED) {
+			currentX = Math.round(x) | 0;
+			currentY += font.letterHeight + font.lineSpacing;
+			continue;
+		}
 		const progress = Math.max(0, Math.min(1, (currentX - x) / width));
 		const color = colorFromRGBA(
 			getR(startColor) + (getR(endColor) - getR(startColor)) * progress,
@@ -169,7 +172,7 @@ export function drawGradientText(
 			getB(startColor) + (getB(endColor) - getB(startColor)) * progress,
 			getAlpha(startColor) + (getAlpha(endColor) - getAlpha(startColor)) * progress,
 		);
-		currentX += drawChar(batch, font, codesBuffer[i], color, currentX, y, options) + font.letterSpacing;
+		currentX += drawChar(batch, font, codesBuffer[i], color, currentX, currentY, options) + font.letterSpacing;
 	}
 }
 

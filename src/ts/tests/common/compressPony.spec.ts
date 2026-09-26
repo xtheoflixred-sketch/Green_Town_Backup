@@ -73,6 +73,8 @@ function base<T>(black: T, white: T) {
 		customOutlines: false,
 		freeOutlines: false,
 		darkenLockedOutlines: undefined,
+		customShadows: false,
+		shadowColor: undefined,
 		unlockEyelashColor: false,
 		eyelashColor: black,
 		eyelashColorLeft: black,
@@ -202,11 +204,13 @@ describe('compressPony', () => {
 		it('booleans', runTestNumber({
 			customOutlines: true,
 			lockEyes: true,
+			lockIrises: false,
 			lockEyeColor: true,
 			lockCoatOutline: true,
 		}, {
 				customOutlines: true,
 				lockEyes: true,
+				lockIrises: false,
 				lockEyeColor: true,
 				lockCoatOutline: true,
 				coatOutline: undefined,
@@ -347,6 +351,46 @@ function runTestPony(input: Partial<PonyInfo>, expected?: Partial<PonyInfo>) {
 		it('head/flip', runTestPony({ flip: true, headTurned: true, headTurn: 3 }, { flip: true, headTurned: true, headTurn: 3 }));
 
 		it('coatFill', runTestPony({ coatFill: 'ff0000' }, { coatFill: 'ff0000', coatOutline: 'b30000' }));
+
+		it('preserves alpha in coatFill', () => {
+			const result = decompressPonyString(compressPonyString({ coatFill: '6d6d6d80' } as any), false);
+			expect(result.coatFill).equal('6d6d6d80');
+		});
+
+		it('preserves alpha in pony palettes and color map', () => {
+			const input = createBasePony();
+			input.coatFill = '6d6d6d80';
+			input.coatOutline = '20202040';
+			input.customOutlines = true;
+			input.lockCoatOutline = false;
+			input.body!.fills![0] = 'ff000080';
+			input.body!.outlines![0] = '22000040';
+			input.body!.lockFills![0] = false;
+			input.body!.lockOutlines![0] = false;
+			input.cm = ['00ff007f'];
+			const result = decompressPonyString(compressPonyString(input), true);
+
+			expect(result.coatFill).equal('6d6d6d80');
+			expect(result.coatOutline).equal('20202040');
+			expect(result.body!.fills![0]).equal('ff000080');
+			expect(result.body!.outlines![0]).equal('22000040');
+			expect(result.cm![0]).equal('00ff007f');
+		});
+
+		it('preserves custom shadow color without changing pony colors', () => {
+			const input = {
+				coatFill: 'ff0000',
+				eyeColorRight: '00ff00',
+				customShadows: true,
+				shadowColor: '123456',
+			};
+			const result = decompressPonyString(compressPonyString(input as any), false);
+
+			expect(result.coatFill).equal('ff0000');
+			expect(result.eyeColorRight).equal('00ff00');
+			expect(result.customShadows).equal(true);
+			expect(result.shadowColor).equal('123456');
+		});
 
 		it('eyeColorLeft', runTestPony({
 			eyeColorLeft: 'ff00ff',
@@ -600,6 +644,42 @@ it('locked back hooves', runTestPony({
 					lockOutlines: [true, true, true, true, true, true],
 				}
 			}));
+
+		it('preserves different sleeves for each side', runTestPony({
+			chestAccessory: {
+				type: 2,
+				pattern: 0,
+			},
+			unlockSleeveAccessory: true,
+			sleeveAccessory: {
+				type: 1,
+				pattern: 0,
+				fills: ['ff0000'],
+			},
+			sleeveAccessoryRight: {
+				type: 2,
+				pattern: 0,
+				fills: ['00ff00'],
+			},
+		}, {
+			unlockSleeveAccessory: true,
+			sleeveAccessory: {
+				type: 1,
+				pattern: 0,
+				fills: ['ff0000', 'ff0000', 'ff0000', 'ff0000', 'ff0000', 'ff0000'],
+				lockFills: [false, false, false, false, false, false],
+				outlines: ['b30000', 'b30000', 'b30000', 'b30000', 'b30000', 'b30000'],
+				lockOutlines: [true, true, true, true, true, true],
+			},
+			sleeveAccessoryRight: {
+				type: 2,
+				pattern: 0,
+				fills: ['00ff00', '00ff00', '00ff00', '00ff00', '00ff00', '00ff00'],
+				lockFills: [false, false, false, false, false, false],
+				outlines: ['00b300', '00b300', '00b300', '00b300', '00b300', '00b300'],
+				lockOutlines: [true, true, true, true, true, true],
+			},
+		}));
 
 		it('back leg accessory', runTestPony({
 			backLegAccessory: {

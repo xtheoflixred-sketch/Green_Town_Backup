@@ -37,9 +37,9 @@ interface PageOptions {
 function getFiles(urlBase: string, dir: string, sub: string): RevFile[] {
 	try {
 		return fs.readdirSync(path.join(dir, sub))
-			.filter(file => /\.(js|css|png)$/.test(file))
+			.filter(file => /\.(js|css|png|gif)$/.test(file))
 			.map(file => ({
-				name: file.replace(/-[a-f0-9]{10}\.(js|css|png)$/, '.$1'),
+				name: file.replace(/-[a-f0-9]{10}\.(js|css|png|gif)$/, '.$1'),
 				path: path.join(dir, sub, file),
 				url: `${urlBase}/${sub}/${file}`,
 			}));
@@ -107,6 +107,7 @@ export function createIndex(assetsPath: string, adminAssetsPath: string) {
 			contactDiscord: config.contactDiscord,
 			logo: `${config.host}${getRevImageURL('logo-120.png')}`,
 			loadingImage: `data:image/png;base64,${loadingImage.toString('base64')}`,
+			loadingImageURL: `/${getRevImageURL('loading-pony.gif')}`,
 			version,
 			description,
 			base,

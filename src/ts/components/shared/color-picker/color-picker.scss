@@ -26,7 +26,7 @@ $color-picker-box-offset: 5px;
 }
 
 .color-picker-box {
-	background: black;
+	background: transparent;
 	position: absolute;
 	left: $color-picker-box-offset;
 	top: 5px;
@@ -34,7 +34,40 @@ $color-picker-box-offset: 5px;
 	width: 25px;
 	border: solid 1px $border-color;
 	border-radius: 2px;
-	pointer-events: none;
+	cursor: grab;
+	z-index: 1;
+	user-select: none;
+
+	.color-picker-box-checker,
+	.color-picker-box-color {
+		position: absolute;
+		inset: 0;
+		border-radius: 1px;
+		pointer-events: none;
+	}
+
+	.color-picker-box-checker {
+		background-color: #fff;
+		background-image: linear-gradient(45deg, #b8b8b8 25%, transparent 25%), linear-gradient(-45deg, #b8b8b8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #b8b8b8 75%), linear-gradient(-45deg, transparent 75%, #b8b8b8 75%);
+		background-size: 8px 8px;
+		background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+	}
+
+	&.color-picker-box-drop-target {
+		box-shadow: 0 0 0 2px #007bff;
+	}
+
+	&::after {
+		content: '...';
+		position: absolute;
+		right: 2px;
+		bottom: 0;
+		color: rgba(255, 255, 255, .8);
+		font-size: 10px;
+		line-height: 10px;
+		text-shadow: 0 1px 1px rgba(0, 0, 0, .8);
+		pointer-events: none;
+	}
 
 	.disabled > & {
 		opacity: 0.8;
@@ -43,6 +76,53 @@ $color-picker-box-offset: 5px;
 	.indicator > & {
 		left: $color-picker-box-offset + $color-picker-indicator-size;
 	}
+}
+
+.color-picker-name-suggestions {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 1050;
+	min-width: 180px;
+	max-height: 190px;
+	overflow-y: auto;
+	padding: 4px;
+	border: 1px solid rgba(0, 0, 0, .2);
+	border-radius: 3px;
+	background: #fff;
+	box-shadow: 0 4px 10px rgba(0, 0, 0, .3);
+}
+
+.color-picker-name-suggestions.open-up {
+	top: auto;
+	bottom: 100%;
+}
+
+.color-picker-name-suggestion {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	padding: 4px 6px;
+	border: 0;
+	background: transparent;
+	color: #333;
+	font-family: $font-family-monospace;
+	font-size: 12px;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover, &:focus {
+		background: #e9ecef;
+		outline: none;
+	}
+}
+
+.color-picker-name-swatch {
+	width: 14px;
+	height: 14px;
+	margin-right: 6px;
+	border: 1px solid rgba(0, 0, 0, .35);
+	border-radius: 2px;
 }
 
 .color-picker-chevron {
@@ -58,18 +138,193 @@ $color-picker-box-offset: 5px;
 
 .color-picker-menu {
 	@include nipple(10px);
+	box-sizing: border-box;
+	width: $color-picker-sv-width + $color-picker-hue-width + 15px;
+	min-width: $color-picker-sv-width + $color-picker-hue-width + 15px;
+	max-width: $color-picker-sv-width + $color-picker-hue-width + 15px;
 	padding: 5px;
+	display: block;
+}
+
+.color-picker-main {
 	display: flex;
 }
 
-.color-picker.open-up {
-	.color-picker-menu {
-		position: absolute;
-		bottom: 100%;
-		left: 0;
-		top: auto;
-		margin-bottom: 10px;
+.color-picker-horizontal-controls {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+}
+
+.color-picker-settings {
+	width: 100%;
+	padding-top: 3px;
+}
+
+.color-picker-format-controls {
+	margin: 3px 0 2px;
+	width: 100%;
+	max-width: 100%;
+	flex-wrap: nowrap;
+
+	.btn {
+		flex: 1 1 auto;
+		min-width: 0;
+		padding: 2px 4px;
+		font-size: 11px;
+		line-height: 1.35;
 	}
+
+	.btn:nth-last-child(2),
+	.btn:last-of-type {
+		flex: 0 0 25px;
+		padding-left: 0;
+		padding-right: 0;
+	}
+}
+
+.color-picker-clipboard-message {
+	color: #555;
+	font-size: 10px;
+}
+
+.color-picker-horizontal-control {
+	position: relative;
+	width: 100%;
+}
+
+.color-picker-alpha-row {
+	margin-top: 4px;
+}
+
+.color-picker-alpha,
+.color-picker-alpha-row slider-bar {
+	flex: 1;
+	min-width: 0;
+}
+
+.color-picker-brightness-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	margin: 3px 0 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #444 !important;
+	font-size: 12px;
+	line-height: 18px;
+	text-align: center;
+	cursor: pointer;
+
+	&:hover {
+		color: #111 !important;
+		background: transparent;
+	}
+
+	&:focus {
+		color: #111 !important;
+		background: transparent;
+		outline: 1px solid rgba(0, 0, 0, .35);
+	}
+
+	fa-icon {
+		color: inherit !important;
+	}
+}
+
+.color-picker-horizontal-ranges {
+	width: 100%;
+	padding-top: 3px;
+}
+
+.color-picker-range-row {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin-top: 4px;
+}
+
+.color-picker-range-label {
+	flex: 0 0 62px;
+	color: #555;
+	font-size: 10px;
+	line-height: 12px;
+}
+
+.color-picker-range-track {
+	position: relative;
+	flex: 1 1 auto;
+	height: 12px;
+	margin: 0;
+	border: 1px solid rgba(0, 0, 0, .55);
+	box-sizing: border-box;
+	cursor: ew-resize;
+}
+
+.color-wheel-circle-range, .color-wheel-circle-brightness {
+	position: absolute;
+	top: 50%;
+	width: 7px;
+	height: 16px;
+	margin: -8px 0 0 -3px;
+	border: 1px solid #000;
+	box-shadow: 0 0 0 1px #fff;
+	box-sizing: border-box;
+}
+
+.color-picker-popup {
+	position: absolute;
+	top: 100%;
+	left: auto;
+	right: 0;
+	z-index: 1040;
+	width: $color-picker-sv-width + $color-picker-hue-width + 15px;
+
+	.color-picker-menu {
+		position: static;
+		transform: none;
+		margin: 0 !important;
+	}
+
+	&.open-up {
+		top: auto;
+		bottom: 100%;
+		left: auto;
+		right: 0;
+
+		.color-picker-menu {
+			@include nippleLeftFlip();
+		}
+	}
+}
+
+.color-picker-brightness-toggle {
+	position: absolute;
+	left: 4px;
+	bottom: -19px;
+	margin: 0;
+	border: 1px solid rgba(0, 0, 0, .2);
+	border-top: 1px solid rgba(0, 0, 0, .2);
+	border-radius: 0 0 3px 3px;
+	background: #fff;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, .15);
+	z-index: 2;
+
+	&:hover,
+	&:focus {
+		background: #fff;
+	}
+}
+
+.color-picker-popup.open-up .color-picker-brightness-toggle {
+	top: -19px;
+	bottom: auto;
+	border-top: 1px solid rgba(0, 0, 0, .2);
+	border-bottom: 0;
+	border-radius: 3px 3px 0 0;
 }
 
 .color-picker-sv {

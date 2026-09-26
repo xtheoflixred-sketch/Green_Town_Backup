@@ -333,6 +333,10 @@ export function getNameRenderMode(isHovered: boolean, alwaysShowTags: boolean, t
 
 function drawTagLabel(batch: PaletteSpriteBatch, x: number, y: number, palettes: CommonPalettes, tagId?: string, tagColor?: string, allowRawTag = false, tagTranslation?: string, gradientStart?: string, gradientEnd?: string, gradientDirection: TagGradientDirection = 'horizontal') {
 	const isSupporterTag = !!tagId && /^sup[1-4]$/.test(tagId);
+	const builtInGradient = isSupporterTag ? getTagGradient(tagId) : undefined;
+	gradientStart = gradientStart || (builtInGradient && builtInGradient.start);
+	gradientEnd = gradientEnd || (builtInGradient && builtInGradient.end);
+	if (isSupporterTag) gradientDirection = 'vertical';
 	let tag = getTag(tagId, isSupporterTag ? undefined : tagColor);
 
 	if (tag) {

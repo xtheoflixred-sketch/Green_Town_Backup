@@ -43,7 +43,7 @@ function createCookieTable2(x: number, y: number) {
 function createToyStash(x: number, y: number) {
 	return [
 		entities.giftPileSign(x, y - 0.1),
-		createSign(x, y, 'Toy Stash', (_, client) => useToyStash(client), entities.sign),
+		createSign(x, y, 'Toy Stash', (entity, client) => useToyStash(client, entity), entities.sign),
 	];
 }
 
@@ -1045,31 +1045,6 @@ function addSeasonalObjects(world: World, map: ServerMap, season: Season, holida
 		addSnowPile(entities.snowPileSmall(89.22, 2.71));
 	}
 
-	function addXmasTree(x: number, y: number) {
-		x -= 33;
-		y -= 24;
-		addEntities(entities.pine(x + 33, y + 24, 1));
-		add(entities.xmasLights(x + 33, y + 24));
-		add(entities.xmasLight(x + 33.22, y + 24.88));
-		add(entities.xmasLight(x + 33.59, y + 24.04));
-		add(entities.xmasLight(x + 32.28, y + 24.08));
-		add(entities.xmasLight(x + 31.84, y + 24.42));
-		add(entities.xmasLight(x + 30.97, y + 24.00));
-		add(entities.xmasLight(x + 32.31, y + 22.63));
-		add(entities.xmasLight(x + 31.63, y + 21.75));
-		add(entities.xmasLight(x + 32.75, y + 20.92));
-		add(entities.xmasLight(x + 32.19, y + 19.50));
-		add(entities.xmasLight(x + 32.75, y + 18.17));
-		add(entities.xmasLight(x + 33.38, y + 18.42));
-		add(entities.xmasLight(x + 33.38, y + 19.79));
-		add(entities.xmasLight(x + 33.94, y + 20.42));
-		add(entities.xmasLight(x + 33.63, y + 22.33));
-		add(entities.xmasLight(x + 34.00, y + 22.46));
-		add(entities.xmasLight(x + 34.38, y + 21.83));
-		add(entities.xmasLight(x + 35.00, y + 23.63));
-		add(entities.xmasLight(x + 34.56, y + 24.17));
-	}
-
 	function addGraveWithGhost(x: number, y: number, tombType: number) {
 		const tombs = [entities.tombstone1, entities.tombstone2];
 		const tomb = add(tombs[tombType](x, y));
@@ -1383,7 +1358,6 @@ function addSeasonalObjects(world: World, map: ServerMap, season: Season, holida
 		add(entities.boxGifts(donateX + 0.1, donateY + 1.2)).interact = donateGift;
 
 		const xmasTreeY = 49.5, xmasTreeX = 40.25;
-		addXmasTree(33 + xmasTreeX, 24 + xmasTreeY);
 		add(entities.giftPilePine(33 + xmasTreeX, 24.5 + xmasTreeY));
 		add(entities.giftPile6(31.13 + xmasTreeX, 25.13 + xmasTreeY));
 		add(entities.giftPile1(34.75 + xmasTreeX, 25.71 + xmasTreeY));

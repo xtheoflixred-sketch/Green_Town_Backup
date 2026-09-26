@@ -6,8 +6,10 @@ const validPatternColors = [
 	255 << 8, // green
 	255 | (255 << 8), // yellow
 	255 << 16, // blue
-	255 | (255 << 16), // purple
-	(255 << 8) | (255 << 16), // teal
+	255 | (255 << 16), // magenta
+	(255 << 8) | (255 << 16), // cyan
+	173 | (255 << 16), // purple (#ad2cff after mask rounding)
+	255 | (136 << 8), // orange (#ff8808 after mask rounding)
 	255 | (255 << 8) | (255 << 16), // white
 	0, // black
 ];

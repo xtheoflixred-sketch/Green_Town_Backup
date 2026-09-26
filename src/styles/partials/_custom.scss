@@ -411,16 +411,22 @@ tabset.fixed-height {
 	@include media-breakpoint-up(sm) {
 		display: flex;
 		align-items: center;
-		height: 100%;
+		height: auto;
+		min-height: calc(100% - 3.5rem);
 		margin-top: 0;
 		margin-bottom: 0;
 	}
+}
+
+.modal {
+	overflow-y: auto;
 }
 
 .modal-content {
 	max-height: calc(100vh - 1rem);
 	display: flex;
 	flex-direction: column;
+	overflow: visible;
 }
 
 .modal-body {

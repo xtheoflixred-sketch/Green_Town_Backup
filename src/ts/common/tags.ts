@@ -66,14 +66,15 @@ export interface TagGradient {
 }
 
 const tagGradients: { [key: string]: TagGradient } = {
+	sup1: { start: 'f86754', end: 'd94b36', direction: 'vertical' },
 	owner: { start: 'ff9999', end: 'cc0000' },
 	admin: { start: 'ff0000', end: 'cc0000' },
 	wcode: { start: 'ff4242', end: 'cc0000' },
 	builder: { start: '8a8a8a', end: '5a5a5a' },
 	npc: { start: 'f0e68c', end: 'b8ab2a' },
-	sup2: { start: 'ffcd99', end: 'c77305' },
-	sup3: { start: 'fffda4', end: 'fdbb0b' },
-	sup4: { start: 'b8f2c8', end: '196f3d' },
+	sup2: { start: 'ffcd99', end: 'c77305', direction: 'vertical' },
+	sup3: { start: 'fffda4', end: 'fdbb0b', direction: 'vertical' },
+	sup4: { start: 'b8f2c8', end: '196f3d', direction: 'vertical' },
 };
 
 Object.keys(tags).forEach(id => {

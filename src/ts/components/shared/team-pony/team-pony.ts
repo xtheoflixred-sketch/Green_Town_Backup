@@ -6,6 +6,7 @@ import { excite_meno, happy_tongue_meno, stand, boop, happy_tongue_meno_2, yawn 
 import { FrameService, FrameLoop } from '../../services/frameService';
 import { CharacterPreview } from '../character-preview/character-preview';
 import { decompressPonyString } from '../../../common/compressPony';
+import { getTagGradient } from '../../../common/tags';
 
 const DERP: Partial<Expression> = {
 	muzzle: Muzzle.Smile,
@@ -60,6 +61,24 @@ export class TeamPony implements OnInit, OnDestroy, OnChanges {
 
 	get previewTag() {
 		return this.showTag ? this.tag : undefined;
+	}
+	get previewTagColor() {
+		return this.tagColor && !(this.previewTag && /^sup[1-4]$/.test(this.previewTag)) ? this.tagColor : undefined;
+	}
+	get previewTagGradientStart() {
+		const gradient = this.getTagGradientFor(this.previewTag);
+		return this.tagGradientStart || (gradient && gradient.start) || (this.previewPony && this.previewPony.tagGradientStart);
+	}
+	get previewTagGradientEnd() {
+		const gradient = this.getTagGradientFor(this.previewTag);
+		return this.tagGradientEnd || (gradient && gradient.end) || (this.previewPony && this.previewPony.tagGradientEnd);
+	}
+	get previewTagGradientDirection() {
+		const gradient = this.getTagGradientFor(this.previewTag);
+		return this.tagGradientDirection || (gradient && gradient.direction) || (this.previewPony && this.previewPony.tagGradientDirection) || 'horizontal';
+	}
+	getTagGradientFor(tag?: string) {
+		return tag ? getTagGradient(tag) : undefined;
 	}
 	private expression?: Partial<Expression>;
 	private headAnimation?: HeadAnimation;

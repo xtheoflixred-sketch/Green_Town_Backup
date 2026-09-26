@@ -2,7 +2,10 @@ import { Action, EntityState, MessageType, PonyInfo } from '../common/interfaces
 import { createServerDefaultPony } from '../common/ponyInfo';
 import { compressPonyString } from '../common/compressPony';
 import { pony as ponyEntity } from '../common/entities';
-import { DISCORD_PONY, OFFLINE_PONY, SUPPORTER_PONY } from '../common/constants';
+import {
+	DISCORD_PONY, OFFLINE_PONY, TIKTOK_PONY, TELEGRAM_PONY, SUPPORTER_PONY, DEL_PONY, KOKOSIK_PONY, DEFAULT_PONY,
+	HIKA_MIG_PONY, AALIK_PONY, SOFA_PONY, ENOT_PONY, LAI_PONY, KRIF_PONY, REY_SHLAPOCHNIK_PONY
+} from '../common/constants';
 import { ServerEntity, ServerMap } from './serverInterfaces';
 import { World } from './world';
 import { setEntityName, updateEntityState, updateEntityVelocity, sendAction } from './entityUtils';
@@ -113,27 +116,90 @@ export class NPCUtils {
 	}
 
 	spawnDefaultNPCs(map: ServerMap) {
+		const eventWaypoints = (x: number, y: number) => [
+			{ x, y },
+			{ x: x + 2, y },
+			{ x: x + 2, y: y + 2 },
+			{ x: x - 1, y: y + 2 },
+			{ x: x - 1, y },
+		];
+		const extraNPCs = [
+			{
+				id: 'npc-del', name: 'Del Pony', x: 44, y: 36, info: DEL_PONY,
+				phrases: ['Я пришёл проверить подарки, а не подписываться на приключения.', 'Кто положил подарок прямо посреди дороги?', 'Ладно, один подарок я всё-таки возьму.', 'Надеюсь, это не проверка на внимательность.', 'Я всё вижу. Почти всё.'],
+			},
+			{
+				id: 'npc-kokosik', name: 'Kokosik Pony', x: 91, y: 34, info: KOKOSIK_PONY,
+				phrases: ['Ой, тут так красиво стало!', 'Я нашёл подарок! Правда, он уже чей-то?', 'Давайте устроим маленький праздник прямо здесь.', 'Кто-нибудь видел, куда убежал тот весёлый пони?', 'Мне нравится, когда на карте происходит что-то неожиданное.'],
+			},
+			{
+				id: 'npc-default', name: 'Default Pony', x: 112, y: 48, info: DEFAULT_PONY,
+				phrases: ['Я ничего не менял, оно само так получилось.', 'Праздник запущен. Настройки не найдены.', 'Интересно, это уже финальная версия или ещё тестовая?', 'Если что-то сломается, я просто постою рядом.', 'Выглядит знакомо. Но почему тогда подарки?'],
+			},
+			{
+				id: 'npc-hika-mig', name: 'Hika Mig Pony', x: 126, y: 70, info: HIKA_MIG_PONY,
+				phrases: ['Ого, какой сегодня движ!', 'Кто готов бежать наперегонки за подарками?', 'Я видел кое-что интересное на той стороне карты.', 'Не стой на месте, праздник сам себя не исследует.', 'Осень, Новый год и подарки. Сюжет становится интереснее.'],
+			},
+			{
+				id: 'npc-aalik', name: 'Aalik Pony', x: 118, y: 105, info: AALIK_PONY,
+				phrases: ['Тише, я пытаюсь понять, что происходит.', 'У этого праздника определённо есть какая-то тайна.', 'Подарки появились слишком аккуратно. Это подозрительно.', 'Мне кажется, кто-то наблюдает за всеми из-за дерева.', 'Я запишу всё, что увижу. На всякий случай.'],
+			},
+			{
+				id: 'npc-sofa', name: 'Sofa Pony', x: 91, y: 123, info: SOFA_PONY,
+				phrases: ['Я бы пошёл за подарками, но место уже идеально удобное.', 'Кто-нибудь может принести подарок сюда?', 'Праздник отличный. Особенно если смотреть на него сидя.', 'Я ненадолго прилёг. Возможно, до конца ивента.', 'Если меня ищут, скажите, что я занят отдыхом.'],
+			},
+			{
+				id: 'npc-enot', name: 'Enot Pony', x: 52, y: 126, info: ENOT_PONY,
+				phrases: ['Я нашёл подарок! А теперь он почему-то исчез.', 'Не знаю, кто это устроил, но тут явно есть чем поживиться.', 'Проверяю кусты на наличие сюрпризов.', 'Если подарок блестит, это ещё не значит, что его можно брать.', 'Я ничего не крал. Я проводил исследование.'],
+			},
+			{
+				id: 'npc-lai', name: 'Lai Pony', x: 30, y: 104, info: LAI_PONY,
+				phrases: ['Как тихо... и вдруг подарки.', 'Я люблю праздники, в которых можно просто гулять.', 'Карта сегодня выглядит совсем иначе.', 'Интересно, заметит ли кто-нибудь, если я возьму один подарок?', 'Пожалуй, останусь здесь ещё ненадолго.'],
+			},
+			{
+				id: 'npc-krif', name: 'Krif Pony', x: 27, y: 66, info: KRIF_PONY,
+				phrases: ['Так, кто включил Новый год раньше времени?', 'Я требую объяснений. И один подарок за ожидание.', 'Не переживайте, я всё контролирую.', 'Почему все бегают, будто началась распродажа?', 'Ладно, признаю: выглядит весело.'],
+			},
+			{
+				id: 'npc-rey-shlapochnik', name: 'Rey Shlapochnik', x: 35, y: 28, info: REY_SHLAPOCHNIK_PONY,
+				phrases: ['Шляпа говорит, что праздник начался.', 'Не спрашивайте, почему осень. Так задумано.', 'Я видел пони, который искал подарок под подарком.', 'Если услышите странный звук, это, скорее всего, я.', 'Очень достойное событие для небольшой юбилейной даты.'],
+			},
+			{
+				id: 'npc-tiktok', name: 'TikTok Pony', x: 142, y: 42, info: TIKTOK_PONY,
+				phrases: ['Так, это срочно надо снять!', 'Подарки, осень и Новый год одновременно? Контент сам себя не сделает.', 'Кто-нибудь, повторите этот момент, я не успел записать.', 'Если я сейчас станцую рядом с подарком, это станет трендом?', 'Подпишитесь на меня, пока я ищу самый красивый подарок.'],
+			},
+			{
+				id: 'npc-telegram', name: 'Telegram Pony', x: 42, y: 140, info: TELEGRAM_PONY,
+				phrases: ['Я уже отправил сообщение, но никто не ответил.', 'Кто-нибудь видел новости про этот праздник?', 'Сюда бы канал с расписанием появления подарков.', 'Не забудьте проверить закреплённое сообщение.', 'Осень подтверждена. Новогодний ивент тоже подтверждён.'],
+			},
+		];
 		const definitions: NPCDefinition[] = [
 			{
 				id: 'npc-sleepy',
 				name: 'Offline Pony',
-				x: 15,
-				y: 17,
+				x: 73,
+				y: 73,
 				map,
 				info: OFFLINE_PONY,
 				behavior: {
 					waypoints: [
-						{ x: 15, y: 17 },
-						{ x: 19, y: 17 },
-						{ x: 20, y: 20 },
-						{ x: 16, y: 22 },
-						{ x: 13, y: 19 },
+						{ x: 73, y: 73 },
+						{ x: 75, y: 73 },
+						{ x: 75, y: 75 },
+						{ x: 72, y: 75 },
+						{ x: 72, y: 72 },
 					],
-					phrases: ['Мне нужен короткий отдых.', 'Здесь так спокойно, что хочется вздремнуть.', 'Лучшее место для сна — в тишине.'],
-					liePoint: { x: 13, y: 19 },
-					restTime: [28, 42],
-					lyingTime: [30, 48],
-					speakInterval: [18, 30],
+					phrases: [
+						'Я хотел немного поспать, но тут кто-то опять ищет подарки.',
+						'А? Помочь собрать подарки? Нет, я лучше ещё полежу.',
+						'Праздник хороший, если можно наблюдать за ним из удобного места.',
+						'Я видел сон про Новый год. Странно, ведь на улице осень.',
+						'Разбудите меня, если найдёте что-то действительно интересное.',
+					],
+					liePoint: { x: 72, y: 72 },
+					restTime: [28, 42] as [number, number],
+					lyingTime: [30, 48] as [number, number],
+					speakInterval: [36, 60] as [number, number],
 					actions: [Action.Sleep, Action.Yawn, Action.Lie],
 
 				},
@@ -141,26 +207,28 @@ export class NPCUtils {
 			{
 				id: 'npc-support',
 				name: 'Support Pony',
-				x: 12,
-				y: 18,
+				x: 73,
+				y: 73,
 				map,
 				info: SUPPORTER_PONY,
 				behavior: {
 					waypoints: [
-						{ x: 12, y: 18 },
-						{ x: 18, y: 16 },
-						{ x: 22, y: 18 },
-						{ x: 20, y: 22 },
-						{ x: 14, y: 22 },
+						{ x: 73, y: 73 },
+						{ x: 76, y: 73 },
+						{ x: 76, y: 76 },
+						{ x: 73, y: 76 },
+						{ x: 71, y: 74 },
 					],
 					phrases: [
-						'Ты отлично справляешься!',
-						'Я всегда готов помочь.',
-						'Здесь очень уютно, заходи ещё.',
+						'Ого, сколько всего происходит! Давайте не будем стоять без дела.',
+						'Если кому-то нужна помощь, зовите. Только сначала я закончу отдыхать.',
+						'Подарки уже заметили? Отлично, значит праздник работает.',
+						'Я не знаю, кто это устроил, но настроение стало заметно лучше.',
+						'Давайте сделаем вид, что мы всё понимаем, и просто повеселимся.',
 					],
-					sitPoint: { x: 20, y: 22 },
-					restTime: [22, 32],
-					speakInterval: [8, 16],
+					sitPoint: { x: 76, y: 76 },
+					restTime: [22, 32] as [number, number],
+					speakInterval: [16, 32] as [number, number],
 					actions: [Action.Laugh, Action.Blush, Action.TurnHead],
 
 				},
@@ -168,30 +236,44 @@ export class NPCUtils {
 			{
 				id: 'npc-discord',
 				name: 'Discord Pony',
-				x: 18,
-				y: 12,
+				x: 58,
+				y: 22,
 				map,
 				info: DISCORD_PONY,
 				behavior: {
 					waypoints: [
-						{ x: 18, y: 12 },
-						{ x: 24, y: 14 },
-						{ x: 20, y: 20 },
-						{ x: 15, y: 16 },
-						{ x: 18, y: 22 },
+						{ x: 58, y: 22 },
+						{ x: 61, y: 22 },
+						{ x: 61, y: 25 },
+						{ x: 57, y: 25 },
+						{ x: 56, y: 22 },
 					],
 					phrases: [
-						'Заходи в наш Discord — там весело!',
-						'Там всегда найдётся компания для беседы.',
-						'Новые друзья ждут тебя прямо сейчас.',
+						'Заходи в наш Discord, там можно обсудить, что здесь вообще происходит.',
+						'Кто-нибудь уже написал про этот праздник в Discord?',
+						'Если найдёшь странный подарок, расскажи всем. Такие истории нам нужны.',
+						'Мне нравится, что весь мир сегодня немного не понимает сам себя.',
+						'Осень с новогодним ивентом? Это точно стоит обсудить.',
 					],
-					sitPoint: { x: 18, y: 22 },
-					restTime: [20, 30],
-					speakInterval: [10, 18],
+					sitPoint: { x: 61, y: 25 },
+					restTime: [20, 30] as [number, number],
+					speakInterval: [20, 36] as [number, number],
 					actions: [Action.TurnHead, Action.Laugh, Action.Excite],
 
 				},
 			},
+			...extraNPCs.map(npc => ({
+				...npc,
+				map,
+				behavior: {
+					waypoints: eventWaypoints(npc.x, npc.y),
+					phrases: npc.phrases,
+					sitPoint: { x: npc.x + 2, y: npc.y + 2 },
+					restTime: [8, 16] as [number, number],
+					speakInterval: [28, 56] as [number, number],
+					actions: [Action.TurnHead, Action.Laugh, Action.Excite, Action.Dance1],
+				},
+			})),
 		];
 
 		return definitions.map(definition => this.createAndRegisterNPC(definition));

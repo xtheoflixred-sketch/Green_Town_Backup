@@ -2,16 +2,16 @@ import { compact } from 'lodash';
 import {
 	Expression, ExpressionButtonAction, CommandButtonAction, ActionButtonAction, ItemButtonAction,
 	ColorShadow, Eye, Muzzle, Iris, ButtonActionSlot, ExpressionExtra, ButtonAction, ChatType, MessageType, BodyAnimation, EntityFlags,
-	Action, isPartyChat, EntityButtonAction, defaultDrawOptions, HeadAnimationProperties, EntityState, NoDraw, MapFlags
+	Action, DoAction, isPartyChat, EntityButtonAction, defaultDrawOptions, HeadAnimationProperties, EntityState, NoDraw, MapFlags
 } from '../common/interfaces';
 import * as sprites from '../generated/sprites';
 import { createExpression, getSaysTime } from './clientUtils';
 import { encodeExpression, decodeExpression } from '../common/encoders/expressionEncoder';
 import { PonyTownGame } from './game';
-import { boopAction, dance1Action, upAction, downAction, turnHeadAction, interact, getInteractTarget } from './playerActions';
+import { boopAction, dance1Action, danceAction, toggleWingAction, upAction, downAction, turnHeadAction, interact, getInteractTarget, standBackAction } from './playerActions';
 import { ACTIONS_LIMIT, COMMAND_ACTION_TIME_DELAY } from '../common/constants';
 import { cloneDeep, hasFlag, toInt } from '../common/utils';
-import { boop, defaultHeadFrame, stand, sneeze, yawn, lie, sit, fly, laugh, kiss, excite, dance1, trot } from './ponyAnimations';
+import { boop, defaultHeadFrame, stand, standBack, raise_the_wing, close_the_wing, sneeze, yawn, lie, sit, fly, laugh, kiss, excite, dance1, dance_2, clapping1_0, dance_3, trot } from './ponyAnimations';
 import { createDefaultPony, syncLockedPonyInfo, toPalette, mockPaletteManager } from '../common/ponyInfo';
 import { isFacingRight } from '../common/entityUtils';
 import {
@@ -24,7 +24,7 @@ import { defaultPonyState, defaultDrawPonyOptions } from './ponyHelpers';
 import { drawHead, drawPony } from './ponyDraw';
 import { parseColor, toGrayscale, colorToHexRGB } from '../common/color';
 import { rect, addRects, centerPoint } from '../common/rect';
-import { drawTextAligned, HAlign, VAlign } from '../graphics/spriteFont';
+import { drawTextAligned, drawOutlinedText, HAlign, VAlign } from '../graphics/spriteFont';
 import { fontPal } from '../client/fonts';
 import { isPonyLying, isPonySitting, isPonyStanding, isPonyFlying, canBoop } from '../common/entityUtils';
 import { canPonyFly } from '../common/pony';
@@ -137,6 +137,7 @@ const bodyActions = [
 	actionButtonAction('boop', 'Boop'),
 	actionButtonAction('down', 'Sit down / Land'),
 	actionButtonAction('up', 'Stand up / Fly up'),
+	actionButtonAction('wing-toggle', 'Open / close wing'),
 	actionButtonAction('turn-head', 'Turn head'),
 	actionButtonAction('magic', 'Magic', Action.Magic),
 	actionButtonAction('zoom-out', 'Zoom out'),
@@ -157,6 +158,10 @@ const bodyActions = [
 	actionButtonAction('open', 'Open gift'),
 	actionButtonAction('open-own-profile', 'Open own profile'),
 	actionButtonAction('dance-1', 'Dance 1'),
+	actionButtonAction('dance-2', 'Dance 2'),
+	actionButtonAction('clapping1-0', 'Clapping'),
+	actionButtonAction('dance-3', 'Dance 3'),
+	actionButtonAction('stand-back', 'Stand back'),
 ];
 
 const buildingToolActions = [
@@ -559,6 +564,15 @@ export function useAction(game: PonyTownGame, action: ButtonAction | undefined) 
 						case 'dance-1':
 							dance1Action(game);
 							break;
+						case 'dance-2':
+							danceAction(game, Action.Dance2, DoAction.Dance2);
+							break;
+						case 'clapping1-0':
+							danceAction(game, Action.Clapping1_0, DoAction.Clapping1_0);
+							break;
+						case 'dance-3':
+							danceAction(game, Action.Dance3, DoAction.Dance3);
+							break;
 						case 'up':
 							upAction(game);
 							break;
@@ -567,6 +581,12 @@ export function useAction(game: PonyTownGame, action: ButtonAction | undefined) 
 							break;
 						case 'turn-head':
 							turnHeadAction(game);
+							break;
+						case 'stand-back':
+							standBackAction(game);
+							break;
+						case 'wing-toggle':
+							toggleWingAction(game);
 							break;
 						case 'open-own-profile':
 							if (game.player) {
@@ -714,6 +734,8 @@ export function isActionAvailable(game: PonyTownGame, action: ButtonAction | und
 			return game.scale > game.getZoomBounds().min + 1e-6;
 		case 'dance-1':
 			return !!player && canBoop(player);
+		case 'wing-toggle':
+			return !!player && !!player.palettePonyInfo && !!player.palettePonyInfo.wings && !!player.palettePonyInfo.wings.type;
 		case 'interact':
 			return !!player && (!!getInteractTarget(game) || player.hold === hammer.type || player.hold === shovel.type ||
 				!!player.ponyState.holding && hasFlag(player.ponyState.holding.flags, EntityFlags.Usable));
@@ -765,6 +787,14 @@ function shouldRedrawAction(action: ButtonAction | undefined, state: any, game: 
 						const headTurned = !!game.player && hasFlag(game.player.state, EntityState.HeadTurned);
 						return state.headTurned !== headTurned;
 					}
+					case 'stand-back': {
+						const enabled = !!game.player && !!game.player.options && !!game.player.options.standBack;
+						return state.standBack !== enabled;
+					}
+					case 'wing-toggle': {
+						const enabled = !!game.player && !!game.player.options && !!game.player.options.wingOpen;
+						return state.wingOpen !== enabled;
+					}
 					default:
 						return false;
 				}
@@ -785,6 +815,11 @@ function drawCanvasCached(key: string, action: (batch: ContextSpriteBatch) => vo
 	const canvas = canvasCache.get(key) || drawCanvas(ICON_SIZE, ICON_SIZE, sprites.paletteSpriteSheet, undefined, action);
 	canvasCache.set(key, canvas);
 	return canvas;
+}
+
+function drawActionLabel(batch: ContextSpriteBatch, label: string) {
+	const bounds = rect(0, 7, 6, 6);
+	drawOutlinedText(batch, label, fontPal, BLACK, WHITE, bounds.x, bounds.y, { palette, emojiPalette });
 }
 
 export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | undefined, state: any, game: PonyTownGame) {
@@ -887,19 +922,59 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 						drawPony(batch, previewPony, ponyState, 15, 40, defaultDrawPonyOptions());
 					});
 				} else {
+					const standBackEnabled = !!game.player && !!game.player.options && !!game.player.options.standBack;
+					const wingOpen = !!game.player && !!game.player.options && !!game.player.options.wingOpen;
+					state.standBack = standBackEnabled;
+					state.wingOpen = wingOpen;
 					const cacheKey = action.action === 'turn-head'
 						? `action:${action.action}:${!!game.player && hasFlag(game.player.state, EntityState.HeadTurned)}`
-						: `action:${action.action}`;
+						: action.action === 'stand-back'
+							? `action:${action.action}:${standBackEnabled}`
+							: action.action === 'wing-toggle'
+								? `action:${action.action}:${wingOpen}`
+							: `action:${action.action}`;
 					buffer = drawCanvasCached(cacheKey, batch => {
 						switch (action.action) {
+							case 'stand-back': {
+								const ponyState = { ...createState(), animation: standBack, animationFrame: 16 };
+								drawPony(batch, actionPony, ponyState, 5, 15, defaultDrawPonyOptions());
+								drawActionLabel(batch, 'S');
+								break;
+							}
+							case 'wing-toggle': {
+								const wingAnimation = wingOpen ? close_the_wing : raise_the_wing;
+								const ponyState = { ...createState(), animation: wingAnimation, animationFrame: 0 };
+								drawPony(batch, actionPonyWithWings, ponyState, wingOpen ? -1 : 3, wingOpen ? 32 : 27, defaultDrawPonyOptions());
+								batch.drawSprite(wingOpen ? sprites.arrow_down : sprites.arrow_up, BLACK, defaultPalette, 12, 1);
+								break;
+							}
 							case 'boop': {
 								const state = { ...createState(), animation: headlessBoop, animationFrame: 0 };
 								drawPony(batch, actionPony, state, 25, 32, defaultDrawPonyOptions());
 								break;
 							}
 							case 'dance-1': {
-								const state = { ...createState(), animation: dance1, animationFrame: 5 };
-								drawPony(batch, actionPony, state, 18, 40, defaultDrawPonyOptions());
+								const state = { ...createState(), animation: dance1, animationFrame: 15 };
+								drawPony(batch, actionPony, state, 5, 15, defaultDrawPonyOptions());
+								drawActionLabel(batch, '1');
+								break;
+							}
+							case 'dance-2': {
+								const state = { ...createState(), animation: dance_2, animationFrame: 3 };
+								drawPony(batch, actionPony, state, 5, 15, defaultDrawPonyOptions());
+								drawActionLabel(batch, '2');
+								break;
+							}
+							case 'clapping1-0': {
+								const state = { ...createState(), animation: clapping1_0, animationFrame: 8 };
+								drawPony(batch, actionPony, state, 5, 15, defaultDrawPonyOptions());
+								drawActionLabel(batch, 'C');
+								break;
+							}
+							case 'dance-3': {
+								const state = { ...createState(), animation: dance_3, animationFrame: 2 };
+								drawPony(batch, actionPony, state, 5, 15, defaultDrawPonyOptions());
+								drawActionLabel(batch, '3');
 								break;
 							}
 							case 'turn-head': {
@@ -1151,7 +1226,8 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 					break;
 				}
 
-				const entities = types.map(type => createAnEntity(type, 0, 0, 0, {}, mockPaletteManager, game));
+				const previewWorldState = { ...game, season: game.season } as any;
+				const entities = types.map(type => createAnEntity(type, 0, 0, 0, {}, mockPaletteManager, previewWorldState));
 				const bounds = compact(entities.map(e => e.bounds)).reduce(addRects, rect(0, 0, 0, 0));
 
 				if (!bounds.w || !bounds.h) {
@@ -1176,7 +1252,11 @@ export function drawAction(canvas: HTMLCanvasElement, action: ButtonAction | und
 						if (entity.draw) {
 							entity.x += toWorldX(offsetX);
 							entity.y += toWorldY(offsetY);
-							entity.draw(batch, { ...defaultDrawOptions, shadowColor: TRANSPARENT });
+							entity.draw(batch, {
+								...defaultDrawOptions,
+								season: game.season,
+								shadowColor: TRANSPARENT,
+							});
 						}
 					}
 					batch.restore();

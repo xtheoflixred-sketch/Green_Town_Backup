@@ -558,8 +558,10 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 			return;
 		}
 		const rect = typeBox.getBoundingClientRect();
+		const menuWidth = Math.min(240, Math.max(140, window.innerWidth - 16));
+		const left = Math.max(8, Math.min(rect.left - 10, window.innerWidth - menuWidth - 8));
 		this.chatTypeMenuStyle = {
-			left: `${Math.max(12, rect.left - 10)}px`,
+			left: `${left}px`,
 			top: `${Math.max(10, rect.top - 12)}px`,
 			transform: 'translateY(-100%)',
 		};
@@ -738,7 +740,7 @@ export class ChatBox implements AfterViewInit, OnDestroy {
 		this.updateTypingIndicator();
 	}
 
-	private updateMarkdownSelection() {
+	updateMarkdownSelection() {
 		if (this.markdownSelecting) return;
 		const el = this.inputElement && this.inputElement.nativeElement as HTMLElement;
 		const selection = window.getSelection();

@@ -182,7 +182,7 @@ import { ErrorReporter } from '../components/services/errorReporter';
 import { mockPaletteManager } from '../common/ponyInfo';
 import { timeStart, timeEnd, timingCollate, timeReset } from './timing';
 import { createFrameBuffer, bindFrameBuffer, unbindFrameBuffer, disposeFrameBuffer } from '../graphics/webgl/frameBuffer';
-import { setActiveGameSession, removeActiveGameSession } from '../common/accountSessionUtils';
+import { setActiveGameSession, removeActiveGameSession, isActiveGameSessionRevoked, clearRevokedGameSession } from '../common/accountSessionUtils';
 import { WebGL, initWebGL, disposeWebGL, initWebGLResources } from './webgl';
 import { bindTexture } from '../graphics/webgl/texture2d';
 import { normalSpriteSheet, paletteSpriteSheet, defaultPalette } from '../generated/sprites';
@@ -450,6 +450,7 @@ export class PonyTownGame implements Game {
 	onSearch = new Subject<void>();
 	onCommand = new Subject<void>();
 	onOpenTestModal = new Subject<void>();
+	onOpenToyModal = new Subject<void>();
 	onOpenGameCharacter = new Subject<void>();
 	onCancel = () => false;
 	onClock = new BehaviorSubject<string>('');
@@ -1198,7 +1199,16 @@ window.addEventListener('resize', () => {
 		this.gameSessionId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 		const startedAt = Date.now();
 		this.gameSessionStartedAt = startedAt;
-		const update = () => setActiveGameSession(this.model.account!.id, this.gameSessionId!, startedAt);
+		const update = () => {
+			const accountId = this.model.account!.id;
+			const sessionId = this.gameSessionId!;
+			if (isActiveGameSessionRevoked(accountId, sessionId)) {
+				clearRevokedGameSession(accountId, sessionId);
+				this.leave();
+				return;
+			}
+			setActiveGameSession(accountId, sessionId, startedAt);
+		};
 		update();
 		this.gameSessionHeartbeat = setInterval(update, 1000);
 		window.addEventListener('beforeunload', () => this.stopGameSessionHeartbeat(), { once: true });
@@ -3345,8 +3355,8 @@ window.addEventListener('resize', () => {
 		   const leftIrisMode = this.irisModeActive ? this.irisMode.left : getIrisModeForEye(current, 'left');
 		   const rightIrisMode = this.irisModeActive ? this.irisMode.right : getIrisModeForEye(current, 'right');
 
-			   const leftModeIris = applyIrisMode(iris, leftIrisMode);
-			   const rightModeIris = applyIrisMode(iris, rightIrisMode);
+		       const leftModeIris = applyIrisMode(iris, leftIrisMode);
+		       const rightModeIris = applyIrisMode(iris, rightIrisMode);
 
 		       const adjustedIrisLeft = adjustIrisForEye(baseLeft, leftModeIris);
 		       const adjustedIrisRight = adjustIrisForEye(baseRight, rightModeIris);

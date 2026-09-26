@@ -4,7 +4,7 @@ import { cleanName, validatePonyName } from '../../client/clientUtils';
 import { Reporter, LogAccountMessage } from '../serverInterfaces';
 import { toPonyObject } from '../serverUtils';
 import { isForbiddenName } from '../../common/security';
-import { colorToHexRGB } from '../../common/color';
+import { colorToHexRGB, colorToHexRGBA, getAlpha } from '../../common/color';
 import { IAccount, FindCharacter, FindAuth, CharacterCount, ID, CreateCharacter, ICharacter } from '../db';
 import { isBadCM } from '../cmUtils';
 import { UserError } from '../userError';
@@ -15,7 +15,8 @@ import { getCharacterLimit } from '../accountUtils';
 import { PLAYER_DESC_MAX_LENGTH } from '../../common/constants';
 
 function colorToText(c: number): string {
-	return c ? colorToHexRGB(c) : '';
+	if (!c) return '';
+	return getAlpha(c) === 255 ? colorToHexRGB(c) : colorToHexRGBA(c);
 }
 
 export type UpdateCharacterCount = (accountId: ID) => Promise<void>;
@@ -70,7 +71,7 @@ export const createSavePony =
 				// 	reporter.danger(`Pony info does not match after re-compression`, `original: ${data.info}\nre-compressed: ${info}`);
 				// }
 
-				const badCM = isBadCM(deco.cm && deco.cm.map(colorToText) || [], colorToHexRGB(deco.coatFill!));
+				const badCM = isBadCM(deco.cm && deco.cm.map(colorToText) || [], colorToText(deco.coatFill!));
 				const forbiddenName = isForbiddenName(data.name);
 				const flags =
 					(badCM ? CharacterFlags.BadCM : 0) |

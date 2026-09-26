@@ -1,7 +1,7 @@
 import '../lib';
 import { expect } from 'chai';
 import {
-	getR, getG, getB, getAlpha, colorToRGBA, colorToHSVA, colorToCSS, colorToHexRGB, colorToFloatArray,
+	getR, getG, getB, getAlpha, colorToRGBA, colorToHSVA, colorToCSS, colorToHexRGB, colorToHexRGBA, colorToFloatArray,
 	colorToFloat, colorFromRGBA, colorFromHSVA, colorFromHSVAObject, parseColorFast, parseColor,
 	parseColorWithAlpha, makeTransparent, lerpColors, h2rgb, hsv2rgb, rgb2hsv, colorToFloatAlpha,
 	multiplyColor, withAlphaFloat, withAlpha
@@ -70,6 +70,12 @@ describe('color', () => {
 		});
 	});
 
+	describe('colorToHexRGBA()', () => {
+		it('returns RGBA hex code', () => {
+			expect(colorToHexRGBA(0x12345678)).equal('12345678');
+		});
+	});
+
 	describe('colorToFloatArray()', () => {
 		it('returns values of r, g, b, a as array of floats', () => {
 			expect(Array.from(colorToFloatArray(0x123456ff)))
@@ -123,6 +129,10 @@ describe('color', () => {
 			expect(parseColorFast('123456')).equal(0x123456ff);
 		});
 
+		it('preserves alpha in 8-digit hex code', () => {
+			expect(parseColorFast('12345678')).equal(0x12345678);
+		});
+
 		it('parses any other color format as opaque color', () => {
 			expect(parseColorFast('rgba(255, 0, 1, 0.5)')).equal(0xff0001ff);
 		});
@@ -144,6 +154,10 @@ describe('color', () => {
 
 		it('parses short form hex code', () => {
 			expect(parseColor('#123')).equal(0x112233ff);
+		});
+
+		it('parses short form hex code with alpha', () => {
+			expect(parseColor('#1234')).equal(0x11223344);
 		});
 
 		it('parses hex code', () => {
